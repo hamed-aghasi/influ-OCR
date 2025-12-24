@@ -1,0 +1,35 @@
+# Virtual environment
+venv/
+env/
+
+# Cache and temporary files
+__pycache__/
+*.pyc
+*.pyo
+temp/
+tmp/
+logs/
+
+# Extracted frames and processed data
+extracted_frames/
+extracted_frames_old/
+test_*/
+frames_*/
+
+# Test files
+test_integration.py
+debug_imports.py
+classification_report.json
+*_extraction_state.json
+*_extraction_summary.json
+
+# IDE files
+.vscode/
+.idea/
+*.local.json
+
+# Environment files with sensitive data
+.env
+
+# Documentation
+*.md

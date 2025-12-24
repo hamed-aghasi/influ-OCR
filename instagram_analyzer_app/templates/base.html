@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Instagram Analyzer</title>
+    <link rel="stylesheet" href="/static/style.css">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="/">Instagram Analyzer</a>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Upload</a>
+            <a href="/jobs" class="nav-link">Jobs</a>
+            <a href="/export" class="nav-link btn-export">Export Excel</a>
+            {% if user %}
+            <span class="nav-user">{{ user }}</span>
+            <a href="/logout" class="nav-link btn-logout">Logout</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>Instagram Analyzer v1.0.0</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "training_date": "2025-12-23T13:53:38.753402",
+  "model_version": "v1",
+  "architecture": "MobileNetV2_transfer_learning",
+  "input_shape": [
+    224,
+    224,
+    3
+  ],
+  "validation_accuracy": 1.0,
+  "epochs_trained": 20,
+  "final_metrics": {
+    "val_accuracy": 1.0,
+    "val_loss": 1.5583787899231538e-05
+  },
+  "labels": {
+    "0": "bad_frame",
+    "1": "good_frame"
+  }
+}

@@ -1,0 +1,28 @@
+# Virtual environments
+venv/
+ven/
+ENV/
+.venv/
+
+# Environment files (secrets set in Liara dashboard)
+.env
+.env.local
+
+# Logs and temp files
+logs/
+temp/
+*.log
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db

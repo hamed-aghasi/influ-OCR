@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h1>All Jobs</h1>
+    <p>View and manage all processed campaigns</p>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+    <a href="/jobs" class="filter-btn {% if not status_filter %}active{% endif %}">All</a>
+    <a href="/jobs?status=completed" class="filter-btn {% if status_filter == 'completed' %}active{% endif %}">Completed</a>
+    <a href="/jobs?status=processing" class="filter-btn {% if status_filter == 'processing' %}active{% endif %}">Processing</a>
+    <a href="/jobs?status=failed" class="filter-btn {% if status_filter == 'failed' %}active{% endif %}">Failed</a>
+    <a href="/export" class="btn btn-primary" style="margin-left: auto;">Export to Excel</a>
+</div>
+
+{% if jobs %}
+<div class="card">
+    <table class="jobs-table">
+        <thead>
+            <tr>
+                <th>Campaign</th>
+                <th>Company</th>
+                <th>Product</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Frames</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in jobs %}
+            <tr>
+                <td>
+                    <strong>{{ job.campaign_name }}</strong>
+                    <br>
+                    <small class="text-muted">{{ job.filename }}</small>
+                </td>
+                <td>{{ job.company }}</td>
+                <td>{{ job.product_name }}</td>
+                <td>{{ job.campaign_date }}</td>
+                <td>
+                    {% if job.status == 'completed' %}
+                    <span class="badge badge-success">Completed</span>
+                    {% elif job.status == 'processing' %}
+                    <span class="badge badge-warning">Processing</span>
+                    {% elif job.status == 'failed' %}
+                    <span class="badge badge-danger">Failed</span>
+                    {% else %}
+                    <span class="badge badge-secondary">{{ job.status }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if job.total_frames %}
+                    <span class="highlight-good">{{ job.good_frames or 0 }}</span> /
+                    {{ job.total_frames }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    <small>{{ job.created_at.strftime('%Y-%m-%d %H:%M') if job.created_at else '-' }}</small>
+                </td>
+                <td>
+                    <a href="/status/{{ job.id }}" class="btn btn-small">View</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card empty-state">
+    <div class="empty-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+    </div>
+    <h3>No jobs found</h3>
+    <p>{% if status_filter %}No jobs with status "{{ status_filter }}"{% else %}Upload a campaign to get started{% endif %}</p>
+    <a href="/" class="btn btn-primary">Upload Campaign</a>
+</div>
+{% endif %}
+{% endblock %}

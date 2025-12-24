@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block head %}
+{% if auto_refresh %}
+<meta http-equiv="refresh" content="5">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Job Status</h1>
+    <p>Job ID: <code>{{ job.id }}</code></p>
+</div>
+
+<div class="card status-card">
+    <!-- Status Badge -->
+    <div class="status-header">
+        {% if job.status == 'processing' %}
+        <div class="status-badge status-processing">
+            <span class="spinner"></span>
+            Processing
+        </div>
+        <p class="status-message">Your file is being processed. This page will auto-refresh.</p>
+        {% elif job.status == 'completed' %}
+        <div class="status-badge status-completed">
+            Completed
+        </div>
+        <p class="status-message">Processing completed successfully!</p>
+        {% elif job.status == 'failed' %}
+        <div class="status-badge status-failed">
+            Failed
+        </div>
+        <p class="status-message">{{ job.error_message or 'An error occurred during processing.' }}</p>
+        {% else %}
+        <div class="status-badge status-pending">
+            Pending
+        </div>
+        <p class="status-message">Job is queued for processing.</p>
+        {% endif %}
+    </div>
+
+    <!-- Campaign Information -->
+    <div class="info-section">
+        <h3>Campaign Information</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Campaign Date</span>
+                <span class="info-value">{{ job.campaign_date }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Campaign Name</span>
+                <span class="info-value">{{ job.campaign_name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Product Name</span>
+                <span class="info-value">{{ job.product_name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Company</span>
+                <span class="info-value">{{ job.company }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Filename</span>
+                <span class="info-value">{{ job.filename }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">File Type</span>
+                <span class="info-value">{{ job.file_type }}</span>
+            </div>
+        </div>
+    </div>
+
+    {% if job.status == 'completed' %}
+    <!-- Processing Results -->
+    <div class="info-section">
+        <h3>Processing Results</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Total Frames</span>
+                <span class="info-value">{{ job.total_frames or 0 }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Good Frames</span>
+                <span class="info-value highlight-good">{{ job.good_frames or 0 }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Bad Frames</span>
+                <span class="info-value highlight-bad">{{ job.bad_frames or 0 }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Processing Time</span>
+                <span class="info-value">{{ job.processing_time_seconds or 0 }} seconds</span>
+            </div>
+        </div>
+    </div>
+
+    {% if job.metrics_json and job.metrics_json.summary %}
+    <!-- Instagram Metrics -->
+    <div class="info-section">
+        <h3>Instagram Metrics</h3>
+        <div class="metrics-grid">
+            {% for metric_name, metric_data in job.metrics_json.summary.items() %}
+            <div class="metric-card">
+                <span class="metric-name">{{ metric_name | replace('_', ' ') | title }}</span>
+                <span class="metric-value">{{ metric_data.max | int }}</span>
+                <span class="metric-label">Max</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Timestamps -->
+    <div class="info-section timestamps">
+        <div class="info-item">
+            <span class="info-label">Created</span>
+            <span class="info-value">{{ job.created_at }}</span>
+        </div>
+        {% if job.completed_at %}
+        <div class="info-item">
+            <span class="info-label">Completed</span>
+            <span class="info-value">{{ job.completed_at }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="page-actions">
+    <a href="/" class="btn btn-secondary">Upload Another</a>
+    <a href="/jobs" class="btn btn-secondary">View All Jobs</a>
+</div>
+{% endblock %}
