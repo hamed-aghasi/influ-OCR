@@ -15,7 +15,8 @@ import tempfile
 import subprocess
 from typing import Dict, List, Optional, Tuple
 
-from .logger import setup_logger, get_logger
+from .config import settings
+from .logger import get_logger, job_logger
 
 logger = get_logger(__name__)
 
@@ -142,7 +143,7 @@ def extract_frames_from_video(
                         f.write(encoded_img.tobytes())
                     saved_count += 1
                     frame_paths.append(frame_path)
-            except Exception as e:
+            except OSError as e:
                 logger.error(f"Failed to save frame: {e}")
 
         frame_count += 1
@@ -153,7 +154,7 @@ def extract_frames_from_video(
     if temp_720p_video and temp_720p_video.exists():
         try:
             temp_720p_video.unlink()
-        except:
+        except OSError:
             pass
 
     # Save metadata
@@ -203,7 +204,7 @@ def process_video_from_zip(
                 "output": str(output_folder)
             }
 
-    except Exception as e:
+    except (zipfile.BadZipFile, OSError) as e:
         logger.error(f"Error processing {video_name}: {e}")
         return {
             "type": "video",
@@ -221,9 +222,7 @@ def process_campaign_zip(
     job_id: Optional[str] = None
 ) -> Dict:
     """Process entire campaign ZIP file."""
-    global logger
-    if job_id:
-        logger = setup_logger(__name__, job_id)
+    log = job_logger(__name__, job_id)
 
     if output_base is None:
         output_base = Path(os.getenv('OUTPUT_BASE', '/tmp/extracted_frames'))
@@ -231,7 +230,7 @@ def process_campaign_zip(
     original_name = zip_path.stem
     campaign_name = job_id if job_id else sanitize_filename(original_name)
 
-    logger.info(f"Processing campaign: {campaign_name}")
+    log.info(f"Processing campaign: {campaign_name}")
 
     with zipfile.ZipFile(zip_path, 'r') as zf:
         all_files = zf.namelist()
@@ -239,13 +238,13 @@ def process_campaign_zip(
                       if f.lower().endswith(('.mp4', '.avi', '.mov', '.mkv'))
                       and not f.startswith('__MACOSX')]
 
-    logger.info(f"Found {len(video_files)} videos")
+    log.info(f"Found {len(video_files)} videos")
 
     results = []
     all_frame_paths = []
 
     for idx, video_name in enumerate(video_files, 1):
-        logger.info(f"Processing video {idx}/{len(video_files)}: {video_name}")
+        log.info(f"Processing video {idx}/{len(video_files)}: {video_name}")
         result = process_video_from_zip(zip_path, video_name, idx, output_base, campaign_name)
         results.append(result)
         if result["status"] == "success":
@@ -264,10 +263,13 @@ def process_campaign_zip(
         "successful": len([r for r in results if r["status"] == "success"]),
         "results": results
     }
-    with open(summary_path, 'w') as f:
-        json.dump(summary_data, f, indent=2)
+    try:
+        with open(summary_path, 'w') as f:
+            json.dump(summary_data, f, indent=2)
+    except OSError as e:
+        log.warning(f"Could not write campaign summary: {e}")
 
-    logger.info(f"Campaign extraction complete: {campaign_name}")
+    log.info(f"Campaign extraction complete: {campaign_name}")
 
     return {
         "results": results,

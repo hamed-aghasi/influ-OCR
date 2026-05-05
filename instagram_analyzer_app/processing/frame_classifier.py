@@ -13,52 +13,39 @@ import json
 import os
 from typing import List, Dict, Any, Optional, Tuple
 
-from .logger import setup_logger, get_logger
+import threading
+
+from .config import settings
+from .logger import get_logger, job_logger
 
 logger = get_logger(__name__)
 
-# Global model cache
 _cached_model = None
-
-# Configuration
-IMAGE_SIZE = (224, 224)
-THRESHOLD = 0.65
-VERY_DARK_THRESHOLD = 80
+_model_lock = threading.Lock()
 
 
 def load_model():
     """Load the classification model (SavedModel format)."""
     global _cached_model
-
     if _cached_model is not None:
         return _cached_model
+    with _model_lock:
+        if _cached_model is not None:
+            return _cached_model
 
-    # Determine model path
-    script_dir = Path(__file__).parent.parent.resolve()
-    model_dir = script_dir / 'models'
+        savedmodel_path = settings.model_dir / 'frame_classifier_savedmodel'
+        if not savedmodel_path.exists():
+            logger.error(f"SavedModel not found at: {savedmodel_path}")
+            return None
 
-    env_model_dir = os.getenv('MODEL_DIR')
-    if env_model_dir:
-        env_path = Path(env_model_dir)
-        if not env_path.is_absolute():
-            env_path = script_dir / env_model_dir
-        model_dir = env_path.resolve()
-
-    savedmodel_path = model_dir / 'frame_classifier_savedmodel'
-
-    if not savedmodel_path.exists():
-        logger.error(f"SavedModel not found at: {savedmodel_path}")
-        return None
-
-    try:
-        import keras
-        logger.info(f"Loading SavedModel from {savedmodel_path}")
-        _cached_model = keras.layers.TFSMLayer(str(savedmodel_path), call_endpoint='serving_default')
-        logger.info("Model loaded successfully")
-        return _cached_model
-    except Exception as e:
-        logger.error(f"Failed to load model: {e}")
-        return None
+        try:
+            import keras
+            logger.info(f"Loading SavedModel from {savedmodel_path}")
+            _cached_model = keras.layers.TFSMLayer(str(savedmodel_path), call_endpoint='serving_default')
+            return _cached_model
+        except (ImportError, OSError) as e:
+            logger.error(f"Failed to load model: {e}")
+            return None
 
 
 def preprocess_image(img: np.ndarray) -> Optional[np.ndarray]:
@@ -67,17 +54,14 @@ def preprocess_image(img: np.ndarray) -> Optional[np.ndarray]:
         return None
 
     try:
-        # Adjust dark frames
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        if np.mean(gray) < VERY_DARK_THRESHOLD:
+        if np.mean(gray) < settings.dark_frame_threshold:
             img = cv2.convertScaleAbs(img, alpha=1.5, beta=40)
-
-        # Resize and normalize
-        img_resized = cv2.resize(img, IMAGE_SIZE)
+        size = settings.classifier_image_size
+        img_resized = cv2.resize(img, (size, size))
         img_normalized = img_resized.astype(np.float32) / 255.0
         return np.expand_dims(img_normalized, axis=0)
-
-    except Exception as e:
+    except cv2.error as e:
         logger.error(f"Preprocessing failed: {e}")
         return None
 
@@ -114,10 +98,10 @@ def classify_frame(frame_path: Path, model: Any = None) -> Tuple[Optional[str], 
             pred_np = prediction.numpy() if hasattr(prediction, 'numpy') else prediction
             confidence = float(pred_np[0][0]) if len(pred_np.shape) > 1 else float(pred_np[0])
 
-        label = "GOOD" if confidence > THRESHOLD else "BAD"
+        label = "GOOD" if confidence > settings.classifier_threshold else "BAD"
         return label, confidence
 
-    except Exception as e:
+    except (OSError, RuntimeError, ValueError) as e:
         logger.error(f"Error processing {frame_path.name}: {e}")
         return None, 0.0
 
@@ -129,9 +113,7 @@ def classify_frames(
     job_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """Classify multiple frames."""
-    global logger
-    if job_id:
-        logger = setup_logger(__name__, job_id)
+    log = job_logger(__name__, job_id)
 
     start_time = datetime.now()
 
@@ -143,7 +125,7 @@ def classify_frames(
             'total_frames': len(frame_paths)
         }
 
-    logger.info(f"Classifying {len(frame_paths)} frames")
+    log.info(f"Classifying {len(frame_paths)} frames")
 
     good_frames, bad_frames, failed_frames = [], [], []
 
@@ -161,7 +143,7 @@ def classify_frames(
             failed_frames.append({**frame_info, 'error': 'Processing failed'})
 
         if i % 50 == 0 or i == len(frame_paths):
-            logger.info(f"Progress: {i}/{len(frame_paths)} - Good:{len(good_frames)} Bad:{len(bad_frames)}")
+            log.info(f"Progress: {i}/{len(frame_paths)} - Good:{len(good_frames)} Bad:{len(bad_frames)}")
 
     # Organize files
     if organize_files and output_dir:
@@ -187,10 +169,10 @@ def classify_frames(
         try:
             with open(output_dir / "classification_summary.json", 'w') as f:
                 json.dump(results['statistics'], f, indent=2)
-        except:
-            pass
+        except OSError as e:
+            log.warning(f"Could not write classification summary: {e}")
 
-    logger.info(f"Classification complete: Good={len(good_frames)}, Bad={len(bad_frames)}")
+    log.info(f"Classification complete: Good={len(good_frames)}, Bad={len(bad_frames)}")
     return results
 
 
@@ -206,13 +188,13 @@ def _organize_files(good_frames: List[Dict], bad_frames: List[Dict], output_dir:
         if src.exists():
             try:
                 shutil.copy2(src, good_folder / src.name)
-            except:
-                pass
+            except (OSError, IOError) as e:
+                logger.warning(f"Could not copy {src}: {e}")
 
     for frame_info in bad_frames:
         src = Path(frame_info['path'])
         if src.exists():
             try:
                 shutil.copy2(src, bad_folder / src.name)
-            except:
-                pass
+            except (OSError, IOError) as e:
+                logger.warning(f"Could not copy {src}: {e}")

@@ -14,14 +14,14 @@ import os
 import re
 import zipfile
 from pathlib import Path
-import shutil
 from typing import Optional
 
+import aiofiles
 from dotenv import load_dotenv
 load_dotenv()
 
 from processing.config import settings
-from processing.logger import setup_logger, get_logger
+from processing.logger import get_logger, job_logger
 from processing import (
     init_database, create_job, update_job_status, save_job_metrics,
     get_all_jobs, get_job_by_id, export_to_excel,
@@ -30,7 +30,7 @@ from processing import (
 from processing.db_client import create_user, verify_user, get_user_count
 from processing.s3_storage import download_json, get_file_url, is_s3_configured
 
-logger = setup_logger('main')
+logger = get_logger("main")
 
 # Initialize FastAPI app
 app = FastAPI(title="Instagram Analyzer", version="1.0.0")
@@ -201,11 +201,11 @@ async def handle_upload(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format")
 
-    # Save uploaded file with size cap.
+    # Save uploaded file with size cap, async streaming.
     upload_path = UPLOAD_DIR / f"{job_id}{file_ext}"
     bytes_written = 0
     try:
-        with open(upload_path, "wb") as buffer:
+        async with aiofiles.open(upload_path, "wb") as out:
             while True:
                 chunk = await file.read(1024 * 1024)
                 if not chunk:
@@ -220,11 +220,11 @@ async def handle_upload(
                         status_code=413,
                         detail=f"File too large (max {settings.max_upload_bytes // (1024 * 1024)} MB)",
                     )
-                buffer.write(chunk)
+                await out.write(chunk)
         logger.info(f"File saved: {upload_path}")
     except HTTPException:
         raise
-    except Exception as e:
+    except OSError as e:
         logger.error(f"Failed to save file: {e}")
         raise HTTPException(status_code=500, detail="Failed to save file")
 

@@ -15,17 +15,11 @@ from typing import Dict, List, Optional, Tuple
 from pydantic import BaseModel, Field
 from enum import Enum
 
-from .logger import setup_logger, get_logger
+from .config import settings
+from .logger import get_logger, job_logger
 from .s3_storage import upload_json, is_s3_configured
 
 logger = get_logger(__name__)
-
-# API Configuration
-API_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "google/gemini-3-flash-preview"
-BATCH_SIZE = 50
-DELAY_BETWEEN_REQUESTS = 2
-MAX_RETRIES = 5
 
 
 # Pydantic Models (simplified)
@@ -104,7 +98,7 @@ def encode_images_batch(image_paths: List[Path]) -> List[Tuple[str, str]]:
         try:
             with open(path, "rb") as f:
                 encoded.append((path.name, base64.b64encode(f.read()).decode('utf-8')))
-        except Exception as e:
+        except OSError as e:
             logger.error(f"Failed to encode {path}: {e}")
     return encoded
 
@@ -123,16 +117,19 @@ def call_gemini_api(encoded_images: List[Tuple[str, str]], api_key: str) -> Opti
         content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_img}"}})
 
     data = {
-        "model": MODEL,
+        "model": settings.openrouter_model,
         "messages": [{"role": "user", "content": content}],
         "temperature": 0.1,
         "max_tokens": 4000
     }
 
-    for attempt in range(MAX_RETRIES):
+    for attempt in range(settings.ocr_max_retries):
         try:
             logger.info(f"Sending batch of {len(encoded_images)} images to API...")
-            response = requests.post(API_URL, headers=headers, json=data, timeout=60)
+            response = requests.post(
+                settings.openrouter_url, headers=headers, json=data,
+                timeout=settings.ocr_request_timeout,
+            )
 
             if response.status_code == 200:
                 content_text = response.json()['choices'][0]['message']['content']
@@ -148,8 +145,8 @@ def call_gemini_api(encoded_images: List[Tuple[str, str]], api_key: str) -> Opti
                     validated = []
                     for frame_data in raw_data:
                         try:
-                            validated.append(FrameResult(**frame_data).dict())
-                        except:
+                            validated.append(FrameResult(**frame_data).model_dump())
+                        except (TypeError, ValueError):
                             validated.append(frame_data)
                     if validated:
                         logger.info(f"Validated {len(validated)} frames")
@@ -166,15 +163,11 @@ def call_gemini_api(encoded_images: List[Tuple[str, str]], api_key: str) -> Opti
 
         except requests.exceptions.Timeout:
             logger.error(f"Attempt {attempt + 1}: Request timed out")
-            if attempt < MAX_RETRIES - 1:
+            if attempt < settings.ocr_max_retries - 1:
                 time.sleep(5)
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Attempt {attempt + 1}: Connection error - {e}")
-            if attempt < MAX_RETRIES - 1:
-                time.sleep(5)
-        except Exception as e:
-            logger.error(f"Attempt {attempt + 1} failed: {type(e).__name__}: {e}")
-            if attempt < MAX_RETRIES - 1:
+            if attempt < settings.ocr_max_retries - 1:
                 time.sleep(5)
 
     logger.error("All API attempts failed - returning None")
@@ -210,11 +203,9 @@ def process_frames(
     job_id: Optional[str] = None
 ) -> Dict:
     """Process frames to extract Instagram metrics using Gemini."""
-    global logger
-    if job_id:
-        logger = setup_logger(__name__, job_id)
+    log = job_logger(__name__, job_id)
 
-    api_key = os.getenv('OPENROUTER_API_KEY')
+    api_key = settings.openrouter_api_key
     if not api_key:
         logger.error("OPENROUTER_API_KEY not set")
         return {"error": "API key not configured", "total_frames": len(frame_paths)}
@@ -223,8 +214,8 @@ def process_frames(
 
     all_results, unique_results = [], []
 
-    for batch_start in range(0, len(frame_paths), BATCH_SIZE):
-        batch_end = min(batch_start + BATCH_SIZE, len(frame_paths))
+    for batch_start in range(0, len(frame_paths), settings.ocr_batch_size):
+        batch_end = min(batch_start + settings.ocr_batch_size, len(frame_paths))
         batch_frames = frame_paths[batch_start:batch_end]
 
         logger.info(f"Processing batch: frames {batch_start}-{batch_end-1}")
@@ -247,7 +238,7 @@ def process_frames(
                     unique_results.append(result)
 
         if batch_end < len(frame_paths):
-            time.sleep(DELAY_BETWEEN_REQUESTS)
+            time.sleep(settings.ocr_delay_seconds)
 
     final_metrics = {
         "extraction_date": datetime.now().isoformat(),

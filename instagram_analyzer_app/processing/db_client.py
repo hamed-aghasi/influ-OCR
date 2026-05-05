@@ -6,31 +6,65 @@ Supports in-memory storage for local testing.
 """
 
 import os
+import threading
+from contextlib import contextmanager
 from datetime import datetime, date
 import json
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Iterator
 from pathlib import Path
 import io
 
+from .config import settings
 from .logger import get_logger
 
 logger = get_logger(__name__)
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+_memory_lock = threading.RLock()
 _memory_jobs: Dict[str, Dict] = {}
 _memory_metrics: Dict[str, Dict] = {}
 _memory_users: Dict[str, Dict] = {}
 
+_pool = None
+_pool_lock = threading.Lock()
+
 
 def is_database_available() -> bool:
-    return DATABASE_URL is not None and DATABASE_URL.strip() != ""
+    return settings.database_configured
 
 
-def get_connection():
-    if not is_database_available():
-        return None
-    import psycopg2
-    return psycopg2.connect(DATABASE_URL)
+def _get_pool():
+    global _pool
+    if _pool is not None:
+        return _pool
+    with _pool_lock:
+        if _pool is not None:
+            return _pool
+        if not is_database_available():
+            return None
+        from psycopg2.pool import ThreadedConnectionPool
+        _pool = ThreadedConnectionPool(
+            minconn=settings.db_pool_min,
+            maxconn=settings.db_pool_max,
+            dsn=settings.database_url,
+        )
+        return _pool
+
+
+@contextmanager
+def get_connection() -> Iterator[Any]:
+    """Yield a pooled Postgres connection. Commits on clean exit, rolls back on error."""
+    pool = _get_pool()
+    if pool is None:
+        raise RuntimeError("Database not configured")
+    conn = pool.getconn()
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        pool.putconn(conn)
 
 
 def init_database():
