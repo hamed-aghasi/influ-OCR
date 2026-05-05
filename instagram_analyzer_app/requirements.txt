@@ -15,6 +15,7 @@ tensorflow>=2.15.0
 # Image/Video processing
 opencv-python-headless>=4.8.0
 Pillow>=10.0.0
+imagehash>=4.3.1
 
 # API calls
 requests>=2.31.0

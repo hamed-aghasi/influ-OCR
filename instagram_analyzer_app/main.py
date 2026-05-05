@@ -21,13 +21,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from processing.config import settings
+from processing.errors import APIError, api_error_handler
 from processing.logger import get_logger, job_logger
 from processing import (
-    init_database, create_job, update_job_status, save_job_metrics,
+    create_job, update_job_status, save_job_metrics,
     get_all_jobs, get_job_by_id, export_to_excel,
-    process_campaign_zip, classify_frames, extract_metrics_from_good_frames
+    process_campaign_zip, classify_frames, extract_metrics_from_paths,
 )
-from processing.db_client import create_user, verify_user, get_user_count
+from processing.db_client import create_user, verify_user, get_user_count, init_database
 from processing.s3_storage import download_json, get_file_url, is_s3_configured
 
 logger = get_logger("main")
@@ -37,6 +38,7 @@ app = FastAPI(title="Instagram Analyzer", version="1.0.0")
 
 # Session signing key is now required (>=16 chars) via settings.
 app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
+app.add_exception_handler(APIError, api_error_handler)
 
 # Setup templates and static files
 BASE_DIR = Path(__file__).parent
@@ -153,12 +155,12 @@ def _validate_zip(zip_path: Path) -> None:
         with zipfile.ZipFile(zip_path) as zf:
             entries = zf.infolist()
     except zipfile.BadZipFile as exc:
-        raise HTTPException(400, "Invalid ZIP file") from exc
+        raise APIError(400, "Invalid ZIP file") from exc
     if len(entries) > settings.max_zip_entries:
-        raise HTTPException(400, f"ZIP has too many entries ({len(entries)})")
+        raise APIError(400, f"ZIP has too many entries ({len(entries)})")
     total = sum(e.file_size for e in entries)
     if total > settings.max_zip_uncompressed_bytes:
-        raise HTTPException(400, f"ZIP would expand to {total} bytes")
+        raise APIError(400, f"ZIP would expand to {total} bytes")
 
 
 @app.post("/upload")
@@ -179,12 +181,12 @@ async def handle_upload(
     # Validate extension allowlist.
     file_ext = Path(file.filename or "").suffix.lower()
     if file_ext not in ALLOWED_EXTS:
-        raise HTTPException(status_code=400, detail=f"File type not allowed")
+        raise APIError(400, "File type not allowed")
 
     # Sniff magic bytes to ensure contents match extension.
     header = await file.read(64)
     if not _sniff_ok(header, file_ext):
-        raise HTTPException(status_code=400, detail="File contents do not match extension")
+        raise APIError(400, "File contents do not match extension")
     await file.seek(0)
 
     # Determine file type
@@ -199,7 +201,7 @@ async def handle_upload(
     try:
         campaign_date_parsed = datetime.strptime(campaign_date, '%Y-%m-%d').date()
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format")
+        raise APIError(400, "Invalid date format (expected YYYY-MM-DD)")
 
     # Save uploaded file with size cap, async streaming.
     upload_path = UPLOAD_DIR / f"{job_id}{file_ext}"
@@ -216,22 +218,19 @@ async def handle_upload(
                         upload_path.unlink(missing_ok=True)
                     except OSError:
                         pass
-                    raise HTTPException(
-                        status_code=413,
-                        detail=f"File too large (max {settings.max_upload_bytes // (1024 * 1024)} MB)",
-                    )
+                    raise APIError(413, f"File too large (max {settings.max_upload_bytes // (1024 * 1024)} MB)")
                 await out.write(chunk)
         logger.info(f"File saved: {upload_path}")
-    except HTTPException:
+    except APIError:
         raise
     except OSError as e:
         logger.error(f"Failed to save file: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save file")
+        raise APIError(500, "Failed to save file")
 
     if file_type == 'zip':
         try:
             _validate_zip(upload_path)
-        except HTTPException:
+        except APIError:
             try:
                 upload_path.unlink(missing_ok=True)
             except OSError:
@@ -271,19 +270,19 @@ async def process_job(job_id: str, file_path: Path, file_type: str):
         total_frames = len(frame_paths)
         logger.info(f"Extracted {total_frames} frames")
 
-        # Step 2: Classify frames
-        good_frames, bad_frames = [], []
+        # Step 2: Classify frames (no longer copies to good/ + bad/ folders)
+        good_paths, good_frames, bad_frames = [], [], []
         if frame_paths:
-            result = classify_frames(frame_paths, organize_files=True, output_dir=output_dir, job_id=job_id)
+            result = classify_frames(frame_paths, output_dir=output_dir, job_id=job_id)
+            good_paths = result.get('good_paths', [])
             good_frames = result.get('good_frames', [])
             bad_frames = result.get('bad_frames', [])
         logger.info(f"Classified: {len(good_frames)} good, {len(bad_frames)} bad")
 
-        # Step 3: Extract metrics with OCR
+        # Step 3: Extract metrics with OCR (perceptual-hash dedup happens inside)
         ocr_results = None
-        good_folder = output_dir / "good"
-        if good_folder.exists() and list(good_folder.glob("*.jpg")):
-            ocr_results = extract_metrics_from_good_frames(good_folder, output_dir, job_id)
+        if good_paths:
+            ocr_results = extract_metrics_from_paths(good_paths, output_dir, job_id)
             logger.info(f"OCR completed: {ocr_results.get('unique_frames', 0)} unique frames")
 
         # Save metrics
@@ -315,7 +314,7 @@ async def status_page(request: Request, job_id: str, user: str = Depends(require
     """Show job status page."""
     job = get_job_by_id(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise APIError(404, "Job not found")
     return templates.TemplateResponse("status.html", {
         "request": request, "title": "Job Status", "job": job,
         "auto_refresh": job.get('status') == 'processing', "user": user
@@ -337,7 +336,7 @@ async def export_excel(user: str = Depends(require_auth)):
     """Export all jobs to Excel."""
     excel_data = export_to_excel()
     if not excel_data:
-        raise HTTPException(status_code=500, detail="Failed to generate Excel")
+        raise APIError(500, "Failed to generate Excel")
     filename = f"campaign_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     return StreamingResponse(
         iter([excel_data]),
@@ -357,7 +356,7 @@ async def get_job_api(job_id: str, user: str = Depends(require_auth)):
     """API endpoint to get job details."""
     job = get_job_by_id(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise APIError(404, "Job not found")
     return job
 
 
@@ -365,11 +364,11 @@ async def get_job_api(job_id: str, user: str = Depends(require_auth)):
 async def get_job_metrics(job_id: str, user: str = Depends(require_auth)):
     """Get JSON metrics for a job from S3."""
     if not is_s3_configured():
-        raise HTTPException(status_code=503, detail="S3 storage not configured")
+        raise APIError(503, "S3 storage not configured")
 
     metrics = download_json(job_id)
     if not metrics:
-        raise HTTPException(status_code=404, detail="Metrics not found")
+        raise APIError(404, "Metrics not found")
 
     return JSONResponse(content=metrics)
 
@@ -378,11 +377,11 @@ async def get_job_metrics(job_id: str, user: str = Depends(require_auth)):
 async def download_job_metrics(job_id: str, user: str = Depends(require_auth)):
     """Get a presigned URL to download metrics JSON from S3."""
     if not is_s3_configured():
-        raise HTTPException(status_code=503, detail="S3 storage not configured")
+        raise APIError(503, "S3 storage not configured")
 
     url = get_file_url(job_id, "instagram_metrics.json", expires_in=3600)
     if not url:
-        raise HTTPException(status_code=404, detail="Metrics not found")
+        raise APIError(404, "Metrics not found")
 
     return RedirectResponse(url=url)
 

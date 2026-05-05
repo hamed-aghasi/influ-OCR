@@ -15,6 +15,7 @@ from pathlib import Path
 import io
 
 from .config import settings
+from .errors import APIError
 from .logger import get_logger
 
 logger = get_logger(__name__)
@@ -263,8 +264,11 @@ def get_all_jobs(limit: int = 100, offset: int = 0, status_filter: str = None) -
 def export_to_excel(output_path: Optional[Path] = None) -> Optional[bytes]:
     """Export all jobs to Excel format."""
     try:
-        import openpyxl
-        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        try:
+            import openpyxl
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        except ImportError as exc:
+            raise APIError(500, "openpyxl not installed") from exc
 
         jobs = get_all_jobs(limit=10000)
         if not jobs:
