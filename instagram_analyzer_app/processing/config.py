@@ -5,6 +5,7 @@ previously scattered across modules live here. Import as
 `from .config import settings`.
 """
 
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
@@ -34,6 +35,11 @@ class Settings(BaseSettings):
     db_pool_min: int = 2
     db_pool_max: int = 10
 
+    # ----- Background work -----
+    redis_url: str = "redis://redis:6379/0"
+    celery_broker_url: Optional[str] = None
+    celery_result_backend: Optional[str] = None
+
     # ----- OCR -----
     openrouter_api_key: Optional[str] = None
     openrouter_url: str = "https://openrouter.ai/api/v1/chat/completions"
@@ -54,10 +60,14 @@ class Settings(BaseSettings):
     convert_to_720p: bool = True
     ffmpeg_timeout_seconds: int = 600
 
+    # ----- Dedup -----
+    perceptual_hash_size: int = 8
+    perceptual_hash_distance: int = 4
+
     # ----- Upload guards -----
-    max_upload_bytes: int = 500 * 1024 * 1024
+    max_upload_bytes: int = 500 * 1024 * 1024  # 500 MB
     max_zip_entries: int = 2_000
-    max_zip_uncompressed_bytes: int = 2 * 1024 * 1024 * 1024
+    max_zip_uncompressed_bytes: int = 2 * 1024 * 1024 * 1024  # 2 GB
 
     # ----- Storage -----
     upload_dir: Path = Path("/tmp/uploads")
@@ -69,6 +79,14 @@ class Settings(BaseSettings):
     liara_access_key: Optional[str] = None
     liara_secret_key: Optional[str] = None
     liara_bucket_name: Optional[str] = None
+
+    @property
+    def broker_url(self) -> str:
+        return self.celery_broker_url or self.redis_url
+
+    @property
+    def result_backend(self) -> str:
+        return self.celery_result_backend or self.redis_url
 
     @property
     def s3_configured(self) -> bool:
@@ -86,4 +104,9 @@ class Settings(BaseSettings):
         return bool(self.database_url and self.database_url.strip())
 
 
-settings = Settings()
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()

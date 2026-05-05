@@ -1,29 +1,17 @@
-services:
-  app:
-    build:
-      context: ./instagram_analyzer_app
-    image: influ-ocr:latest
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql://analyzer:analyzer@postgres:5432/instagram_analyzer
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      SECRET_KEY: ${SECRET_KEY:-change-this-secret-key-in-production}
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
-      LIARA_ENDPOINT: ${LIARA_ENDPOINT:-}
-      LIARA_ACCESS_KEY: ${LIARA_ACCESS_KEY:-}
-      LIARA_SECRET_KEY: ${LIARA_SECRET_KEY:-}
-      LIARA_BUCKET_NAME: ${LIARA_BUCKET_NAME:-}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - uploads:/tmp/uploads
-      - processing:/tmp/processing
-      - logs:/tmp/logs
-    restart: unless-stopped
+x-app-env: &app-env
+  DATABASE_URL: postgresql://analyzer:analyzer@postgres:5432/instagram_analyzer
+  REDIS_URL: redis://redis:6379/0
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+  OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemini-2.5-flash}
+  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env (>= 16 chars)}
+  ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+  LIARA_ENDPOINT: ${LIARA_ENDPOINT:-}
+  LIARA_ACCESS_KEY: ${LIARA_ACCESS_KEY:-}
+  LIARA_SECRET_KEY: ${LIARA_SECRET_KEY:-}
+  LIARA_BUCKET_NAME: ${LIARA_BUCKET_NAME:-}
 
+services:
   postgres:
     image: postgres:16-alpine
     environment:
@@ -39,6 +27,67 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: ./instagram_analyzer_app
+    image: influ-ocr:latest
+    command: alembic upgrade head
+    environment: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: ./instagram_analyzer_app
+    image: influ-ocr:latest
+    ports:
+      - "8000:8000"
+    environment: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - uploads:/tmp/uploads
+      - processing:/tmp/processing
+      - logs:/tmp/logs
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./instagram_analyzer_app
+    image: influ-ocr:latest
+    command: celery -A celery_app.celery worker --loglevel=info --concurrency=2
+    environment: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - uploads:/tmp/uploads
+      - processing:/tmp/processing
+      - logs:/tmp/logs
     restart: unless-stopped
 
 volumes:
