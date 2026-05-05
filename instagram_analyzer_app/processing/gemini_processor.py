@@ -115,7 +115,6 @@ def call_gemini_api(encoded_images: List[Tuple[str, str]], api_key: str) -> Opti
         logger.error("API key is empty or None!")
         return None
 
-    logger.info(f"API key present: {api_key[:20]}...{api_key[-10:]}")
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     content = [{"type": "text", "text": EXTRACTION_PROMPT}]

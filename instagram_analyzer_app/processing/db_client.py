@@ -315,10 +315,48 @@ def export_to_excel(output_path: Optional[Path] = None) -> Optional[bytes]:
 # ============ User Authentication Functions ============
 
 def _hash_password(password: str) -> str:
-    """Hash password using SHA256 with salt."""
+    """Hash password using bcrypt."""
+    import bcrypt
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def _verify_password(password: str, stored_hash: str) -> bool:
+    """Verify against bcrypt OR legacy SHA-256 (so old admin still logs in once)."""
+    if not stored_hash:
+        return False
+    if stored_hash.startswith("$2"):
+        import bcrypt
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+        except ValueError:
+            return False
     import hashlib
-    salt = "instagram_analyzer_salt_2024"
-    return hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
+    legacy = hashlib.sha256(f"instagram_analyzer_salt_2024{password}".encode()).hexdigest()
+    return legacy == stored_hash
+
+
+def _is_legacy_hash(stored_hash: str) -> bool:
+    return bool(stored_hash) and not stored_hash.startswith("$2")
+
+
+def _update_user_password(username: str, password: str) -> None:
+    """Rehash and persist a user's password (used for legacy migration)."""
+    new_hash = _hash_password(password)
+    if not is_database_available():
+        user = _memory_users.get(username)
+        if user:
+            user["password_hash"] = new_hash
+        return
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE users SET password_hash=%s WHERE username=%s",
+                    (new_hash, username),
+                )
+                conn.commit()
+    except Exception as e:
+        logger.error(f"Rehash failed for {username}: {e}")
 
 
 def create_user(username: str, password: str) -> bool:
@@ -353,14 +391,17 @@ def create_user(username: str, password: str) -> bool:
 
 
 def verify_user(username: str, password: str) -> bool:
-    """Verify user credentials."""
-    password_hash = _hash_password(password)
-
+    """Verify user credentials. Migrates legacy SHA-256 hashes on success."""
     if not is_database_available():
         user = _memory_users.get(username)
-        if user and user['password_hash'] == password_hash:
-            return True
-        return False
+        if not user:
+            return False
+        stored = user["password_hash"]
+        if not _verify_password(password, stored):
+            return False
+        if _is_legacy_hash(stored):
+            _update_user_password(username, password)
+        return True
 
     try:
         with get_connection() as conn:
@@ -370,9 +411,14 @@ def verify_user(username: str, password: str) -> bool:
                     (username,)
                 )
                 result = cur.fetchone()
-                if result and result[0] == password_hash:
-                    return True
-                return False
+                if not result:
+                    return False
+                stored = result[0]
+                if not _verify_password(password, stored):
+                    return False
+                if _is_legacy_hash(stored):
+                    _update_user_password(username, password)
+                return True
     except Exception as e:
         logger.error(f"Failed to verify user: {e}")
         return False

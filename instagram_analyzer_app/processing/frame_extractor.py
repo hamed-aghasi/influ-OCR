@@ -33,9 +33,9 @@ def sanitize_filename(name: str) -> str:
 def check_ffmpeg() -> bool:
     """Check if ffmpeg is installed."""
     try:
-        result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True)
+        result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True, timeout=10)
         return result.returncode == 0
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
 
 
@@ -62,7 +62,14 @@ def convert_to_720p(input_path: Path, output_path: Path) -> bool:
         ]
 
         logger.info(f"Converting video to 720p...")
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        from .config import settings
+        try:
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=settings.ffmpeg_timeout_seconds,
+            )
+        except subprocess.TimeoutExpired:
+            logger.error("ffmpeg timed out after %ds", settings.ffmpeg_timeout_seconds)
+            return False
 
         if result.returncode == 0:
             logger.info("720p conversion successful")

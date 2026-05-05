@@ -12,6 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from datetime import datetime, date
 import os
 import re
+import zipfile
 from pathlib import Path
 import shutil
 from typing import Optional
@@ -19,6 +20,7 @@ from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
 
+from processing.config import settings
 from processing.logger import setup_logger, get_logger
 from processing import (
     init_database, create_job, update_job_status, save_job_metrics,
@@ -33,9 +35,8 @@ logger = setup_logger('main')
 # Initialize FastAPI app
 app = FastAPI(title="Instagram Analyzer", version="1.0.0")
 
-# Add session middleware
-SECRET_KEY = os.getenv('SECRET_KEY', 'change-this-secret-key-in-production')
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+# Session signing key is now required (>=16 chars) via settings.
+app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
 
 # Setup templates and static files
 BASE_DIR = Path(__file__).parent
@@ -125,6 +126,41 @@ async def upload_page(request: Request, user: str = Depends(require_auth)):
     return templates.TemplateResponse("upload.html", {"request": request, "title": "Upload Campaign", "user": user})
 
 
+VIDEO_EXTS = {'.mp4', '.avi', '.mov', '.mkv'}
+IMAGE_EXTS = {'.jpg', '.jpeg', '.png'}
+ZIP_EXTS = {'.zip'}
+ALLOWED_EXTS = VIDEO_EXTS | IMAGE_EXTS | ZIP_EXTS
+
+ZIP_MAGIC = (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+JPEG_MAGIC = b"\xff\xd8\xff"
+
+
+def _sniff_ok(header: bytes, ext: str) -> bool:
+    if ext in ZIP_EXTS:
+        return any(header.startswith(m) for m in ZIP_MAGIC)
+    if ext in {'.jpg', '.jpeg'}:
+        return header.startswith(JPEG_MAGIC)
+    if ext == '.png':
+        return header.startswith(PNG_MAGIC)
+    if ext in VIDEO_EXTS:
+        return b"ftyp" in header[:32] or ext in {'.mkv', '.avi', '.mov'}
+    return False
+
+
+def _validate_zip(zip_path: Path) -> None:
+    try:
+        with zipfile.ZipFile(zip_path) as zf:
+            entries = zf.infolist()
+    except zipfile.BadZipFile as exc:
+        raise HTTPException(400, "Invalid ZIP file") from exc
+    if len(entries) > settings.max_zip_entries:
+        raise HTTPException(400, f"ZIP has too many entries ({len(entries)})")
+    total = sum(e.file_size for e in entries)
+    if total > settings.max_zip_uncompressed_bytes:
+        raise HTTPException(400, f"ZIP would expand to {total} bytes")
+
+
 @app.post("/upload")
 async def handle_upload(
     request: Request,
@@ -140,17 +176,21 @@ async def handle_upload(
     # Generate custom job ID
     job_id = generate_job_id(company, campaign_name)
 
-    # Validate file type
-    allowed_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.zip', '.jpg', '.jpeg', '.png'}
-    file_ext = Path(file.filename).suffix.lower()
-
-    if file_ext not in allowed_extensions:
+    # Validate extension allowlist.
+    file_ext = Path(file.filename or "").suffix.lower()
+    if file_ext not in ALLOWED_EXTS:
         raise HTTPException(status_code=400, detail=f"File type not allowed")
 
+    # Sniff magic bytes to ensure contents match extension.
+    header = await file.read(64)
+    if not _sniff_ok(header, file_ext):
+        raise HTTPException(status_code=400, detail="File contents do not match extension")
+    await file.seek(0)
+
     # Determine file type
-    if file_ext in {'.mp4', '.avi', '.mov', '.mkv'}:
+    if file_ext in VIDEO_EXTS:
         file_type = 'video'
-    elif file_ext == '.zip':
+    elif file_ext in ZIP_EXTS:
         file_type = 'zip'
     else:
         file_type = 'image'
@@ -161,15 +201,42 @@ async def handle_upload(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format")
 
-    # Save uploaded file
+    # Save uploaded file with size cap.
     upload_path = UPLOAD_DIR / f"{job_id}{file_ext}"
+    bytes_written = 0
     try:
         with open(upload_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            while True:
+                chunk = await file.read(1024 * 1024)
+                if not chunk:
+                    break
+                bytes_written += len(chunk)
+                if bytes_written > settings.max_upload_bytes:
+                    try:
+                        upload_path.unlink(missing_ok=True)
+                    except OSError:
+                        pass
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File too large (max {settings.max_upload_bytes // (1024 * 1024)} MB)",
+                    )
+                buffer.write(chunk)
         logger.info(f"File saved: {upload_path}")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to save file: {e}")
         raise HTTPException(status_code=500, detail="Failed to save file")
+
+    if file_type == 'zip':
+        try:
+            _validate_zip(upload_path)
+        except HTTPException:
+            try:
+                upload_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
 
     # Create job
     create_job(job_id, campaign_date_parsed, campaign_name, product_name, company, file.filename, file_type)
