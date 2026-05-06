@@ -5,9 +5,12 @@ import pytest
 from PIL import Image
 
 
-def _save_image(path: Path, color: tuple) -> None:
-    img = Image.new("RGB", (256, 256), color=color)
-    img.save(path, format="JPEG")
+def _save_noise_image(path: Path, seed: int, perturbation: int = 0) -> None:
+    rng = np.random.default_rng(seed)
+    arr = rng.integers(0, 256, size=(256, 256, 3), dtype=np.uint8)
+    if perturbation:
+        arr = np.clip(arr.astype(np.int16) + perturbation, 0, 255).astype(np.uint8)
+    Image.fromarray(arr).save(path, format="JPEG", quality=95)
 
 
 def test_dedupe_drops_near_duplicates(tmp_path: Path):
@@ -17,9 +20,9 @@ def test_dedupe_drops_near_duplicates(tmp_path: Path):
     b = tmp_path / "b.jpg"
     c = tmp_path / "c.jpg"
 
-    _save_image(a, (10, 200, 50))
-    _save_image(b, (12, 202, 52))   # near-identical
-    _save_image(c, (200, 30, 30))   # clearly different
+    _save_noise_image(a, seed=1)
+    _save_noise_image(b, seed=1, perturbation=2)   # same content, tiny intensity shift
+    _save_noise_image(c, seed=99)                  # different noise pattern
 
     unique, duplicates = dedupe_frames([a, b, c])
     unique_names = {p.name for p in unique}
