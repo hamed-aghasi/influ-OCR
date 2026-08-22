@@ -45,11 +45,11 @@ class Settings(BaseSettings):
     # ----- OCR -----
     openrouter_api_key: Optional[str] = None
     openrouter_url: str = "https://openrouter.ai/api/v1/chat/completions"
-    openrouter_model: str = "google/gemini-3.7-flash"
+    openrouter_model: str = "qwen/qwen3.8-max"
     ocr_batch_size: int = 12
     ocr_delay_seconds: float = 2.0
     ocr_max_retries: int = 5
-    ocr_request_timeout: int = 60
+    ocr_request_timeout: int = 120  # qwen3.8-max batches can run close to 60s
     ocr_max_tokens: int = 8000
 
     # ----- Classifier -----
