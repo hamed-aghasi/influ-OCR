@@ -46,6 +46,8 @@ Default login: `admin` / whatever you set as `ADMIN_PASSWORD`.
 | `OPENROUTER_MODEL`   | no       | Default `google/gemini-3.7-flash`                 |
 | `ADMIN_USERNAME`     | no       | Default `admin`                                   |
 | `ADMIN_PASSWORD`     | no       | Default `admin123` — change before any real use   |
+| `MINIO_ENDPOINT`     | optional | All four MINIO_* set → auto-ingest poller active  |
+| `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` / `MINIO_BUCKET` | optional | Poller watches `incoming/<company>/<campaign>/<product>/<file>`, claims via `ingesting/`, settles to `processed/` or `failed/` |
 | `LIARA_ENDPOINT`     | optional | All four LIARA_* must be set for S3 to be active  |
 | `LIARA_ACCESS_KEY`   | optional |                                                   |
 | `LIARA_SECRET_KEY`   | optional |                                                   |

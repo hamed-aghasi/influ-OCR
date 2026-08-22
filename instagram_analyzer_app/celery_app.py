@@ -29,5 +29,15 @@ celery.conf.update(
             "task": "reap_stale_jobs",
             "schedule": settings.reaper_interval_seconds,
         },
+        **(
+            {
+                "poll-minio": {
+                    "task": "poll_minio",
+                    "schedule": settings.minio_poll_interval_seconds,
+                }
+            }
+            if settings.minio_ingest_configured
+            else {}
+        ),
     },
 )

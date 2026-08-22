@@ -11,20 +11,24 @@ deploy knob (worker concurrency / replicas), not code.
 so lost broker messages can't leave immortal spinners.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from celery import chord
 
 from celery_app import celery
+from processing import ingest
 from processing.config import settings
 from processing.db_client import (
+    create_job,
     fail_stale_jobs,
     save_job_metrics,
+    set_job_task_id,
     update_job_progress,
     update_job_status,
 )
+from processing.naming import generate_job_id
 from processing.dedup import dedupe_frames
 from processing.frame_classifier import classify_frames
 from processing.frame_extractor import extract_frames_from_video, process_campaign_zip
@@ -47,7 +51,7 @@ def _cleanup_upload(file_path: str) -> None:
 
 
 @celery.task(name="run_job", bind=True, max_retries=0)
-def run_job(self, job_id: str, file_path: str, file_type: str) -> dict:
+def run_job(self, job_id: str, file_path: str, file_type: str, object_key: str = None) -> dict:
     log = job_logger("tasks", job_id)
     file_p = Path(file_path)
     output_dir = settings.processing_dir / job_id
@@ -84,6 +88,7 @@ def run_job(self, job_id: str, file_path: str, file_type: str) -> dict:
         context = {
             "started_at": datetime.now().isoformat(),
             "upload_path": file_path,
+            "object_key": object_key,
             "output_dir": str(output_dir),
             "total_frames": len(frame_paths),
             "good_frames": len(classification.get("good_frames", [])),
@@ -113,6 +118,8 @@ def run_job(self, job_id: str, file_path: str, file_type: str) -> dict:
         log.exception("Job preparation failed: %s", exc)
         update_job_status(job_id, "failed", str(exc))
         _cleanup_upload(file_path)
+        if object_key:
+            ingest.settle_object(object_key, success=False)
         return {"status": "failed", "error": str(exc)}
 
 
@@ -138,6 +145,7 @@ def ocr_batch(self, job_id: str, paths: List[str], batch_index: int, batches_tot
 @celery.task(name="finalize_job", bind=True, max_retries=0)
 def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -> dict:
     log = job_logger("tasks", job_id)
+    job_succeeded = False
     try:
         outcomes = sorted(batch_outcomes, key=lambda o: o.get("batch_index", 0))
         all_results = [r for o in outcomes for r in o.get("results", [])]
@@ -177,6 +185,7 @@ def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -
 
         update_job_status(job_id, "completed")
         log.info("Job complete in %ds", elapsed)
+        job_succeeded = True
         return {"status": "completed", "elapsed_seconds": elapsed}
 
     except Exception as exc:  # noqa: BLE001
@@ -185,6 +194,8 @@ def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -
         return {"status": "failed", "error": str(exc)}
     finally:
         _cleanup_upload(context.get("upload_path", ""))
+        if context.get("object_key"):
+            ingest.settle_object(context["object_key"], success=job_succeeded)
 
 
 @celery.task(name="reap_stale_jobs")
@@ -193,3 +204,65 @@ def reap_stale_jobs() -> int:
     if count:
         job_logger("tasks").warning("Reaper failed %d stale job(s)", count)
     return count
+
+
+@celery.task(name="poll_minio", bind=True, max_retries=0)
+def poll_minio(self) -> dict:
+    """Scan incoming/ in the configured MinIO bucket, claim + enqueue new files.
+
+    Runs on beat every MINIO_POLL_INTERVAL_SECONDS; no-ops when unconfigured.
+    """
+    if not ingest.is_ingest_configured():
+        return {"status": "unconfigured"}
+
+    log = job_logger("tasks")
+    enqueued, rejected = 0, 0
+
+    try:
+        objects = ingest.list_incoming()
+    except Exception as exc:  # noqa: BLE001 — endpoint down must not kill beat
+        log.error("MinIO poll failed to list incoming/: %s", exc)
+        return {"status": "error", "error": str(exc)}
+
+    for obj in objects:
+        key, size = obj["key"], obj["size"]
+        meta = ingest.parse_object_key(key)
+
+        if meta is None or size > settings.max_upload_bytes:
+            reason = "bad path/extension" if meta is None else f"too large ({size} bytes)"
+            log.warning("Rejecting %s: %s", key, reason)
+            ingest.reject_object(key)
+            rejected += 1
+            continue
+
+        claimed_key = ingest.claim_object(key)
+        if claimed_key is None:
+            continue  # another poller got it, or transient error — retry next tick
+
+        job_id = generate_job_id(meta["company"], meta["campaign_name"])
+        upload_path = settings.upload_dir / f"{job_id}{meta['ext']}"
+
+        try:
+            ingest.download_object(claimed_key, upload_path)
+        except Exception as exc:  # noqa: BLE001
+            log.error("Download failed for %s: %s", claimed_key, exc)
+            ingest.settle_object(claimed_key, success=False)
+            continue
+
+        create_job(
+            job_id,
+            date.today(),
+            meta["campaign_name"],
+            meta["product_name"],
+            meta["company"],
+            key,  # original object key recorded as the job's filename
+            meta["file_type"],
+        )
+        result = run_job.delay(job_id, str(upload_path), meta["file_type"], claimed_key)
+        set_job_task_id(job_id, result.id)
+        enqueued += 1
+        log.info("Ingested %s as job %s", key, job_id)
+
+    if enqueued or rejected:
+        log.info("MinIO poll: %d enqueued, %d rejected", enqueued, rejected)
+    return {"status": "ok", "enqueued": enqueued, "rejected": rejected}

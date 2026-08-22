@@ -83,6 +83,17 @@ class Settings(BaseSettings):
     liara_secret_key: Optional[str] = None
     liara_bucket_name: Optional[str] = None
 
+    # ----- MinIO auto-ingest -----
+    minio_endpoint: Optional[str] = None  # e.g. https://minio.example.com:9000
+    minio_access_key: Optional[str] = None
+    minio_secret_key: Optional[str] = None
+    minio_bucket: Optional[str] = None
+    minio_incoming_prefix: str = "incoming/"
+    minio_ingesting_prefix: str = "ingesting/"
+    minio_processed_prefix: str = "processed/"
+    minio_failed_prefix: str = "failed/"
+    minio_poll_interval_seconds: int = 60
+
     @property
     def broker_url(self) -> str:
         return self.celery_broker_url or self.redis_url
@@ -105,6 +116,17 @@ class Settings(BaseSettings):
     @property
     def database_configured(self) -> bool:
         return bool(self.database_url and self.database_url.strip())
+
+    @property
+    def minio_ingest_configured(self) -> bool:
+        return all(
+            [
+                self.minio_endpoint,
+                self.minio_access_key,
+                self.minio_secret_key,
+                self.minio_bucket,
+            ]
+        )
 
 
 @lru_cache(maxsize=1)

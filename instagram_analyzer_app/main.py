@@ -3,8 +3,6 @@
 Long-running ingest is enqueued to Celery; this process only handles HTTP.
 """
 
-import re
-import secrets
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -30,7 +28,9 @@ from processing.db_client import (
     verify_user,
 )
 from processing.errors import APIError, api_error_handler
+from processing.filetypes import ALLOWED_EXTS, VIDEO_EXTS, ZIP_EXTS
 from processing.logger import get_logger
+from processing.naming import generate_job_id
 from processing.s3_storage import download_json, get_file_url, is_s3_configured
 
 
@@ -42,11 +42,6 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 settings.upload_dir.mkdir(parents=True, exist_ok=True)
 settings.processing_dir.mkdir(parents=True, exist_ok=True)
 
-
-VIDEO_EXTS = {".mp4", ".avi", ".mov", ".mkv"}
-IMAGE_EXTS = {".jpg", ".jpeg", ".png"}
-ZIP_EXTS = {".zip"}
-ALLOWED_EXTS = VIDEO_EXTS | IMAGE_EXTS | ZIP_EXTS
 
 VIDEO_MAGIC = b"ftyp"  # appears at byte 4 in MP4 family
 ZIP_MAGIC = (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")
@@ -70,16 +65,6 @@ app = FastAPI(title="Instagram Analyzer", version="2.0.0")
 app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
 app.add_exception_handler(APIError, api_error_handler)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
-
-
-def _slug(text: str, limit: int) -> str:
-    return re.sub(r"[^a-z0-9]", "", text.lower().replace(" ", ""))[:limit]
-
-
-def _generate_job_id(company: str, campaign_name: str) -> str:
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    suffix = secrets.token_hex(2)  # 4 chars
-    return f"{_slug(company, 15)}_{_slug(campaign_name, 15)}_{timestamp}_{suffix}"
 
 
 def _current_user(request: Request) -> Optional[str]:
@@ -163,7 +148,7 @@ async def handle_upload(
         raise APIError(400, "File contents do not match extension")
     await file.seek(0)
 
-    job_id = _generate_job_id(company, campaign_name)
+    job_id = generate_job_id(company, campaign_name)
     upload_path = settings.upload_dir / f"{job_id}{file_ext}"
 
     bytes_written = 0
