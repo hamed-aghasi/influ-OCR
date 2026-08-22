@@ -1,60 +1,57 @@
-"""
-Processing Module
+"""Processing pipeline.
 
-Contains all processing logic:
-- frame_extractor: Extract frames from videos
-- frame_classifier: ML-based frame classification
-- gemini_processor: OCR using Gemini API
-- db_client: Database operations and Excel export
+Public surface used by the API and the Celery worker:
+- frame extraction (`extract_frames_from_video`, `process_campaign_zip`)
+- classification (`classify_frames`)
+- OCR (`extract_metrics_from_paths`)
+- persistence (`create_job`, `update_job_status`, etc.)
+- S3 helpers
 """
 
-from .frame_extractor import process_campaign_zip, extract_frames_from_video
+from .config import settings
+from .errors import APIError, api_error_handler
+from .frame_extractor import extract_frames_from_video, process_campaign_zip
 from .frame_classifier import classify_frames, load_model
-from .gemini_processor import extract_metrics_from_good_frames, process_frames
+from .gemini_processor import extract_metrics_from_paths, process_frames
 from .db_client import (
-    init_database,
     create_job,
-    update_job_status,
-    save_job_metrics,
+    create_user,
+    export_to_excel,
     get_all_jobs,
     get_job_by_id,
-    export_to_excel,
-    create_user,
+    get_user_count,
+    save_job_metrics,
+    update_job_status,
     verify_user,
-    get_user_count
 )
 from .s3_storage import (
-    upload_json,
     download_json,
     get_file_url,
-    is_s3_configured
+    is_s3_configured,
+    upload_json,
 )
 
 __all__ = [
-    # Frame extraction
-    'process_campaign_zip',
-    'extract_frames_from_video',
-    # Classification
-    'classify_frames',
-    'load_model',
-    # OCR
-    'extract_metrics_from_good_frames',
-    'process_frames',
-    # Database
-    'init_database',
-    'create_job',
-    'update_job_status',
-    'save_job_metrics',
-    'get_all_jobs',
-    'get_job_by_id',
-    'export_to_excel',
-    # Authentication
-    'create_user',
-    'verify_user',
-    'get_user_count',
-    # S3 Storage
-    'upload_json',
-    'download_json',
-    'get_file_url',
-    'is_s3_configured',
+    "settings",
+    "APIError",
+    "api_error_handler",
+    "extract_frames_from_video",
+    "process_campaign_zip",
+    "classify_frames",
+    "load_model",
+    "extract_metrics_from_paths",
+    "process_frames",
+    "create_job",
+    "create_user",
+    "export_to_excel",
+    "get_all_jobs",
+    "get_job_by_id",
+    "get_user_count",
+    "save_job_metrics",
+    "update_job_status",
+    "verify_user",
+    "download_json",
+    "get_file_url",
+    "is_s3_configured",
+    "upload_json",
 ]

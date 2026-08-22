@@ -1,271 +1,248 @@
-"""
-Frame Extraction Module
+"""Frame extraction: ZIP+video → JPEG frames on disk."""
 
-Extracts frames from video files and ZIP archives.
-Supports 720p conversion for faster processing.
-"""
-
-import zipfile
-import cv2
-import os
-from pathlib import Path
-from datetime import datetime
 import json
-import tempfile
+import os
 import subprocess
+import tempfile
+import zipfile
+from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from .logger import setup_logger, get_logger
+import cv2
 
-logger = get_logger(__name__)
-
-
-def sanitize_filename(name: str) -> str:
-    """Sanitize filename for Windows filesystem."""
-    name = name.strip(' .')
-    invalid_chars = '<>:"|?*'
-    for char in invalid_chars:
-        name = name.replace(char, '_')
-    name = ''.join(char for char in name if ord(char) >= 32)
-    return name
+from .config import settings
+from .logger import job_logger
 
 
-def check_ffmpeg() -> bool:
-    """Check if ffmpeg is installed."""
+def _sanitize_filename(name: str) -> str:
+    name = name.strip(" .")
+    for char in '<>:"|?*':
+        name = name.replace(char, "_")
+    return "".join(c for c in name if ord(c) >= 32)
+
+
+def _check_ffmpeg() -> bool:
     try:
-        result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True)
+        result = subprocess.run(
+            ["ffmpeg", "-version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
         return result.returncode == 0
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
 
 
-def convert_to_720p(input_path: Path, output_path: Path) -> bool:
-    """Convert video to 720p using FFmpeg."""
+def _convert_to_720p(input_path: Path, output_path: Path, log) -> bool:
+    if not _check_ffmpeg():
+        log.warning("ffmpeg not available, skipping 720p conversion")
+        return False
+
+    cap = cv2.VideoCapture(str(input_path))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    cap.release()
+
+    if height <= 720:
+        log.info("Source is %dp; skipping conversion", height)
+        return False
+
+    cmd = [
+        "ffmpeg", "-y", "-i", str(input_path),
+        "-vf", "scale=-2:720",
+        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+        "-c:a", "copy", str(output_path),
+    ]
+
     try:
-        if not check_ffmpeg():
-            logger.warning("FFmpeg not available, skipping 720p conversion")
-            return False
-
-        cap = cv2.VideoCapture(str(input_path))
-        original_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        cap.release()
-
-        if original_height <= 720:
-            logger.info(f"Video is already {original_height}p, skipping conversion")
-            return False
-
-        cmd = [
-            'ffmpeg', '-y', '-i', str(input_path),
-            '-vf', 'scale=-2:720',
-            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-            '-c:a', 'copy', str(output_path)
-        ]
-
-        logger.info(f"Converting video to 720p...")
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode == 0:
-            logger.info("720p conversion successful")
-            return True
-        else:
-            logger.error(f"FFmpeg error: {result.stderr}")
-            return False
-
-    except Exception as e:
-        logger.error(f"720p conversion failed: {e}")
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=settings.ffmpeg_timeout_seconds,
+        )
+    except subprocess.TimeoutExpired:
+        log.error("ffmpeg timed out after %ds", settings.ffmpeg_timeout_seconds)
         return False
+
+    if result.returncode != 0:
+        log.error("ffmpeg failed: %s", result.stderr[-500:])
+        return False
+    log.info("720p conversion complete")
+    return True
 
 
 def extract_frames_from_video(
     video_path: Path,
     output_folder: Path,
-    frame_interval: int = 3,
-    convert_to_720: bool = True
+    job_id: Optional[str] = None,
+    frame_interval: Optional[int] = None,
+    convert_to_720: Optional[bool] = None,
 ) -> Tuple[int, List[Path]]:
-    """
-    Extract frames from a video file.
+    log = job_logger(__name__, job_id)
+    interval = frame_interval if frame_interval is not None else settings.frame_interval
+    do_convert = convert_to_720 if convert_to_720 is not None else settings.convert_to_720p
 
-    Args:
-        video_path: Path to the video file
-        output_folder: Where to save extracted frames
-        frame_interval: Save every Nth frame (default: 3)
-        convert_to_720: Whether to convert video to 720p before extraction
-
-    Returns:
-        Tuple of (frame_count, list_of_frame_paths)
-    """
     output_folder.mkdir(parents=True, exist_ok=True)
+    for old in output_folder.glob("frame_*.jpg"):
+        try:
+            old.unlink()
+        except OSError as exc:
+            log.warning("Could not remove %s: %s", old.name, exc)
 
-    # Clear existing frames
-    for old_frame in output_folder.glob("frame_*.jpg"):
-        old_frame.unlink()
-
-    # Convert to 720p if needed
     video_to_process = video_path
-    temp_720p_video = None
+    temp_video: Optional[Path] = None
+    if do_convert:
+        temp_video = output_folder / f"temp_720p_{video_path.name}"
+        if _convert_to_720p(video_path, temp_video, log):
+            video_to_process = temp_video
+        elif temp_video.exists():
+            try:
+                temp_video.unlink()
+            except OSError:
+                pass
+            temp_video = None
 
-    if convert_to_720:
-        temp_720p_video = output_folder / f"temp_720p_{video_path.name}"
-        if convert_to_720p(video_path, temp_720p_video):
-            video_to_process = temp_720p_video
-        elif temp_720p_video.exists():
-            temp_720p_video.unlink()
-            temp_720p_video = None
-
-    # Extract frames
     cap = cv2.VideoCapture(str(video_to_process))
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     fps = cap.get(cv2.CAP_PROP_FPS)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     frame_count = 0
     saved_count = 0
-    frame_paths = []
+    saved_paths: List[Path] = []
 
     while True:
         ret, frame = cap.read()
         if not ret:
             break
-
-        if frame_count % frame_interval == 0 and frame is not None and frame.size > 0:
-            frame_path = output_folder / f"frame_{frame_count:06d}.jpg"
-            try:
-                success, encoded_img = cv2.imencode('.jpg', frame)
-                if success:
-                    with open(frame_path, 'wb') as f:
-                        f.write(encoded_img.tobytes())
+        if frame_count % interval == 0 and frame is not None and frame.size > 0:
+            path = output_folder / f"frame_{frame_count:06d}.jpg"
+            success, encoded = cv2.imencode(".jpg", frame)
+            if success:
+                try:
+                    with open(path, "wb") as f:
+                        f.write(encoded.tobytes())
                     saved_count += 1
-                    frame_paths.append(frame_path)
-            except Exception as e:
-                logger.error(f"Failed to save frame: {e}")
-
+                    saved_paths.append(path)
+                except OSError as exc:
+                    log.error("Failed to save frame: %s", exc)
         frame_count += 1
-
     cap.release()
 
-    # Cleanup temp video
-    if temp_720p_video and temp_720p_video.exists():
+    if temp_video and temp_video.exists():
         try:
-            temp_720p_video.unlink()
-        except:
+            temp_video.unlink()
+        except OSError:
             pass
 
-    # Save metadata
     metadata = {
         "total_frames": total_frames,
         "extracted_frames": saved_count,
         "fps": fps,
-        "extraction_date": datetime.now().isoformat()
+        "extraction_date": datetime.now().isoformat(),
     }
-    with open(output_folder / "extraction_metadata.json", 'w') as f:
-        json.dump(metadata, f, indent=2)
+    try:
+        with open(output_folder / "extraction_metadata.json", "w") as f:
+            json.dump(metadata, f, indent=2)
+    except OSError as exc:
+        log.warning("Could not write extraction metadata: %s", exc)
 
-    logger.info(f"Extracted {saved_count} frames from {video_path.name}")
-    return saved_count, frame_paths
+    log.info("Extracted %d frames from %s", saved_count, video_path.name)
+    return saved_count, saved_paths
 
 
-def process_video_from_zip(
+def _process_video_from_zip(
     zip_path: Path,
     video_name: str,
     video_index: int,
     output_base: Path,
-    campaign_name: Optional[str] = None
+    campaign_name: str,
+    job_id: Optional[str],
 ) -> Dict:
-    """Extract frames from a video in a ZIP file."""
-    if not campaign_name:
-        campaign_name = sanitize_filename(zip_path.stem)
-
+    log = job_logger(__name__, job_id)
     output_folder = output_base / campaign_name / f"{campaign_name}_{video_index}"
-
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-
-            logger.info(f"Extracting {video_name} from zip")
-            with zipfile.ZipFile(zip_path, 'r') as zf:
-                zf.extract(video_name, temp_path)
-
-            extracted_video = temp_path / video_name
-            frame_count, frame_paths = extract_frames_from_video(extracted_video, output_folder)
-
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                zf.extract(video_name, temp_dir)
+            extracted = Path(temp_dir) / video_name
+            count, paths = extract_frames_from_video(extracted, output_folder, job_id=job_id)
             return {
                 "type": "video",
                 "name": video_name,
                 "status": "success",
-                "frames": frame_count,
-                "frame_paths": [str(p) for p in frame_paths],
-                "output": str(output_folder)
+                "frames": count,
+                "frame_paths": [str(p) for p in paths],
+                "output": str(output_folder),
             }
-
-    except Exception as e:
-        logger.error(f"Error processing {video_name}: {e}")
+    except (zipfile.BadZipFile, OSError) as exc:
+        log.error("Error processing %s: %s", video_name, exc)
         return {
             "type": "video",
             "name": video_name,
             "status": "error",
-            "error": str(e),
+            "error": str(exc),
             "frames": 0,
-            "output": None
+            "output": None,
         }
 
 
 def process_campaign_zip(
     zip_path: Path,
     output_base: Optional[Path] = None,
-    job_id: Optional[str] = None
+    job_id: Optional[str] = None,
 ) -> Dict:
-    """Process entire campaign ZIP file."""
-    global logger
-    if job_id:
-        logger = setup_logger(__name__, job_id)
-
+    log = job_logger(__name__, job_id)
     if output_base is None:
-        output_base = Path(os.getenv('OUTPUT_BASE', '/tmp/extracted_frames'))
+        output_base = Path(os.getenv("OUTPUT_BASE", "/tmp/extracted_frames"))
 
-    original_name = zip_path.stem
-    campaign_name = job_id if job_id else sanitize_filename(original_name)
+    campaign_name = job_id if job_id else _sanitize_filename(zip_path.stem)
 
-    logger.info(f"Processing campaign: {campaign_name}")
-
-    with zipfile.ZipFile(zip_path, 'r') as zf:
+    with zipfile.ZipFile(zip_path, "r") as zf:
         all_files = zf.namelist()
-        video_files = [f for f in all_files
-                      if f.lower().endswith(('.mp4', '.avi', '.mov', '.mkv'))
-                      and not f.startswith('__MACOSX')]
+        videos = [
+            f
+            for f in all_files
+            if f.lower().endswith((".mp4", ".avi", ".mov", ".mkv"))
+            and not f.startswith("__MACOSX")
+        ]
 
-    logger.info(f"Found {len(video_files)} videos")
+    log.info("ZIP contains %d videos", len(videos))
 
     results = []
-    all_frame_paths = []
-
-    for idx, video_name in enumerate(video_files, 1):
-        logger.info(f"Processing video {idx}/{len(video_files)}: {video_name}")
-        result = process_video_from_zip(zip_path, video_name, idx, output_base, campaign_name)
+    all_paths: List[str] = []
+    for idx, video_name in enumerate(videos, 1):
+        log.info("Processing video %d/%d: %s", idx, len(videos), video_name)
+        result = _process_video_from_zip(zip_path, video_name, idx, output_base, campaign_name, job_id)
         results.append(result)
         if result["status"] == "success":
-            all_frame_paths.extend(result.get("frame_paths", []))
+            all_paths.extend(result.get("frame_paths", []))
 
-    # Save summary
     summary_path = output_base / campaign_name / "campaign_summary.json"
-    summary_path.parent.mkdir(exist_ok=True, parents=True)
-
-    summary_data = {
-        "campaign": campaign_name,
-        "original_filename": original_name,
-        "job_id": job_id,
-        "processed_date": datetime.now().isoformat(),
-        "total_videos": len(video_files),
-        "successful": len([r for r in results if r["status"] == "success"]),
-        "results": results
-    }
-    with open(summary_path, 'w') as f:
-        json.dump(summary_data, f, indent=2)
-
-    logger.info(f"Campaign extraction complete: {campaign_name}")
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(summary_path, "w") as f:
+            json.dump(
+                {
+                    "campaign": campaign_name,
+                    "original_filename": zip_path.stem,
+                    "job_id": job_id,
+                    "processed_date": datetime.now().isoformat(),
+                    "total_videos": len(videos),
+                    "successful": sum(1 for r in results if r["status"] == "success"),
+                    "results": results,
+                },
+                f,
+                indent=2,
+            )
+    except OSError as exc:
+        log.warning("Could not write campaign summary: %s", exc)
 
     return {
         "results": results,
-        "frame_paths": all_frame_paths,
+        "frame_paths": all_paths,
         "summary_path": str(summary_path),
         "total_frames": sum(r.get("frames", 0) for r in results if r["status"] == "success"),
-        "output_directory": str(output_base / campaign_name)
+        "output_directory": str(output_base / campaign_name),
     }

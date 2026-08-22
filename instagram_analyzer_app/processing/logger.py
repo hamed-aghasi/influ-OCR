@@ -1,105 +1,70 @@
-"""
-Logging Configuration Module
+"""Logging setup.
 
-Centralized logging setup for all processing modules.
-Logs are stored in the logs/ directory with rotation.
+`get_logger(name)` returns a plain module logger. `job_logger(name, job_id)`
+returns a `LoggerAdapter` that decorates every record with `[job_id]` so
+concurrent jobs stay distinguishable without any module-level mutation.
 """
 
 import logging
 import os
-from pathlib import Path
-from datetime import datetime
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import Optional
 
-
-def get_log_dir() -> Path:
-    """Get the log directory path."""
-    # Check environment variable first
-    log_dir = os.getenv('LOG_DIR')
-    if log_dir:
-        return Path(log_dir)
-
-    # Default to logs/ in the app directory
-    app_dir = Path(__file__).parent.parent
-    return app_dir / 'logs'
+from .config import settings
 
 
-def setup_logger(
-    name: str,
-    job_id: Optional[str] = None,
-    level: int = logging.INFO
-) -> logging.Logger:
-    """
-    Setup a logger with file and console handlers.
+_handlers_installed = False
 
-    Args:
-        name: Logger name (usually module name)
-        job_id: Optional job ID for job-specific log files
-        level: Logging level (default: INFO)
 
-    Returns:
-        Configured logger instance
-    """
-    log_dir = get_log_dir()
+def _install_handlers(level: int) -> None:
+    global _handlers_installed
+    if _handlers_installed:
+        return
+
+    log_dir = Path(os.getenv("LOG_DIR") or settings.log_dir)
     log_dir.mkdir(exist_ok=True, parents=True)
 
-    # Create logger
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-
-    # Clear existing handlers to avoid duplicates
-    logger.handlers.clear()
-
-    # Log format
     formatter = logging.Formatter(
-        '%(asctime)s | %(name)s | %(levelname)s | %(funcName)s | %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
-
-    # File handler - rotating log file
-    if job_id:
-        log_file = log_dir / f"{name}_{job_id}.log"
-    else:
-        log_file = log_dir / f"{name}.log"
 
     file_handler = RotatingFileHandler(
-        log_file,
-        maxBytes=10*1024*1024,  # 10 MB
+        log_dir / "instagram_analyzer.log",
+        maxBytes=10 * 1024 * 1024,
         backupCount=5,
-        encoding='utf-8'
+        encoding="utf-8",
     )
-    file_handler.setLevel(level)
     file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    file_handler.setLevel(level)
 
-    # Console handler (always enabled for visibility in container logs)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    stream_handler.setLevel(level)
 
-    return logger
+    root = logging.getLogger("instagram_analyzer")
+    root.setLevel(level)
+    root.handlers.clear()
+    root.addHandler(file_handler)
+    root.addHandler(stream_handler)
+    root.propagate = False
 
-
-def get_logger(name: str) -> logging.Logger:
-    """
-    Get or create a logger with default configuration.
-
-    Args:
-        name: Logger name
-
-    Returns:
-        Logger instance
-    """
-    logger = logging.getLogger(name)
-
-    # If logger has no handlers, set it up
-    if not logger.handlers:
-        return setup_logger(name)
-
-    return logger
+    _handlers_installed = True
 
 
-# Create main app logger
-app_logger = setup_logger('instagram_analyzer')
+def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
+    _install_handlers(level)
+    if not name.startswith("instagram_analyzer"):
+        name = f"instagram_analyzer.{name}"
+    return logging.getLogger(name)
+
+
+class _JobAdapter(logging.LoggerAdapter):
+    def process(self, msg, kwargs):
+        job_id = self.extra.get("job_id") if self.extra else None
+        return (f"[{job_id}] {msg}" if job_id else msg), kwargs
+
+
+def job_logger(name: str, job_id: Optional[str] = None) -> logging.LoggerAdapter:
+    return _JobAdapter(get_logger(name), {"job_id": job_id})
