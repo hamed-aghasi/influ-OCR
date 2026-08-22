@@ -87,3 +87,22 @@ def test_finalize_job_completes_when_all_batches_ok(tmp_path):
     assert job["status"] == "completed"
     assert job["metrics_json"]["summary"] == {"views": 250, "likes": 4}
     assert job["metrics_json"]["ocr_batches_failed"] == 0
+
+
+def test_finalize_job_fails_when_no_insights_frames(tmp_path):
+    from processing.db_client import _memory_jobs, _memory_metrics, create_job, get_job_by_id
+    from tasks import finalize_job
+
+    _memory_jobs.clear()
+    _memory_metrics.clear()
+    assert create_job("j-empty", date(2026, 1, 1), "c", "p", "co", "f.mp4", "video")
+
+    context = _context(tmp_path)
+    context.update({"ocr_input_frames": 0, "good_frames": 0, "unique_frames": 0,
+                    "duplicate_frames": 0, "batches_total": 0})
+    result = finalize_job([], "j-empty", context)
+
+    assert result["status"] == "failed"
+    job = get_job_by_id("j-empty")
+    assert job["status"] == "failed"
+    assert "No Instagram Insights screens" in job["error_message"]

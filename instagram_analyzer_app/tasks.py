@@ -84,6 +84,10 @@ def run_job(self, job_id: str, file_path: str, file_type: str, object_key: str =
         update_job_progress(job_id, "Deduplicating frames")
         unique_paths, duplicate_paths = dedupe_frames(good_paths)
         batches = chunk_batches(unique_paths)
+        log.info(
+            "Dedup: %d unique / %d duplicates from %d good frames -> %d OCR batches",
+            len(unique_paths), len(duplicate_paths), len(good_paths), len(batches),
+        )
 
         context = {
             "started_at": datetime.now().isoformat(),
@@ -147,6 +151,7 @@ def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -
     log = job_logger("tasks", job_id)
     job_succeeded = False
     try:
+        update_job_progress(job_id, "Finalizing")
         outcomes = sorted(batch_outcomes, key=lambda o: o.get("batch_index", 0))
         all_results = [r for o in outcomes for r in o.get("results", [])]
         batches_failed = sum(1 for o in outcomes if o.get("failed"))
@@ -181,6 +186,14 @@ def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -
             )
             update_job_status(job_id, "failed", message)
             log.error("Job finished with dropped OCR batches: %s", message)
+            return {"status": "failed", "error": message, "elapsed_seconds": elapsed}
+
+        if context["ocr_input_frames"] == 0:
+            # Zero frames classified as Insights screens: nothing was extracted,
+            # so a green status would misreport an empty result as success.
+            message = "No Instagram Insights screens detected in this upload"
+            update_job_status(job_id, "failed", message)
+            log.error(message)
             return {"status": "failed", "error": message, "elapsed_seconds": elapsed}
 
         update_job_status(job_id, "completed")

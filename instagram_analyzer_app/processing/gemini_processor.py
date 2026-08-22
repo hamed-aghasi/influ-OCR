@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import requests
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from .config import settings
 from .dedup import dedupe_frames
@@ -29,6 +29,11 @@ _METRIC_FIELDS = (
     "forward", "next_story", "back", "exited",
     "profile_activity", "profile_visits", "external_link_taps", "follows",
 )
+
+
+# No real Instagram metric exceeds this; observed model failure mode is
+# digit-repetition hallucinations hundreds of digits long.
+_MAX_PLAUSIBLE_VALUE = 10_000_000_000
 
 
 class Metrics(BaseModel):
@@ -51,6 +56,15 @@ class Metrics(BaseModel):
     profile_visits: Optional[int] = None
     external_link_taps: Optional[int] = None
     follows: Optional[int] = None
+
+    @field_validator("*", mode="after")
+    @classmethod
+    def _drop_implausible(cls, v, info):
+        if v is None:
+            return None
+        if info.field_name in {"followers", "non_followers"}:  # percentages
+            return v if 0 <= v <= 100 else None
+        return v if 0 <= v <= _MAX_PLAUSIBLE_VALUE else None
 
 
 class Metadata(BaseModel):
@@ -93,6 +107,20 @@ Metric keys to extract (omit any not present):
 - links_clicks, sticker_taps, navigation
 - forward, next_story, back, exited
 - profile_activity, profile_visits, external_link_taps, follows
+
+On-screen label mapping (English / Persian):
+- "Viewers" / بینندگان -> accounts_reached (NOT views; the "Views" donut or
+  Summary row is views)
+- "Comments" / نظرها -> replies
+- "Bio link clicks" / کلیک‌های پیوند بیو -> links_clicks
+- followers / non_followers are the percentage split under the Views donut —
+  report the percentage number (e.g. 62.2)
+
+Also read the icon strip at the top of Reel insights screens (heart=likes,
+speech bubble=replies, paper plane=shares) and the Engagement tab rows.
+Expand K/M abbreviations to full numbers: 8.6K -> 8600, 1.2M -> 1200000.
+Read carefully digit by digit; do not merge a number with a neighboring
+number, and never repeat digits beyond what is on screen.
 
 Respond with one entry in `frames` per input frame, in input order, using
 each frame's zero-based position as `frame_index`.
@@ -186,14 +214,18 @@ def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
     return None
 
 
-def _aggregate(results: List[Dict]) -> Dict[str, int]:
-    """For each metric, return the largest observed value across frames.
-
-    Insights screens show running totals, so max ≈ final value. Frames are
-    already deduplicated, but the same metric can appear on multiple
-    different screens — taking the max is robust to either.
+def _aggregate(results: List[Dict]) -> Tuple[Dict[str, float], Dict[str, Dict]]:
+    """Consensus per metric across frames: modal value if any read repeats,
+    otherwise the median. Replaces max(), which let a single inflated
+    misread win (observed in production: follows read as 3154, true 31).
+    Returns (summary, quality) where quality records reads/min/max and a
+    disputed flag for metrics whose reads disagree materially.
     """
-    summary: Dict[str, int] = {}
+    from collections import Counter
+    from statistics import median_high
+
+    summary: Dict[str, float] = {}
+    quality: Dict[str, Dict] = {}
     for metric in _METRIC_FIELDS:
         values = []
         for r in results:
@@ -201,9 +233,19 @@ def _aggregate(results: List[Dict]) -> Dict[str, int]:
             v = metrics.get(metric)
             if v is not None:
                 values.append(v)
-        if values:
-            summary[metric] = max(values)
-    return summary
+        if not values:
+            continue
+        top, freq = Counter(values).most_common(1)[0]
+        chosen = top if freq > 1 else median_high(values)
+        lo, hi = min(values), max(values)
+        summary[metric] = chosen
+        quality[metric] = {
+            "reads": len(values),
+            "min": lo,
+            "max": hi,
+            "disputed": (hi - lo) > max(0.05 * abs(hi), 1),
+        }
+    return summary, quality
 
 
 def ocr_single_batch(batch: List[Path], job_id: Optional[str] = None) -> Optional[List[Dict]]:
@@ -239,6 +281,7 @@ def assemble_metrics(
     batches_total: int,
     batches_failed: int,
 ) -> Dict:
+    summary, summary_quality = _aggregate(all_results)
     return {
         "extraction_date": datetime.now().isoformat(),
         "total_frames": total_frames,
@@ -247,7 +290,8 @@ def assemble_metrics(
         "ocr_batches_total": batches_total,
         "ocr_batches_failed": batches_failed,
         "all_frames_data": all_results,
-        "summary": _aggregate(all_results),
+        "summary": summary,
+        "summary_quality": summary_quality,
     }
 
 

@@ -52,3 +52,23 @@ def test_response_format_declares_frames_schema():
     assert RESPONSE_FORMAT["type"] == "json_schema"
     schema = RESPONSE_FORMAT["json_schema"]["schema"]
     assert "frames" in schema["properties"]
+
+
+def test_implausible_metric_values_dropped():
+    """Observed in production: model hallucinated follows=4949...(100 digits).
+    Absurd values must become None, not win the max() aggregation."""
+    from processing.gemini_processor import Metrics
+
+    m = Metrics(views=241099, follows=int("49" * 50), likes=-5, shares=3)
+    assert m.views == 241099
+    assert m.follows is None
+    assert m.likes is None
+    assert m.shares == 3
+
+
+def test_percentage_fields_bounded():
+    from processing.gemini_processor import Metrics
+
+    m = Metrics(followers=53.5, non_followers=146.5)
+    assert m.followers == 53.5
+    assert m.non_followers is None
