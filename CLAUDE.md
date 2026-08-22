@@ -11,10 +11,8 @@ export. Supports English and Persian Insights screens. Project is dormant
 
 - `instagram_analyzer_app/` — the app, tracked by git. The 2026-05-05 refactor
   (security hardening, Celery + Redis worker, Alembic, phash dedup,
-  docker-compose) was merged to main via PR #1 (commit 2867be4).
-- `influ-OCR-refactor/` — LEFTOVER nested untracked repo, byte-identical to
-  the tracked tree (verified with `diff -rq`; only `.pytest_cache`/`logs`
-  differ). Safe to delete; never edit it.
+  docker-compose) was merged to main via PR #1 (commit 2867be4). A leftover
+  nested copy (`influ-OCR-refactor/`) was deleted 2026-08-22.
 
 ## Running
 
