@@ -1,33 +1,61 @@
 """Celery tasks: long-running ingest pipeline.
 
-The HTTP layer creates the job row and enqueues `run_job` here. The worker
-extracts frames → classifies → dedupes → OCRs → persists metrics. State is
-written through the same db_client/s3 helpers used by the API.
+The HTTP layer creates the job row (status 'queued') and enqueues `run_job`.
+`run_job` prepares frames (extract → classify → dedup → chunk) and fans the
+batches out as a chord of `ocr_batch` tasks; `finalize_job` fires once all
+batches are done, aggregates, persists, and sets the final status. Batches
+run in parallel across whatever worker capacity exists — parallelism is a
+deploy knob (worker concurrency / replicas), not code.
+
+`reap_stale_jobs` runs on beat and fails jobs stuck in queued/processing,
+so lost broker messages can't leave immortal spinners.
 """
 
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Optional
+
+from celery import chord
 
 from celery_app import celery
 from processing.config import settings
-from processing.db_client import save_job_metrics, update_job_status
+from processing.db_client import (
+    fail_stale_jobs,
+    save_job_metrics,
+    update_job_progress,
+    update_job_status,
+)
+from processing.dedup import dedupe_frames
 from processing.frame_classifier import classify_frames
 from processing.frame_extractor import extract_frames_from_video, process_campaign_zip
-from processing.gemini_processor import extract_metrics_from_paths
+from processing.gemini_processor import (
+    assemble_metrics,
+    chunk_batches,
+    ocr_single_batch,
+    persist_metrics,
+)
 from processing.logger import job_logger
+
+
+def _cleanup_upload(file_path: str) -> None:
+    try:
+        p = Path(file_path)
+        if p.exists():
+            p.unlink()
+    except OSError:
+        pass
 
 
 @celery.task(name="run_job", bind=True, max_retries=0)
 def run_job(self, job_id: str, file_path: str, file_type: str) -> dict:
     log = job_logger("tasks", job_id)
-    start_time = datetime.now()
     file_p = Path(file_path)
     output_dir = settings.processing_dir / job_id
     output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         update_job_status(job_id, "processing")
+        update_job_progress(job_id, "Extracting frames")
 
         if file_type == "zip":
             extract = process_campaign_zip(file_p, settings.processing_dir, job_id)
@@ -39,6 +67,7 @@ def run_job(self, job_id: str, file_path: str, file_type: str) -> dict:
             frame_paths = [file_p]
 
         log.info("Extracted %d frames", len(frame_paths))
+        update_job_progress(job_id, f"Classifying {len(frame_paths)} frames")
 
         classification = classify_frames(frame_paths, output_dir=output_dir, job_id=job_id) if frame_paths else {
             "good_paths": [],
@@ -48,30 +77,119 @@ def run_job(self, job_id: str, file_path: str, file_type: str) -> dict:
         good_paths: List[Path] = classification.get("good_paths", [])
         log.info("Classified: good=%d bad=%d", len(good_paths), len(classification.get("bad_frames", [])))
 
-        ocr = extract_metrics_from_paths(good_paths, output_dir, job_id) if good_paths else {}
+        update_job_progress(job_id, "Deduplicating frames")
+        unique_paths, duplicate_paths = dedupe_frames(good_paths)
+        batches = chunk_batches(unique_paths)
 
-        elapsed = int((datetime.now() - start_time).total_seconds())
+        context = {
+            "started_at": datetime.now().isoformat(),
+            "upload_path": file_path,
+            "output_dir": str(output_dir),
+            "total_frames": len(frame_paths),
+            "good_frames": len(classification.get("good_frames", [])),
+            "bad_frames": len(classification.get("bad_frames", [])),
+            "ocr_input_frames": len(good_paths),
+            "unique_frames": len(unique_paths),
+            "duplicate_frames": len(duplicate_paths),
+            "batches_total": len(batches),
+        }
+
+        if not batches:
+            # Nothing to OCR — finalize directly (chord over an empty group misbehaves).
+            finalize_job.delay([], job_id, context)
+            return {"status": "dispatched", "batches": 0}
+
+        update_job_progress(job_id, f"OCR: 0/{len(batches)} batches done")
+        chord(
+            [
+                ocr_batch.s(job_id, [str(p) for p in batch], i, len(batches))
+                for i, batch in enumerate(batches)
+            ],
+            finalize_job.s(job_id, context),
+        ).delay()
+        return {"status": "dispatched", "batches": len(batches)}
+
+    except Exception as exc:  # noqa: BLE001 — we want to record any failure
+        log.exception("Job preparation failed: %s", exc)
+        update_job_status(job_id, "failed", str(exc))
+        _cleanup_upload(file_path)
+        return {"status": "failed", "error": str(exc)}
+
+
+@celery.task(name="ocr_batch", bind=True, max_retries=0)
+def ocr_batch(self, job_id: str, paths: List[str], batch_index: int, batches_total: int) -> Dict:
+    """OCR one batch. Never raises: a raised exception inside a chord header
+    would abort the callback, so failures are returned as data instead."""
+    log = job_logger("tasks", job_id)
+    results: Optional[List[Dict]] = None
+    try:
+        results = ocr_single_batch([Path(p) for p in paths], job_id)
+    except Exception as exc:  # noqa: BLE001
+        log.exception("OCR batch %d crashed: %s", batch_index, exc)
+
+    failed = results is None
+    update_job_progress(
+        job_id,
+        f"OCR batch {batch_index + 1}/{batches_total} {'failed' if failed else 'done'}",
+    )
+    return {"batch_index": batch_index, "failed": failed, "results": results or []}
+
+
+@celery.task(name="finalize_job", bind=True, max_retries=0)
+def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -> dict:
+    log = job_logger("tasks", job_id)
+    try:
+        outcomes = sorted(batch_outcomes, key=lambda o: o.get("batch_index", 0))
+        all_results = [r for o in outcomes for r in o.get("results", [])]
+        batches_failed = sum(1 for o in outcomes if o.get("failed"))
+
+        final_metrics = assemble_metrics(
+            all_results,
+            total_frames=context["ocr_input_frames"],
+            unique_frames=context["unique_frames"],
+            duplicate_frames=context["duplicate_frames"],
+            batches_total=context["batches_total"],
+            batches_failed=batches_failed,
+        )
+        persist_metrics(final_metrics, Path(context["output_dir"]), job_id)
+
+        started = datetime.fromisoformat(context["started_at"])
+        elapsed = int((datetime.now() - started).total_seconds())
         save_job_metrics(
             job_id,
             {
-                "total_frames": len(frame_paths),
-                "good_frames": len(classification.get("good_frames", [])),
-                "bad_frames": len(classification.get("bad_frames", [])),
+                "total_frames": context["total_frames"],
+                "good_frames": context["good_frames"],
+                "bad_frames": context["bad_frames"],
                 "processing_time_seconds": elapsed,
-                "metrics_json": ocr,
+                "metrics_json": final_metrics,
             },
         )
+
+        if batches_failed:
+            message = (
+                f"{batches_failed}/{context['batches_total']} OCR batches failed; "
+                "extracted metrics are incomplete"
+            )
+            update_job_status(job_id, "failed", message)
+            log.error("Job finished with dropped OCR batches: %s", message)
+            return {"status": "failed", "error": message, "elapsed_seconds": elapsed}
+
         update_job_status(job_id, "completed")
         log.info("Job complete in %ds", elapsed)
         return {"status": "completed", "elapsed_seconds": elapsed}
 
-    except Exception as exc:  # noqa: BLE001 — we want to record any failure
-        log.exception("Job failed: %s", exc)
+    except Exception as exc:  # noqa: BLE001
+        log.exception("Finalize failed: %s", exc)
         update_job_status(job_id, "failed", str(exc))
         return {"status": "failed", "error": str(exc)}
     finally:
-        try:
-            if file_p.exists():
-                file_p.unlink()
-        except OSError:
-            pass
+        _cleanup_upload(context.get("upload_path", ""))
+
+
+@celery.task(name="reap_stale_jobs")
+def reap_stale_jobs() -> int:
+    count = fail_stale_jobs(settings.job_stale_seconds)
+    if count:
+        job_logger("tasks").warning("Reaper failed %d stale job(s)", count)
+    return count

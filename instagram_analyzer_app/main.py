@@ -25,6 +25,8 @@ from processing.db_client import (
     get_all_jobs,
     get_job_by_id,
     get_user_count,
+    set_job_task_id,
+    update_job_status,
     verify_user,
 )
 from processing.errors import APIError, api_error_handler
@@ -199,10 +201,27 @@ async def handle_upload(
     else:
         file_type = "image"
 
-    create_job(job_id, campaign_date_parsed, campaign_name, product_name, company, file.filename, file_type)
+    if not create_job(job_id, campaign_date_parsed, campaign_name, product_name, company, file.filename, file_type):
+        try:
+            upload_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise APIError(500, "Could not create job record")
 
     from celery_app import celery  # local to avoid import-time worker dep
-    celery.send_task("run_job", args=[job_id, str(upload_path), file_type])
+
+    try:
+        result = celery.send_task("run_job", args=[job_id, str(upload_path), file_type])
+    except Exception as exc:  # noqa: BLE001 — broker down must not leave a phantom queued job
+        logger.error("Failed to enqueue job %s: %s", job_id, exc)
+        update_job_status(job_id, "failed", "Could not enqueue job (queue unavailable)")
+        try:
+            upload_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise APIError(503, "Processing queue unavailable; try again shortly") from exc
+
+    set_job_task_id(job_id, result.id)
 
     return RedirectResponse(url=f"/status/{job_id}", status_code=303)
 
@@ -239,7 +258,7 @@ async def status_page(request: Request, job_id: str, user: str = Depends(_requir
             "request": request,
             "title": "Job Status",
             "job": job,
-            "auto_refresh": job.get("status") == "processing",
+            "auto_refresh": job.get("status") in {"queued", "processing"},
             "user": user,
         },
     )

@@ -95,7 +95,9 @@ def create_job(
                 "company": company,
                 "filename": filename,
                 "file_type": file_type,
-                "status": "processing",
+                "status": "queued",
+                "celery_task_id": None,
+                "progress": None,
                 "created_at": datetime.now(),
                 "completed_at": None,
                 "error_message": None,
@@ -108,7 +110,7 @@ def create_job(
                 """
                 INSERT INTO jobs (id, campaign_date, campaign_name, product_name,
                                   company, filename, file_type, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'processing')
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'queued')
                 """,
                 (job_id, campaign_date, campaign_name, product_name, company, filename, file_type),
             )
@@ -116,6 +118,78 @@ def create_job(
     except Exception as exc:  # noqa: BLE001
         logger.error("create_job failed: %s", exc)
         return False
+
+
+def set_job_task_id(job_id: str, task_id: str) -> bool:
+    if not is_database_available():
+        with _memory_lock:
+            job = _memory_jobs.get(job_id)
+            if job is None:
+                return False
+            job["celery_task_id"] = task_id
+            return True
+    try:
+        with _conn() as c, c.cursor() as cur:
+            cur.execute("UPDATE jobs SET celery_task_id=%s WHERE id=%s", (task_id, job_id))
+            return True
+    except Exception as exc:  # noqa: BLE001
+        logger.error("set_job_task_id failed: %s", exc)
+        return False
+
+
+def update_job_progress(job_id: str, progress: str) -> bool:
+    if not is_database_available():
+        with _memory_lock:
+            job = _memory_jobs.get(job_id)
+            if job is None:
+                return False
+            job["progress"] = progress
+            return True
+    try:
+        with _conn() as c, c.cursor() as cur:
+            cur.execute("UPDATE jobs SET progress=%s WHERE id=%s", (progress, job_id))
+            return True
+    except Exception as exc:  # noqa: BLE001
+        logger.error("update_job_progress failed: %s", exc)
+        return False
+
+
+def fail_stale_jobs(max_age_seconds: int) -> int:
+    """Mark queued/processing jobs older than `max_age_seconds` as failed.
+
+    Safety net for lost broker messages and crash-looping workers; without
+    it those jobs would show 'processing' forever. Returns rows affected.
+    """
+    message = f"Job timed out (no completion after {max_age_seconds // 60} minutes)"
+
+    if not is_database_available():
+        from datetime import timedelta
+
+        cutoff = datetime.now() - timedelta(seconds=max_age_seconds)
+        count = 0
+        with _memory_lock:
+            for job in _memory_jobs.values():
+                if job["status"] in {"queued", "processing"} and job["created_at"] < cutoff:
+                    job["status"] = "failed"
+                    job["completed_at"] = datetime.now()
+                    job["error_message"] = message
+                    count += 1
+        return count
+
+    try:
+        with _conn() as c, c.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE jobs SET status='failed', completed_at=NOW(), error_message=%s
+                WHERE status IN ('queued', 'processing')
+                  AND created_at < NOW() - (%s * INTERVAL '1 second')
+                """,
+                (message, max_age_seconds),
+            )
+            return cur.rowcount
+    except Exception as exc:  # noqa: BLE001
+        logger.error("fail_stale_jobs failed: %s", exc)
+        return 0
 
 
 def update_job_status(job_id: str, status: str, error_message: Optional[str] = None) -> bool:

@@ -24,4 +24,10 @@ celery.conf.update(
     task_soft_time_limit=55 * 60,   # 55m soft
     result_expires=60 * 60 * 24 * 7,
     broker_connection_retry_on_startup=True,
+    beat_schedule={
+        "reap-stale-jobs": {
+            "task": "reap_stale_jobs",
+            "schedule": settings.reaper_interval_seconds,
+        },
+    },
 )

@@ -11,6 +11,7 @@
     <a href="/jobs" class="filter-btn {% if not status_filter %}active{% endif %}">All</a>
     <a href="/jobs?status=completed" class="filter-btn {% if status_filter == 'completed' %}active{% endif %}">Completed</a>
     <a href="/jobs?status=processing" class="filter-btn {% if status_filter == 'processing' %}active{% endif %}">Processing</a>
+    <a href="/jobs?status=queued" class="filter-btn {% if status_filter == 'queued' %}active{% endif %}">Queued</a>
     <a href="/jobs?status=failed" class="filter-btn {% if status_filter == 'failed' %}active{% endif %}">Failed</a>
     <a href="/export" class="btn btn-primary" style="margin-left: auto;">Export to Excel</a>
 </div>
@@ -46,6 +47,8 @@
                     <span class="badge badge-success">Completed</span>
                     {% elif job.status == 'processing' %}
                     <span class="badge badge-warning">Processing</span>
+                    {% elif job.status == 'queued' %}
+                    <span class="badge badge-secondary">Queued</span>
                     {% elif job.status == 'failed' %}
                     <span class="badge badge-danger">Failed</span>
                     {% else %}

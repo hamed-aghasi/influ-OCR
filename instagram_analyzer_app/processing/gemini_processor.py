@@ -66,10 +66,26 @@ class FrameResult(BaseModel):
     actual_frame: Optional[str] = None
 
 
+class FrameResults(BaseModel):
+    """Response envelope enforced via OpenRouter structured outputs."""
+
+    frames: List[FrameResult] = []
+
+
+RESPONSE_FORMAT = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "frame_results",
+        "strict": True,
+        "schema": FrameResults.model_json_schema(),
+    },
+}
+
+
 EXTRACTION_PROMPT = """\
 You are reading Instagram Insights screenshots. For each frame, extract any
 metric values visible. Numbers may be in English digits or Persian digits
-(۰-۹ map to 0-9). If a metric is not visible, omit it.
+(۰-۹ map to 0-9). If a metric is not visible, omit it (leave it null).
 
 Metric keys to extract (omit any not present):
 - views, followers, non_followers, accounts_reached
@@ -78,14 +94,8 @@ Metric keys to extract (omit any not present):
 - forward, next_story, back, exited
 - profile_activity, profile_visits, external_link_taps, follows
 
-Return ONLY a JSON array, one entry per frame, in input order:
-[
-  {
-    "frame_index": 0,
-    "metrics": {"views": 1234, "likes": 30},
-    "metadata": {"language": "fa", "content_type": "story"}
-  }
-]
+Respond with one entry in `frames` per input frame, in input order, using
+each frame's zero-based position as `frame_index`.
 """
 
 
@@ -100,12 +110,16 @@ def _encode(paths: List[Path], log) -> List[Tuple[str, str]]:
     return encoded
 
 
-def _strip_fences(text: str) -> str:
-    if "```json" in text:
-        return text.split("```json", 1)[1].split("```", 1)[0]
-    if "```" in text:
-        return text.split("```", 1)[1].split("```", 1)[0]
-    return text
+def _parse_content(text: str) -> Optional[List[Dict]]:
+    """Parse + validate a structured-output response body.
+
+    Returns None on any malformed/truncated payload — callers treat that
+    as a batch failure to retry, never as partial data to keep.
+    """
+    try:
+        return [f.model_dump() for f in FrameResults.model_validate_json(text).frames]
+    except Exception:  # noqa: BLE001 — invalid JSON and schema mismatch alike
+        return None
 
 
 def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
@@ -126,7 +140,8 @@ def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
         "model": settings.openrouter_model,
         "messages": [{"role": "user", "content": content}],
         "temperature": 0.1,
-        "max_tokens": 4000,
+        "max_tokens": settings.ocr_max_tokens,
+        "response_format": RESPONSE_FORMAT,
     }
 
     for attempt in range(settings.ocr_max_retries):
@@ -143,19 +158,20 @@ def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
             continue
 
         if response.status_code == 200:
-            text = response.json()["choices"][0]["message"]["content"]
-            cleaned = _strip_fences(text).strip()
-            try:
-                raw = json.loads(cleaned)
-            except json.JSONDecodeError as exc:
-                log.error("JSON parse failed: %s", exc)
-                return None
-            validated = []
-            for item in raw:
-                try:
-                    validated.append(FrameResult(**item).model_dump())
-                except Exception:  # noqa: BLE001 — keep partial parses
-                    validated.append(item)
+            choice = response.json()["choices"][0]
+            if choice.get("finish_reason") == "length":
+                log.warning(
+                    "Attempt %d truncated at %d tokens; retrying",
+                    attempt + 1,
+                    settings.ocr_max_tokens,
+                )
+                time.sleep(5)
+                continue
+            validated = _parse_content(choice["message"]["content"])
+            if validated is None:
+                log.warning("Attempt %d returned unparseable payload; retrying", attempt + 1)
+                time.sleep(5)
+                continue
             return validated
 
         if response.status_code == 429:
@@ -190,12 +206,78 @@ def _aggregate(results: List[Dict]) -> Dict[str, int]:
     return summary
 
 
+def ocr_single_batch(batch: List[Path], job_id: Optional[str] = None) -> Optional[List[Dict]]:
+    """OCR one batch of frames. Returns frame results with `actual_frame`
+    attached, or None if the batch failed after retries."""
+    log = job_logger(__name__, job_id)
+
+    if not settings.openrouter_api_key:
+        raise APIError(503, "OPENROUTER_API_KEY not configured")
+
+    encoded = _encode(batch, log)
+    if not encoded:
+        log.error("OCR batch had no readable frames; counted as failed")
+        return None
+
+    results = _call_api(encoded, log)
+    if results is None:
+        log.error("OCR batch failed after retries; metrics will be incomplete")
+        return None
+
+    for r in results:
+        idx = r.get("frame_index")
+        if isinstance(idx, int) and 0 <= idx < len(batch):
+            r["actual_frame"] = batch[idx].name
+    return results
+
+
+def assemble_metrics(
+    all_results: List[Dict],
+    total_frames: int,
+    unique_frames: int,
+    duplicate_frames: int,
+    batches_total: int,
+    batches_failed: int,
+) -> Dict:
+    return {
+        "extraction_date": datetime.now().isoformat(),
+        "total_frames": total_frames,
+        "unique_frames": unique_frames,
+        "duplicate_frames": duplicate_frames,
+        "ocr_batches_total": batches_total,
+        "ocr_batches_failed": batches_failed,
+        "all_frames_data": all_results,
+        "summary": _aggregate(all_results),
+    }
+
+
+def persist_metrics(final_metrics: Dict, output_dir: Optional[Path], job_id: Optional[str]) -> None:
+    log = job_logger(__name__, job_id)
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            with open(output_dir / "instagram_metrics.json", "w", encoding="utf-8") as f:
+                json.dump(final_metrics, f, indent=2, ensure_ascii=False)
+        except OSError as exc:
+            log.warning("Could not write metrics file: %s", exc)
+
+    if job_id and is_s3_configured():
+        upload_json(job_id, final_metrics)
+
+
+def chunk_batches(paths: List[Path], batch_size: Optional[int] = None) -> List[List[Path]]:
+    size = batch_size or settings.ocr_batch_size
+    return [paths[i : i + size] for i in range(0, len(paths), size)]
+
+
 def process_frames(
     frame_paths: List[Path],
     output_dir: Optional[Path] = None,
     job_id: Optional[str] = None,
     skip_dedup: bool = False,
 ) -> Dict:
+    """Sequential pipeline (dedup → batched OCR → persist). The Celery chord
+    path in tasks.py runs the same pieces with batches in parallel."""
     log = job_logger(__name__, job_id)
 
     if not settings.openrouter_api_key:
@@ -209,49 +291,28 @@ def process_frames(
         log.info("Dedup: %d unique / %d duplicates from %d input", len(unique_paths), len(duplicate_paths), len(frame_paths))
 
     all_results: List[Dict] = []
-    batch_size = settings.ocr_batch_size
+    batches = chunk_batches(unique_paths)
+    batches_failed = 0
 
-    for start in range(0, len(unique_paths), batch_size):
-        batch = unique_paths[start : start + batch_size]
-        log.info("OCR batch %d-%d (%d frames)", start, start + len(batch) - 1, len(batch))
-
-        encoded = _encode(batch, log)
-        if not encoded:
-            continue
-
-        results = _call_api(encoded, log)
+    for i, batch in enumerate(batches):
+        log.info("OCR batch %d/%d (%d frames)", i + 1, len(batches), len(batch))
+        results = ocr_single_batch(batch, job_id)
         if results is None:
-            log.error("OCR batch failed; skipping batch")
+            batches_failed += 1
             continue
-
-        for r in results:
-            idx = r.get("frame_index")
-            if isinstance(idx, int) and 0 <= idx < len(batch):
-                r["actual_frame"] = batch[idx].name
-            all_results.append(r)
-
-        if start + batch_size < len(unique_paths):
+        all_results.extend(results)
+        if i + 1 < len(batches):
             time.sleep(settings.ocr_delay_seconds)
 
-    final_metrics = {
-        "extraction_date": datetime.now().isoformat(),
-        "total_frames": len(frame_paths),
-        "unique_frames": len(unique_paths),
-        "duplicate_frames": len(duplicate_paths),
-        "all_frames_data": all_results,
-        "summary": _aggregate(all_results),
-    }
-
-    if output_dir is not None:
-        output_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            with open(output_dir / "instagram_metrics.json", "w", encoding="utf-8") as f:
-                json.dump(final_metrics, f, indent=2, ensure_ascii=False)
-        except OSError as exc:
-            log.warning("Could not write metrics file: %s", exc)
-
-    if job_id and is_s3_configured():
-        upload_json(job_id, final_metrics)
+    final_metrics = assemble_metrics(
+        all_results,
+        total_frames=len(frame_paths),
+        unique_frames=len(unique_paths),
+        duplicate_frames=len(duplicate_paths),
+        batches_total=len(batches),
+        batches_failed=batches_failed,
+    )
+    persist_metrics(final_metrics, output_dir, job_id)
 
     log.info("OCR complete: %d frame results, %d summary fields", len(all_results), len(final_metrics["summary"]))
     return final_metrics

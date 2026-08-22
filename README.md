@@ -31,6 +31,7 @@ That brings up:
 | migrate  | One-shot `alembic upgrade head`                  |
 | app      | FastAPI on `http://localhost:8000`               |
 | worker   | Celery worker that runs the ingest pipeline      |
+| beat     | Celery beat: reaps jobs stuck queued/processing  |
 
 Default login: `admin` / whatever you set as `ADMIN_PASSWORD`.
 
@@ -42,7 +43,7 @@ Default login: `admin` / whatever you set as `ADMIN_PASSWORD`.
 | `DATABASE_URL`       | yes      | Postgres DSN                                      |
 | `REDIS_URL`          | yes      | Defaults to `redis://redis:6379/0`                |
 | `OPENROUTER_API_KEY` | yes for OCR | Without it, classification still works         |
-| `OPENROUTER_MODEL`   | no       | Default `google/gemini-2.5-flash`                 |
+| `OPENROUTER_MODEL`   | no       | Default `google/gemini-3.7-flash`                 |
 | `ADMIN_USERNAME`     | no       | Default `admin`                                   |
 | `ADMIN_PASSWORD`     | no       | Default `admin123` — change before any real use   |
 | `LIARA_ENDPOINT`     | optional | All four LIARA_* must be set for S3 to be active  |
@@ -71,7 +72,7 @@ Default login: `admin` / whatever you set as `ADMIN_PASSWORD`.
 instagram_analyzer_app/
 ├── main.py                   FastAPI app
 ├── celery_app.py             Celery instance
-├── tasks.py                  Celery task: full ingest pipeline
+├── tasks.py                  Celery tasks: prepare → parallel OCR batches (chord) → finalize
 ├── alembic.ini, alembic/     Schema migrations
 ├── processing/
 │   ├── config.py             Centralized settings (pydantic-settings)

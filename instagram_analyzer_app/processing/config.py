@@ -39,15 +39,18 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
     celery_broker_url: Optional[str] = None
     celery_result_backend: Optional[str] = None
+    job_stale_seconds: int = 2 * 60 * 60  # reaper fails queued/processing jobs older than this
+    reaper_interval_seconds: int = 15 * 60
 
     # ----- OCR -----
     openrouter_api_key: Optional[str] = None
     openrouter_url: str = "https://openrouter.ai/api/v1/chat/completions"
-    openrouter_model: str = "google/gemini-2.5-flash"
-    ocr_batch_size: int = 50
+    openrouter_model: str = "google/gemini-3.7-flash"
+    ocr_batch_size: int = 12
     ocr_delay_seconds: float = 2.0
     ocr_max_retries: int = 5
     ocr_request_timeout: int = 60
+    ocr_max_tokens: int = 8000
 
     # ----- Classifier -----
     model_dir: Path = APP_DIR / "models"

@@ -21,6 +21,15 @@
             Processing
         </div>
         <p class="status-message">Your file is being processed. This page will auto-refresh.</p>
+        {% if job.progress %}
+        <p class="status-message"><small>{{ job.progress }}</small></p>
+        {% endif %}
+        {% elif job.status == 'queued' %}
+        <div class="status-badge status-pending">
+            <span class="spinner"></span>
+            Queued
+        </div>
+        <p class="status-message">Job is waiting for a worker. This page will auto-refresh.</p>
         {% elif job.status == 'completed' %}
         <div class="status-badge status-completed">
             Completed
@@ -102,7 +111,7 @@
             {% for metric_name, metric_data in job.metrics_json.summary.items() %}
             <div class="metric-card">
                 <span class="metric-name">{{ metric_name | replace('_', ' ') | title }}</span>
-                <span class="metric-value">{{ metric_data.max | int }}</span>
+                <span class="metric-value">{{ metric_data | int }}</span>
                 <span class="metric-label">Max</span>
             </div>
             {% endfor %}

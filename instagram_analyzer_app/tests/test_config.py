@@ -4,7 +4,7 @@ def test_settings_load():
     s = Settings()
     assert len(s.secret_key) >= 16
     assert s.classifier_threshold == 0.65
-    assert s.ocr_batch_size == 50
+    assert s.ocr_batch_size == 12
     assert s.broker_url.startswith("redis://")
 
 

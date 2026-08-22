@@ -2,7 +2,7 @@ x-app-env: &app-env
   DATABASE_URL: postgresql://analyzer:analyzer@postgres:5432/instagram_analyzer
   REDIS_URL: redis://redis:6379/0
   OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-  OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemini-2.5-flash}
+  OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemini-3.7-flash}
   SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env (>= 16 chars)}
   ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
   ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
@@ -88,6 +88,19 @@ services:
       - uploads:/tmp/uploads
       - processing:/tmp/processing
       - logs:/tmp/logs
+    restart: unless-stopped
+
+  beat:
+    build:
+      context: ./instagram_analyzer_app
+    image: influ-ocr:latest
+    command: celery -A celery_app.celery beat --loglevel=info
+    environment: *app-env
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
 
 volumes:
