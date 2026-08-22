@@ -1,5 +1,7 @@
 # influ-OCR — Instagram Campaign Analyzer
 
+> Session state + open threads: see `HANDOFF.md` (dated 2026-08-22).
+
 FastAPI app that extracts Instagram Insights engagement metrics (views, reach,
 likes, shares, etc.) from uploaded screenshots/screen-recordings. Pipeline:
 frame extraction (OpenCV) -> TensorFlow MobileNetV2 frame classifier -> OCR via
