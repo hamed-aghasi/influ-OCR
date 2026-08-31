@@ -11,5 +11,5 @@ def slug(text: str, limit: int) -> str:
 
 def generate_job_id(company: str, campaign_name: str) -> str:
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    suffix = secrets.token_hex(2)  # 4 chars
+    suffix = secrets.token_hex(4)  # 8 chars; 16 bits collided in practice at ~500 uploads/s
     return f"{slug(company, 15)}_{slug(campaign_name, 15)}_{timestamp}_{suffix}"

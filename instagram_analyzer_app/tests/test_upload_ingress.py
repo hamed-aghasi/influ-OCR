@@ -249,3 +249,26 @@ def test_broker_failure_does_not_leave_a_phantom_job(client, monkeypatch):
     r = _post(client, "shot.png", PNG)
     assert r.status_code == 503
     assert list(client.upload_dir.iterdir()) == []  # upload removed
+
+
+# ----- ingress load -----
+
+def test_500_video_uploads_within_one_minute(client):
+    """Ingress load: 500 concurrent video uploads must all be accepted,
+    enqueued exactly once each, with unique job ids, in under 60s.
+    Processing itself is async (Celery) and out of scope here."""
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    start = time.monotonic()
+    with ThreadPoolExecutor(max_workers=32) as pool:
+        responses = list(pool.map(lambda i: _post(client, f"clip_{i}.mp4", MP4), range(500)))
+    elapsed = time.monotonic() - start
+
+    assert elapsed < 60, f"500 uploads took {elapsed:.1f}s"
+    assert all(r.status_code == 200 for r in responses)
+    job_ids = [r.json()["job_id"] for r in responses]
+    assert len(set(job_ids)) == 500                 # no job-id collisions
+    assert len(client.sent_tasks) == 500            # every job enqueued exactly once
+    assert all(k["args"][2] == "video" for _, k in client.sent_tasks)
+    assert len(list(client.upload_dir.iterdir())) == 500  # every upload on disk
