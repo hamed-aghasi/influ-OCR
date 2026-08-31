@@ -80,6 +80,8 @@ def _require_auth(request: Request) -> str:
 
 @app.on_event("startup")
 async def _startup() -> None:
+    # Under gunicorn every worker runs this; losers of the INSERT race get
+    # create_user() == False (unique violation, logged) and that is fine.
     if get_user_count() == 0:
         if create_user(settings.admin_username, settings.admin_password):
             logger.info("Created default admin user: %s", settings.admin_username)
@@ -95,8 +97,13 @@ async def login_page(request: Request):
     return templates.TemplateResponse(request, "login.html", {"error": None})
 
 
+# Handlers below are deliberately sync (`def`, not `async def`): they call
+# blocking code — bcrypt, psycopg2, openpyxl, boto3 — and as plain functions
+# FastAPI runs them in its threadpool instead of stalling the event loop.
+
+
 @app.post("/login")
-async def login(request: Request, username: str = Form(...), password: str = Form(...)):
+def login(request: Request, username: str = Form(...), password: str = Form(...)):
     if verify_user(username, password):
         request.session["user"] = username
         return RedirectResponse(url="/", status_code=303)
@@ -235,7 +242,7 @@ def _validate_zip(zip_path: Path) -> None:
 
 
 @app.get("/status/{job_id}", response_class=HTMLResponse)
-async def status_page(request: Request, job_id: str, user: str = Depends(_require_auth)):
+def status_page(request: Request, job_id: str, user: str = Depends(_require_auth)):
     job = get_job_by_id(job_id)
     if not job:
         raise APIError(404, "Job not found")
@@ -252,7 +259,7 @@ async def status_page(request: Request, job_id: str, user: str = Depends(_requir
 
 
 @app.get("/jobs", response_class=HTMLResponse)
-async def jobs_page(
+def jobs_page(
     request: Request,
     status: Optional[str] = None,
     user: str = Depends(_require_auth),
@@ -270,7 +277,7 @@ async def jobs_page(
 
 
 @app.get("/export")
-async def export_excel(user: str = Depends(_require_auth)):
+def export_excel(user: str = Depends(_require_auth)):
     excel_data = export_to_excel()
     if not excel_data:
         raise APIError(500, "Failed to generate Excel")
@@ -291,7 +298,7 @@ async def health_check():
 
 
 @app.get("/api/job/{job_id}")
-async def get_job_api(job_id: str, user: str = Depends(_require_auth)):
+def get_job_api(job_id: str, user: str = Depends(_require_auth)):
     job = get_job_by_id(job_id)
     if not job:
         raise APIError(404, "Job not found")
@@ -299,7 +306,7 @@ async def get_job_api(job_id: str, user: str = Depends(_require_auth)):
 
 
 @app.get("/api/job/{job_id}/metrics")
-async def get_job_metrics(job_id: str, user: str = Depends(_require_auth)):
+def get_job_metrics(job_id: str, user: str = Depends(_require_auth)):
     if not is_s3_configured():
         raise APIError(503, "S3 storage not configured")
     metrics = download_json(job_id)
@@ -309,7 +316,7 @@ async def get_job_metrics(job_id: str, user: str = Depends(_require_auth)):
 
 
 @app.get("/api/job/{job_id}/metrics/download")
-async def download_job_metrics(job_id: str, user: str = Depends(_require_auth)):
+def download_job_metrics(job_id: str, user: str = Depends(_require_auth)):
     if not is_s3_configured():
         raise APIError(503, "S3 storage not configured")
     url = get_file_url(job_id, "instagram_metrics.json", expires_in=3600)

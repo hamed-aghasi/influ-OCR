@@ -17,7 +17,8 @@ Read CLAUDE.md first for the project map; this file is session state + open thre
   chord fan-out (parallel OCR batches) → ffmpeg 720p → frame extract →
   TF classify → phash dedup (~70-90% reduction) → structured-output OCR →
   consensus aggregation → honest terminal status. 9 clean, 1 honest reject.
-- Tests: **43 passing** (verified 2026-08-31) — `cd instagram_analyzer_app && python -m pytest tests/`
+- Tests: **102 passing** (verified 2026-08-31, branch fix/ocr-call-hardening) —
+  `cd instagram_analyzer_app && python -m pytest tests/`
   Runs without TensorFlow installed since `processing/__init__.py` became lazy;
   needs fastapi, opencv, imagehash, bcrypt, aiofiles, itsdangerous, celery, psycopg2.
   (needs venv with requirements minus TF; opencv-headless suffices).

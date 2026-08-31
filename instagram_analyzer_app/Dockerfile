@@ -25,4 +25,6 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=5).status==200 else 1)" || exit 1
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# gunicorn supervises 2 uvicorn workers: one blocked/crashed worker no longer
+# stalls the whole site. Keep -w low — this host also runs the TF workers.
+CMD ["gunicorn", "main:app", "-k", "uvicorn_worker.UvicornWorker", "-w", "2", "--bind", "0.0.0.0:8000", "--timeout", "120"]
