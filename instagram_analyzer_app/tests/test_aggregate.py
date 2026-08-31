@@ -8,9 +8,10 @@ def test_aggregator_consensus_per_metric():
         {"metrics": None},
     ]
     summary, quality = _aggregate(results)
-    # Two distinct reads -> median_high (equals the old max() behavior here).
-    assert summary["likes"] == 25
-    assert summary["views"] == 105
+    # No read repeats -> median biased low, since misreads inflate (digit
+    # repetition) far more often than they deflate.
+    assert summary["likes"] == 10
+    assert summary["views"] == 100
     assert summary["shares"] == 4
     assert "follows" not in summary
     assert quality["shares"]["reads"] == 1
@@ -26,6 +27,18 @@ def test_aggregator_outlier_outvoted():
     assert summary["follows"] == 31
     assert quality["follows"]["disputed"] is True
     assert quality["follows"]["max"] == 3154
+
+
+def test_aggregator_two_disagreeing_reads_reject_the_inflated_one():
+    """The production failure (follows 31 read as 3154) with only TWO frames
+    carrying the metric — the common case after dedup. median_high would crown
+    the hallucination exactly as the old max() did."""
+    from processing.gemini_processor import _aggregate
+
+    results = [{"metrics": {"follows": v}} for v in (31, 3154)]
+    summary, quality = _aggregate(results)
+    assert summary["follows"] == 31
+    assert quality["follows"]["disputed"] is True
 
 
 def test_aggregator_median_when_all_distinct():

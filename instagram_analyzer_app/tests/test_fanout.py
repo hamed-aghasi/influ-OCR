@@ -27,7 +27,8 @@ def test_assemble_metrics_reports_batch_failures():
     )
     assert m["ocr_batches_total"] == 3
     assert m["ocr_batches_failed"] == 1
-    assert m["summary"] == {"views": 250, "likes": 9}
+    # views read twice with no agreement -> the lower read wins (see _aggregate)
+    assert m["summary"] == {"views": 100, "likes": 9}
 
 
 def _context(tmp_path: Path) -> dict:
@@ -85,7 +86,7 @@ def test_finalize_job_completes_when_all_batches_ok(tmp_path):
     assert result["status"] == "completed"
     job = get_job_by_id("j-ok")
     assert job["status"] == "completed"
-    assert job["metrics_json"]["summary"] == {"views": 250, "likes": 4}
+    assert job["metrics_json"]["summary"] == {"views": 100, "likes": 4}
     assert job["metrics_json"]["ocr_batches_failed"] == 0
 
 

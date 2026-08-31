@@ -17,7 +17,9 @@ Read CLAUDE.md first for the project map; this file is session state + open thre
   chord fan-out (parallel OCR batches) → ffmpeg 720p → frame extract →
   TF classify → phash dedup (~70-90% reduction) → structured-output OCR →
   consensus aggregation → honest terminal status. 9 clean, 1 honest reject.
-- Tests: **35 passing** — `cd instagram_analyzer_app && python -m pytest tests/`
+- Tests: **43 passing** (verified 2026-08-31) — `cd instagram_analyzer_app && python -m pytest tests/`
+  Runs without TensorFlow installed since `processing/__init__.py` became lazy;
+  needs fastapi, opencv, imagehash, bcrypt, aiofiles, itsdangerous, celery, psycopg2.
   (needs venv with requirements minus TF; opencv-headless suffices).
 
 ## Today's commits (all pushed to github.com/hamed-aghasi/influ-OCR main)
@@ -51,8 +53,9 @@ covered by retry + "N/M batches failed" honest job failure.
   with grep before concluding a key is set.
 - WebSearch tool errors in this project's sessions ("long context beta") —
   use OpenRouter/models API via curl, or a subagent.
-- Frames persist in the `processing` volume (cleanup never implemented) —
-  that's how the eval got its ground-truth images: /tmp/processing/<job_id>/frames/.
+- Job frames are now deleted when a job settles (2026-08-31, `tasks._cleanup_job_dir`).
+  The eval used to source ground truth from /tmp/processing/<job_id>/frames/ —
+  to do that again, set `KEEP_JOB_FRAMES=true` and remember to unset it.
 
 ## Known data issue
 

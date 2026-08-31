@@ -11,6 +11,7 @@ deploy knob (worker concurrency / replicas), not code.
 so lost broker messages can't leave immortal spinners.
 """
 
+import shutil
 from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -50,6 +51,31 @@ def _cleanup_upload(file_path: str) -> None:
         pass
 
 
+def _cleanup_job_dir(dir_path: str) -> None:
+    """Delete a job's working directory (extracted frames, summaries).
+
+    Without this the processing volume grows without bound — one long video at
+    frame_interval=3 leaves hundreds of JPEGs behind, and once the disk fills
+    every subsequent job fails at extraction. Metrics are already persisted to
+    Postgres (and S3 when configured) before this runs, so nothing unique is
+    lost. Refuses to touch anything outside settings.processing_dir.
+    """
+    if not dir_path:
+        return
+    if settings.keep_job_frames:
+        job_logger("tasks").info("KEEP_JOB_FRAMES set — retaining %s", dir_path)
+        return
+    try:
+        target = Path(dir_path).resolve()
+        root = settings.processing_dir.resolve()
+        if target == root or root not in target.parents:
+            job_logger("tasks").warning("Refusing to clean up %s: outside %s", target, root)
+            return
+        shutil.rmtree(target, ignore_errors=True)
+    except OSError as exc:
+        job_logger("tasks").warning("Could not clean up %s: %s", dir_path, exc)
+
+
 @celery.task(name="run_job", bind=True, max_retries=0)
 def run_job(self, job_id: str, file_path: str, file_type: str, object_key: str = None) -> dict:
     log = job_logger("tasks", job_id)
@@ -78,6 +104,12 @@ def run_job(self, job_id: str, file_path: str, file_type: str, object_key: str =
             "good_frames": [],
             "bad_frames": [],
         }
+        if classification.get("error"):
+            # An infrastructure failure (model missing, keras absent, OOM) — not
+            # an upload with no Insights screens. Reporting them alike sends
+            # debugging in the wrong direction.
+            raise RuntimeError(f"Frame classifier unavailable: {classification['error']}")
+
         good_paths: List[Path] = classification.get("good_paths", [])
         log.info("Classified: good=%d bad=%d", len(good_paths), len(classification.get("bad_frames", [])))
 
@@ -122,6 +154,7 @@ def run_job(self, job_id: str, file_path: str, file_type: str, object_key: str =
         log.exception("Job preparation failed: %s", exc)
         update_job_status(job_id, "failed", str(exc))
         _cleanup_upload(file_path)
+        _cleanup_job_dir(str(output_dir))
         if object_key:
             ingest.settle_object(object_key, success=False)
         return {"status": "failed", "error": str(exc)}
@@ -207,6 +240,7 @@ def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -
         return {"status": "failed", "error": str(exc)}
     finally:
         _cleanup_upload(context.get("upload_path", ""))
+        _cleanup_job_dir(context.get("output_dir", ""))
         if context.get("object_key"):
             ingest.settle_object(context["object_key"], success=job_succeeded)
 

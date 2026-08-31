@@ -16,7 +16,6 @@ import requests
 from pydantic import BaseModel, Field, field_validator
 
 from .config import settings
-from .dedup import dedupe_frames
 from .errors import APIError
 from .logger import job_logger
 from .s3_storage import is_s3_configured, upload_json
@@ -218,11 +217,20 @@ def _aggregate(results: List[Dict]) -> Tuple[Dict[str, float], Dict[str, Dict]]:
     """Consensus per metric across frames: modal value if any read repeats,
     otherwise the median. Replaces max(), which let a single inflated
     misread win (observed in production: follows read as 3154, true 31).
+
+    The no-agreement median is median_LOW, not median_high: with exactly two
+    disagreeing reads — the common case, since most metrics survive dedup on
+    only one or two screens — median_high returns the larger value and is
+    therefore identical to the max() this was meant to replace. Misreads
+    inflate (digit repetition, see _MAX_PLAUSIBLE_VALUE) far more often than
+    they deflate, so ties break downward. For 3+ reads both pick the true
+    middle element and the choice is immaterial.
+
     Returns (summary, quality) where quality records reads/min/max and a
     disputed flag for metrics whose reads disagree materially.
     """
     from collections import Counter
-    from statistics import median_high
+    from statistics import median_low
 
     summary: Dict[str, float] = {}
     quality: Dict[str, Dict] = {}
@@ -236,7 +244,7 @@ def _aggregate(results: List[Dict]) -> Tuple[Dict[str, float], Dict[str, Dict]]:
         if not values:
             continue
         top, freq = Counter(values).most_common(1)[0]
-        chosen = top if freq > 1 else median_high(values)
+        chosen = top if freq > 1 else median_low(values)
         lo, hi = min(values), max(values)
         summary[metric] = chosen
         quality[metric] = {
@@ -331,6 +339,8 @@ def process_frames(
         unique_paths = list(frame_paths)
         duplicate_paths: List[Path] = []
     else:
+        from .dedup import dedupe_frames  # local: only this legacy path needs imagehash
+
         unique_paths, duplicate_paths = dedupe_frames(frame_paths)
         log.info("Dedup: %d unique / %d duplicates from %d input", len(unique_paths), len(duplicate_paths), len(frame_paths))
 
