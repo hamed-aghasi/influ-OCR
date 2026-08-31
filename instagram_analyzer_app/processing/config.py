@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     ocr_max_retries: int = 5
     ocr_request_timeout: int = 120  # qwen3.8-max batches can run close to 60s
     ocr_max_tokens: int = 8000
+    ocr_rate_limit: Optional[str] = None  # e.g. "30/m"; unset = disabled (worker concurrency is the cap)
 
     # ----- Classifier -----
     model_dir: Path = APP_DIR / "models"

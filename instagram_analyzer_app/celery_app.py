@@ -1,7 +1,9 @@
 """Celery application instance.
 
-Run the worker with:
-    celery -A celery_app.celery worker --loglevel=info --concurrency=2
+Two queues: `celery` (default — run_job, finalize_job, beat tasks) and `ocr`
+(ocr_batch only, routed below). Run one worker per queue:
+    celery -A celery_app.celery worker --loglevel=info --concurrency=2 -Q celery
+    celery -A celery_app.celery worker --loglevel=info --concurrency=8 -Q ocr
 """
 
 from celery import Celery
@@ -24,6 +26,17 @@ celery.conf.update(
     task_soft_time_limit=55 * 60,   # 55m soft
     result_expires=60 * 60 * 24 * 7,
     broker_connection_retry_on_startup=True,
+    # CPU-heavy pipeline tasks and I/O-bound OCR API calls must not compete
+    # for the same worker slots; only ocr_batch is routed off the default queue.
+    task_routes={"ocr_batch": {"queue": "ocr"}},
+    # ponytail: rate_limit is per worker instance — global only while worker-ocr
+    # is a single replica; swap for a redis token bucket in _call_api if
+    # replicas are ever needed. Scale concurrency, not replicas.
+    **(
+        {"task_annotations": {"ocr_batch": {"rate_limit": settings.ocr_rate_limit}}}
+        if settings.ocr_rate_limit
+        else {}
+    ),
     beat_schedule={
         "reap-stale-jobs": {
             "task": "reap_stale_jobs",

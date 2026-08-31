@@ -15,6 +15,7 @@ x-app-env: &app-env
   MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-}
   MINIO_BUCKET: ${MINIO_BUCKET:-}
   MINIO_POLL_INTERVAL_SECONDS: ${MINIO_POLL_INTERVAL_SECONDS:-60}
+  OCR_RATE_LIMIT: ${OCR_RATE_LIMIT:-}
 
 services:
   postgres:
@@ -76,7 +77,31 @@ services:
     build:
       context: ./instagram_analyzer_app
     image: influ-ocr:latest
-    command: celery -A celery_app.celery worker --loglevel=info --concurrency=2
+    command: celery -A celery_app.celery worker --loglevel=info --concurrency=2 -Q celery
+    environment: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - uploads:/tmp/uploads
+      - processing:/tmp/processing
+      - logs:/tmp/logs
+    restart: unless-stopped
+
+  # I/O-bound OCR API calls get their own queue + worker so they don't compete
+  # with CPU-heavy frame extraction for slots. Single replica on purpose: the
+  # per-worker celery rate_limit is only global while this is the sole consumer
+  # of the ocr queue. Shared `processing` volume is load-bearing — ocr_batch
+  # reads frames run_job wrote.
+  worker-ocr:
+    build:
+      context: ./instagram_analyzer_app
+    image: influ-ocr:latest
+    command: celery -A celery_app.celery worker --loglevel=info --concurrency=${OCR_WORKER_CONCURRENCY:-8} -Q ocr
     environment: *app-env
     depends_on:
       postgres:
