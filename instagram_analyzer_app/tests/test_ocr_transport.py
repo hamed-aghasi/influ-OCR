@@ -138,6 +138,34 @@ def test_valid_envelope_returns_frames(monkeypatch):
     assert result[0]["metrics"]["views"] == 12
 
 
+def test_usage_cost_is_logged_per_call(monkeypatch, caplog):
+    """Every billable call must emit an `ai_call` line with cost_usd — the
+    Grafana AI-cost dashboard aggregates these from Loki."""
+    import logging
+
+    from processing import ocr_processor as gp
+
+    monkeypatch.setattr(gp.settings, "openrouter_api_key", "k")
+    monkeypatch.setattr(gp.time, "sleep", lambda *_: None)
+
+    payload = _completion([{"frame_index": 0, "metrics": {"views": 12}}])
+    payload["usage"] = {"prompt_tokens": 1000, "completion_tokens": 50, "cost": 0.00123}
+
+    class _Session:
+        def post(self, *a, **k):
+            return _Resp(payload)
+
+    monkeypatch.setattr(gp, "_session", lambda: _Session())
+
+    with caplog.at_level(logging.INFO):
+        gp._call_api([("a.jpg", "b64")], gp.job_logger(__name__))
+
+    lines = [r.getMessage() for r in caplog.records if "ai_call" in r.getMessage()]
+    assert len(lines) == 1
+    assert "cost_usd=0.00123" in lines[0]
+    assert "prompt_tokens=1000" in lines[0]
+
+
 # ----- truncation splitting -----
 
 def test_truncation_splits_the_batch_instead_of_resending(monkeypatch):

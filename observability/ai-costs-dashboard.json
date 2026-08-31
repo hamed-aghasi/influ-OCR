@@ -1,0 +1,69 @@
+{
+  "title": "AI Costs (OpenRouter)",
+  "uid": "ai-costs",
+  "timezone": "browser",
+  "time": { "from": "now-7d", "to": "now" },
+  "refresh": "1m",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Total spend (USD, selected range)",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 5 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 4 } },
+      "targets": [
+        {
+          "expr": "sum(sum_over_time({service=~\"app|worker\"} |= `ai_call` | regexp `cost_usd=(?P<cost_usd>[0-9.]+)` | unwrap cost_usd [$__range]))",
+          "queryType": "instant"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "AI API calls (selected range)",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 5 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service=~\"app|worker\"} |= `ai_call` [$__range]))",
+          "queryType": "instant"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Spend over time (USD)",
+      "gridPos": { "x": 0, "y": 5, "w": 12, "h": 8 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 4 } },
+      "targets": [
+        {
+          "expr": "sum(sum_over_time({service=~\"app|worker\"} |= `ai_call` | regexp `cost_usd=(?P<cost_usd>[0-9.]+)` | unwrap cost_usd [$__interval]))"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tokens over time",
+      "gridPos": { "x": 12, "y": 5, "w": 12, "h": 8 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum(sum_over_time({service=~\"app|worker\"} |= `ai_call` | regexp `prompt_tokens=(?P<prompt_tokens>[0-9]+)` | unwrap prompt_tokens [$__interval]))",
+          "legendFormat": "prompt"
+        },
+        {
+          "expr": "sum(sum_over_time({service=~\"app|worker\"} |= `ai_call` | regexp `completion_tokens=(?P<completion_tokens>[0-9]+)` | unwrap completion_tokens [$__interval]))",
+          "legendFormat": "completion"
+        }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "Recent AI calls",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 5 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [{ "expr": "{service=~\"app|worker\"} |= `ai_call`" }]
+    }
+  ]
+}

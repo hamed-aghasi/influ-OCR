@@ -279,7 +279,8 @@ def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
             # unguarded raised straight past this retry loop and killed the
             # batch — and, on the sequential path, the whole job.
             try:
-                choice = response.json()["choices"][0]
+                payload = response.json()
+                choice = payload["choices"][0]
             except (ValueError, KeyError, IndexError, TypeError) as exc:
                 log.warning(
                     "Attempt %d returned no usable choice (%s): %s",
@@ -287,6 +288,19 @@ def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
                 )
                 time.sleep(5)
                 continue
+
+            # One parseable line per billable call; Grafana/Loki aggregates
+            # these into the AI-cost dashboard. Logged before the truncation
+            # check because truncated calls cost money too.
+            usage = payload.get("usage") or {}
+            log.info(
+                "ai_call model=%s frames=%d prompt_tokens=%s completion_tokens=%s cost_usd=%s",
+                settings.openrouter_model,
+                len(encoded),
+                usage.get("prompt_tokens"),
+                usage.get("completion_tokens"),
+                usage.get("cost"),
+            )
 
             if choice.get("finish_reason") == "length":
                 return _split_on_truncation(encoded, log)
