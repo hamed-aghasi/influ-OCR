@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def test_chunk_batches_splits_evenly():
-    from processing.gemini_processor import chunk_batches
+    from processing.ocr_processor import chunk_batches
 
     paths = [Path(f"{i}.jpg") for i in range(30)]
     batches = chunk_batches(paths, batch_size=12)
@@ -15,7 +15,7 @@ def test_chunk_batches_splits_evenly():
 
 
 def test_assemble_metrics_reports_batch_failures():
-    from processing.gemini_processor import assemble_metrics
+    from processing.ocr_processor import assemble_metrics
 
     m = assemble_metrics(
         [{"metrics": {"views": 100}}, {"metrics": {"views": 250, "likes": 9}}],

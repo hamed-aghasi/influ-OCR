@@ -1,7 +1,7 @@
 # Instagram Campaign Analyzer
 
 FastAPI app that reads engagement metrics off Instagram Insights screenshots
-and screen-recordings using a TF classifier + Gemini-via-OpenRouter for OCR.
+and screen-recordings using a TF classifier + an OpenRouter vision model for OCR.
 
 ## What it does
 
@@ -9,7 +9,7 @@ and screen-recordings using a TF classifier + Gemini-via-OpenRouter for OCR.
 2. Frames are extracted (every Nth frame; videos optionally downscaled to 720p).
 3. A TensorFlow MobileNetV2 classifier filters out blurred/transition frames.
 4. Surviving frames are de-duplicated by perceptual hash.
-5. Unique frames are OCR'd in batches by Gemini via OpenRouter.
+5. Unique frames are OCR'd in batches via OpenRouter.
 6. Aggregated metrics are saved to Postgres and (optionally) to Liara S3.
 7. User can browse jobs, view per-campaign metrics, and export everything to Excel.
 
@@ -83,7 +83,7 @@ instagram_analyzer_app/
 │   ├── frame_extractor.py    ffmpeg + OpenCV frame sampling
 │   ├── frame_classifier.py   TF SavedModel classifier
 │   ├── dedup.py              Perceptual-hash deduplication
-│   ├── gemini_processor.py   OCR via OpenRouter
+│   ├── ocr_processor.py   OCR via OpenRouter
 │   ├── db_client.py          Postgres pool + in-memory fallback
 │   └── s3_storage.py         Liara S3 wrapper
 ├── templates/, static/       Jinja2 + plain CSS UI

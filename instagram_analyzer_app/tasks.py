@@ -33,7 +33,7 @@ from processing.naming import generate_job_id
 from processing.dedup import dedupe_frames
 from processing.frame_classifier import classify_frames
 from processing.frame_extractor import extract_frames_from_video, process_campaign_zip
-from processing.gemini_processor import (
+from processing.ocr_processor import (
     assemble_metrics,
     chunk_batches,
     ocr_single_batch,
