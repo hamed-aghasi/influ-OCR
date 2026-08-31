@@ -54,9 +54,8 @@ def client(tmp_path, monkeypatch):
         r = c.post(
             "/login",
             data={"username": settings.admin_username, "password": settings.admin_password},
-            follow_redirects=False,
         )
-        assert r.status_code == 303, "fixture could not authenticate"
+        assert r.status_code == 200, "fixture could not authenticate"
         c.sent_tasks = sent
         c.upload_dir = tmp_path
         yield c
@@ -83,8 +82,9 @@ def _post(client, filename, content, **overrides):
 def test_valid_png_upload_is_accepted_and_enqueued(client):
     r = _post(client, "shot.png", PNG)
 
-    assert r.status_code == 303
-    assert r.headers["location"].startswith("/status/")
+    assert r.status_code == 200
+    assert r.json()["job_id"]
+    assert r.json()["task_id"] == "task-123"
     assert len(client.sent_tasks) == 1
     args = client.sent_tasks[0][1]["args"]
     assert args[2] == "image"                       # file_type
@@ -92,13 +92,13 @@ def test_valid_png_upload_is_accepted_and_enqueued(client):
 
 
 def test_file_type_is_derived_from_extension(client):
-    assert _post(client, "clip.mp4", MP4).status_code == 303
+    assert _post(client, "clip.mp4", MP4).status_code == 200
     assert client.sent_tasks[0][1]["args"][2] == "video"
 
 
 def test_zip_upload_is_accepted(client):
     payload = _zip_bytes({"a.mp4": MP4})
-    assert _post(client, "campaign.zip", payload).status_code == 303
+    assert _post(client, "campaign.zip", payload).status_code == 200
     assert client.sent_tasks[0][1]["args"][2] == "zip"
 
 
@@ -111,39 +111,15 @@ def test_upload_requires_authentication(tmp_path, monkeypatch):
 
     with TestClient(main.app) as anon:
         r = _post(anon, "shot.png", PNG)
-    assert r.status_code == 303
-    assert r.headers["location"] == "/login"
+    assert r.status_code == 401
 
 
-def test_pages_that_render_templates_actually_render(client):
-    """Regression guard: the app used the pre-0.29 TemplateResponse(name,
-    context) signature, which Starlette 1.x removed. Since requirements.txt
-    pins no upper bounds, a fresh build resolved to Starlette 1.6 and every
-    HTML page 500'd — while the test suite stayed green, because nothing
-    exercised a template.
-    """
-    from fastapi.testclient import TestClient
-
-    import main
-
-    for path in ("/", "/jobs"):  # authenticated pages
-        r = client.get(path, follow_redirects=False)
-        assert r.status_code == 200, f"{path} -> {r.status_code}"
-        assert r.text.strip(), f"{path} rendered empty"
-
-    with TestClient(main.app) as anon:  # the login page itself
-        r = anon.get("/login", follow_redirects=False)
-        assert r.status_code == 200, f"/login -> {r.status_code}"
-        assert r.text.strip()
-
-
-def test_invalid_credentials_render_the_error_page(client):
+def test_invalid_credentials_rejected(client):
     from processing.config import settings
 
     r = client.post(
         "/login",
         data={"username": settings.admin_username, "password": "definitely-wrong"},
-        follow_redirects=False,
     )
     assert r.status_code == 401
     assert "Invalid credentials" in r.text
@@ -178,7 +154,7 @@ def test_image_renamed_as_zip_rejected(client):
 
 
 def test_jpeg_and_png_magic_are_distinguished(client):
-    assert _post(client, "shot.jpg", JPEG).status_code == 303
+    assert _post(client, "shot.jpg", JPEG).status_code == 200
     assert _post(client, "shot2.jpg", PNG).status_code == 400
 
 

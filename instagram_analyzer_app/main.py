@@ -1,18 +1,17 @@
-"""FastAPI app: upload form, job dispatch, status, export.
+"""FastAPI JSON API: upload, job dispatch, status, export. No UI.
 
 Long-running ingest is enqueued to Celery; this process only handles HTTP.
 """
 
 import zipfile
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import aiofiles
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
+from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from processing.config import settings
@@ -36,9 +35,6 @@ from processing.s3_storage import download_json, get_file_url, is_s3_configured
 
 logger = get_logger("main")
 
-BASE_DIR = Path(__file__).parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-
 settings.upload_dir.mkdir(parents=True, exist_ok=True)
 settings.processing_dir.mkdir(parents=True, exist_ok=True)
 
@@ -61,10 +57,19 @@ def _sniff_ok(header: bytes, ext: str) -> bool:
     return False
 
 
-app = FastAPI(title="Instagram Analyzer", version="2.0.0")
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    # Under gunicorn every worker runs this; losers of the INSERT race get
+    # create_user() == False (unique violation, logged) and that is fine.
+    if get_user_count() == 0:
+        if create_user(settings.admin_username, settings.admin_password):
+            logger.info("Created default admin user: %s", settings.admin_username)
+    yield
+
+
+app = FastAPI(title="Instagram Analyzer", version="2.0.0", lifespan=_lifespan)
 app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
 app.add_exception_handler(APIError, api_error_handler)
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
 def _current_user(request: Request) -> Optional[str]:
@@ -74,27 +79,11 @@ def _current_user(request: Request) -> Optional[str]:
 def _require_auth(request: Request) -> str:
     user = _current_user(request)
     if not user:
-        raise HTTPException(status_code=303, headers={"Location": "/login"})
+        raise APIError(401, "Not authenticated")
     return user
 
 
-@app.on_event("startup")
-async def _startup() -> None:
-    # Under gunicorn every worker runs this; losers of the INSERT race get
-    # create_user() == False (unique violation, logged) and that is fine.
-    if get_user_count() == 0:
-        if create_user(settings.admin_username, settings.admin_password):
-            logger.info("Created default admin user: %s", settings.admin_username)
-
-
 # ---------- Auth ----------
-
-
-@app.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    if _current_user(request):
-        return RedirectResponse(url="/", status_code=303)
-    return templates.TemplateResponse(request, "login.html", {"error": None})
 
 
 # Handlers below are deliberately sync (`def`, not `async def`): they call
@@ -106,31 +95,17 @@ async def login_page(request: Request):
 def login(request: Request, username: str = Form(...), password: str = Form(...)):
     if verify_user(username, password):
         request.session["user"] = username
-        return RedirectResponse(url="/", status_code=303)
-    return templates.TemplateResponse(
-        request,
-        "login.html",
-        {"error": "Invalid credentials"},
-        status_code=401,
-    )
+        return {"status": "ok", "user": username}
+    raise APIError(401, "Invalid credentials")
 
 
 @app.get("/logout")
 async def logout(request: Request):
     request.session.clear()
-    return RedirectResponse(url="/login", status_code=303)
+    return {"status": "ok"}
 
 
 # ---------- Upload ----------
-
-
-@app.get("/", response_class=HTMLResponse)
-async def upload_page(request: Request, user: str = Depends(_require_auth)):
-    return templates.TemplateResponse(
-        request,
-        "upload.html",
-        {"title": "Upload Campaign", "user": user},
-    )
 
 
 @app.post("/upload")
@@ -217,7 +192,7 @@ async def handle_upload(
 
     set_job_task_id(job_id, result.id)
 
-    return RedirectResponse(url=f"/status/{job_id}", status_code=303)
+    return {"status": "ok", "job_id": job_id, "task_id": result.id}
 
 
 def _validate_zip(zip_path: Path) -> None:
@@ -241,39 +216,12 @@ def _validate_zip(zip_path: Path) -> None:
 # ---------- Job views ----------
 
 
-@app.get("/status/{job_id}", response_class=HTMLResponse)
-def status_page(request: Request, job_id: str, user: str = Depends(_require_auth)):
-    job = get_job_by_id(job_id)
-    if not job:
-        raise APIError(404, "Job not found")
-    return templates.TemplateResponse(
-        request,
-        "status.html",
-        {
-            "title": "Job Status",
-            "job": job,
-            "auto_refresh": job.get("status") in {"queued", "processing"},
-            "user": user,
-        },
-    )
-
-
-@app.get("/jobs", response_class=HTMLResponse)
-def jobs_page(
-    request: Request,
+@app.get("/jobs")
+def jobs_list(
     status: Optional[str] = None,
     user: str = Depends(_require_auth),
 ):
-    return templates.TemplateResponse(
-        request,
-        "jobs.html",
-        {
-            "title": "All Jobs",
-            "jobs": get_all_jobs(limit=100, status_filter=status),
-            "status_filter": status,
-            "user": user,
-        },
-    )
+    return {"jobs": get_all_jobs(limit=100, status_filter=status)}
 
 
 @app.get("/export")

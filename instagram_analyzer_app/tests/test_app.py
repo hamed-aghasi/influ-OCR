@@ -1,12 +1,11 @@
 def test_app_routes_register():
     """If the app imports cleanly and the expected paths are registered,
-    most wiring (settings, error handler, templates) is also healthy."""
+    most wiring (settings, error handler) is also healthy."""
     from main import app
 
     paths = {route.path for route in app.routes if hasattr(route, "path")}
     expected = {
-        "/", "/login", "/logout", "/upload", "/jobs", "/export", "/health",
-        "/status/{job_id}",
+        "/login", "/logout", "/upload", "/jobs", "/export", "/health",
         "/api/job/{job_id}",
         "/api/job/{job_id}/metrics",
         "/api/job/{job_id}/metrics/download",
@@ -28,12 +27,11 @@ def test_health_endpoint():
     assert "timestamp" in body
 
 
-def test_login_required_redirects():
+def test_login_required():
     from fastapi.testclient import TestClient
 
     from main import app
 
     client = TestClient(app)
-    r = client.get("/", follow_redirects=False)
-    assert r.status_code == 303
-    assert r.headers["location"] == "/login"
+    r = client.get("/jobs")
+    assert r.status_code == 401
