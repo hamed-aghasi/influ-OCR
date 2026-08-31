@@ -2,7 +2,7 @@ import base64, json, sys, time
 sys.path.insert(0, '/Users/hamed/Desktop/influ-OCR/instagram_analyzer_app')
 import os
 os.environ.setdefault('SECRET_KEY', 'x'*32)
-from processing.gemini_processor import EXTRACTION_PROMPT, RESPONSE_FORMAT, FrameResults
+from processing.ocr_processor import EXTRACTION_PROMPT, RESPONSE_FORMAT, FrameResults
 import requests
 
 KEY = [l.split('=',1)[1].strip() for l in open('/Users/hamed/Desktop/influ-OCR/.env') if l.startswith('OPENROUTER_API_KEY=')][0]

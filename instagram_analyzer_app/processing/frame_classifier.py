@@ -21,21 +21,26 @@ _model_lock = threading.Lock()
 
 
 def load_model() -> Optional[Any]:
+    """Load (and cache) the classifier. Returns None on any failure — callers
+    must surface that as its own error, never as 'no frames were good'."""
     global _cached_model
     if _cached_model is not None:
         return _cached_model
+    log = job_logger(__name__)
     with _model_lock:
         if _cached_model is not None:
             return _cached_model
         savedmodel_path = settings.model_dir / "frame_classifier_savedmodel"
         if not savedmodel_path.exists():
+            log.error("Classifier SavedModel not found at %s", savedmodel_path)
             return None
         try:
             import keras
 
             _cached_model = keras.layers.TFSMLayer(str(savedmodel_path), call_endpoint="serving_default")
             return _cached_model
-        except Exception:  # noqa: BLE001 — model load is best-effort; caller checks None
+        except Exception as exc:  # noqa: BLE001 — caller checks None; reason must be logged
+            log.exception("Classifier model failed to load from %s: %s", savedmodel_path, exc)
             return None
 
 
@@ -54,22 +59,24 @@ def _preprocess(img: np.ndarray) -> Optional[np.ndarray]:
         return None
 
 
-def _classify_one(frame_path: Path, model: Any) -> Tuple[Optional[str], float]:
+def _classify_one(frame_path: Path, model: Any) -> Tuple[Optional[str], float, str]:
+    """Returns (label, confidence, reason). `reason` is non-empty only on
+    failure, so the caller can report *why* a frame was dropped."""
     try:
         with open(frame_path, "rb") as f:
             arr = np.frombuffer(f.read(), np.uint8)
         img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-    except OSError:
-        return None, 0.0
+    except OSError as exc:
+        return None, 0.0, f"unreadable file: {exc}"
 
     processed = _preprocess(img)
     if processed is None:
-        return None, 0.0
+        return None, 0.0, "frame could not be decoded or preprocessed"
 
     try:
         prediction = model(processed)
-    except Exception:  # noqa: BLE001 — TF inference can raise many things
-        return None, 0.0
+    except Exception as exc:  # noqa: BLE001 — TF inference can raise many things
+        return None, 0.0, f"inference failed: {exc}"
 
     if isinstance(prediction, dict):
         pred_value = next(iter(prediction.values())).numpy()
@@ -77,7 +84,7 @@ def _classify_one(frame_path: Path, model: Any) -> Tuple[Optional[str], float]:
         pred_value = prediction.numpy() if hasattr(prediction, "numpy") else prediction
 
     confidence = float(pred_value[0][0]) if len(pred_value.shape) > 1 else float(pred_value[0])
-    return ("GOOD" if confidence > settings.classifier_threshold else "BAD"), confidence
+    return ("GOOD" if confidence > settings.classifier_threshold else "BAD"), confidence, ""
 
 
 def classify_frames(
@@ -111,7 +118,7 @@ def classify_frames(
 
     for i, frame_path in enumerate(frame_paths, 1):
         path = Path(frame_path)
-        label, confidence = _classify_one(path, model)
+        label, confidence, reason = _classify_one(path, model)
         info = {"path": str(path), "filename": path.name, "confidence": confidence}
 
         if label == "GOOD":
@@ -121,7 +128,9 @@ def classify_frames(
             bad_frames.append(info)
             bad_paths.append(path)
         else:
-            failed_frames.append({**info, "error": "Processing failed"})
+            if not failed_frames:  # log the first failure only — the rest repeat it
+                log.warning("Frame %s could not be classified: %s", path.name, reason)
+            failed_frames.append({**info, "error": reason})
 
         if i % 50 == 0 or i == len(frame_paths):
             log.info("Progress: %d/%d (good=%d bad=%d)", i, len(frame_paths), len(good_frames), len(bad_frames))
@@ -145,7 +154,7 @@ def classify_frames(
 
     log.info("Classification done: good=%d bad=%d failed=%d", len(good_frames), len(bad_frames), len(failed_frames))
 
-    return {
+    result = {
         "good_paths": good_paths,
         "bad_paths": bad_paths,
         "good_frames": good_frames,
@@ -154,3 +163,11 @@ def classify_frames(
         "total_frames": len(frame_paths),
         "statistics": stats,
     }
+
+    if frame_paths and len(failed_frames) == len(frame_paths):
+        # Every frame failed: the model is broken, not the upload. Without this
+        # the caller sees good_paths == [] and blames the user's screenshots.
+        result["error"] = f"classifier failed on all {len(frame_paths)} frames"
+        log.error(result["error"])
+
+    return result

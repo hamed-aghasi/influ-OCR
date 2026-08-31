@@ -1,4 +1,10 @@
-"""OCR via Gemini through OpenRouter.
+"""OCR through OpenRouter.
+
+Model-agnostic: the request is a plain OpenAI-compatible chat completion
+(messages + base64 image_url parts + a json_schema response_format), so the
+model is a config value (`OPENROUTER_MODEL`, currently qwen/qwen3.8-max) and
+nothing here is specific to any provider. Named gemini_processor.py until
+2026-08-31, when the default had already been qwen for over a week.
 
 Frames are deduplicated before this stage by `dedup.py`, so the LLM
 no longer needs to do that. Each batch is asked only to read metric
@@ -7,6 +13,7 @@ values off the (already-unique) frames it gets.
 
 import base64
 import json
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -16,7 +23,6 @@ import requests
 from pydantic import BaseModel, Field, field_validator
 
 from .config import settings
-from .dedup import dedupe_frames
 from .errors import APIError
 from .logger import job_logger
 from .s3_storage import is_s3_configured, upload_json
@@ -73,17 +79,52 @@ class Metadata(BaseModel):
     content_type: Optional[str] = None
 
 
+# NB: no docstring on the wire models below — pydantic copies class docstrings
+# into the schema as `description`, which then ships to the model on every
+# request. `actual_frame` is likewise absent by design: it is filled in locally
+# in ocr_single_batch, so asking the model to invent a filename it cannot know
+# would cost tokens per frame and be overwritten regardless.
 class FrameResult(BaseModel):
     frame_index: int = Field(ge=0)
     metrics: Optional[Metrics] = None
     metadata: Optional[Metadata] = None
-    actual_frame: Optional[str] = None
 
 
 class FrameResults(BaseModel):
-    """Response envelope enforced via OpenRouter structured outputs."""
-
+    # Response envelope enforced via OpenRouter structured outputs.
     frames: List[FrameResult] = []
+
+
+# Validation keywords that OpenAI-style `strict` structured outputs reject.
+# Dropping them from the *wire* schema costs nothing: the pydantic models
+# still enforce every one of them locally in _parse_content.
+_UNSUPPORTED_SCHEMA_KEYS = frozenset(
+    {
+        "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
+        "minLength", "maxLength", "pattern", "minItems", "maxItems", "format", "default",
+    }
+)
+
+
+def _strict_schema(node):
+    """Rewrite a pydantic JSON schema to satisfy `strict: true`.
+
+    Strict mode requires every object to set `additionalProperties: false` and
+    to list *all* its properties in `required`, and rejects the validation
+    keywords above. pydantic emits none of that, so declaring strict over a raw
+    model_json_schema() is a latent 400 — it happens to pass with the current
+    model and would fail on the next one, retried 5x before failing the batch.
+    """
+    if isinstance(node, list):
+        return [_strict_schema(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+
+    out = {k: _strict_schema(v) for k, v in node.items() if k not in _UNSUPPORTED_SCHEMA_KEYS}
+    if out.get("type") == "object":
+        out["additionalProperties"] = False
+        out["required"] = list(out.get("properties") or {})
+    return out
 
 
 RESPONSE_FORMAT = {
@@ -91,7 +132,7 @@ RESPONSE_FORMAT = {
     "json_schema": {
         "name": "frame_results",
         "strict": True,
-        "schema": FrameResults.model_json_schema(),
+        "schema": _strict_schema(FrameResults.model_json_schema()),
     },
 }
 
@@ -127,6 +168,22 @@ each frame's zero-based position as `frame_index`.
 """
 
 
+_thread_local = threading.local()
+
+
+def _session() -> requests.Session:
+    """One pooled Session per thread. requests.post() opens a fresh TCP+TLS
+    connection per call; batches are megabytes of base64 and the round trip to
+    openrouter.ai is long, so reusing the connection is worth real time.
+    Per-thread rather than global because Session is not thread-safe.
+    """
+    session = getattr(_thread_local, "session", None)
+    if session is None:
+        session = requests.Session()
+        _thread_local.session = session
+    return session
+
+
 def _encode(paths: List[Path], log) -> List[Tuple[str, str]]:
     encoded = []
     for path in paths:
@@ -148,6 +205,37 @@ def _parse_content(text: str) -> Optional[List[Dict]]:
         return [f.model_dump() for f in FrameResults.model_validate_json(text).frames]
     except Exception:  # noqa: BLE001 — invalid JSON and schema mismatch alike
         return None
+
+
+def _split_on_truncation(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
+    """Retry a truncated batch as two halves instead of resending it unchanged.
+
+    A response cut off at max_tokens will be cut off again for an identical
+    request, so the old behaviour burned every remaining retry — five full
+    multi-image vision calls — to reproduce one failure. Halving the frame
+    count halves the output the model has to produce. frame_index is
+    zero-based per request, so the second half's indices are rebased onto the
+    original batch before the halves are joined.
+    """
+    if len(encoded) < 2:
+        log.error("Response truncated on a single frame; batch cannot be split further")
+        return None
+
+    mid = len(encoded) // 2
+    log.warning("Truncated at %d tokens; splitting %d frames into %d + %d",
+                settings.ocr_max_tokens, len(encoded), mid, len(encoded) - mid)
+
+    first = _call_api(encoded[:mid], log)
+    if first is None:
+        return None
+    second = _call_api(encoded[mid:], log)
+    if second is None:
+        return None
+
+    for r in second:
+        if isinstance(r.get("frame_index"), int):
+            r["frame_index"] += mid
+    return first + second
 
 
 def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
@@ -174,7 +262,7 @@ def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
 
     for attempt in range(settings.ocr_max_retries):
         try:
-            response = requests.post(
+            response = _session().post(
                 settings.openrouter_url,
                 headers=headers,
                 json=body,
@@ -186,16 +274,24 @@ def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
             continue
 
         if response.status_code == 200:
-            choice = response.json()["choices"][0]
-            if choice.get("finish_reason") == "length":
+            # OpenRouter reports provider-side failures as HTTP 200 with an
+            # `error` object and no `choices`. Reaching into the envelope
+            # unguarded raised straight past this retry loop and killed the
+            # batch — and, on the sequential path, the whole job.
+            try:
+                choice = response.json()["choices"][0]
+            except (ValueError, KeyError, IndexError, TypeError) as exc:
                 log.warning(
-                    "Attempt %d truncated at %d tokens; retrying",
-                    attempt + 1,
-                    settings.ocr_max_tokens,
+                    "Attempt %d returned no usable choice (%s): %s",
+                    attempt + 1, exc, response.text[:300],
                 )
                 time.sleep(5)
                 continue
-            validated = _parse_content(choice["message"]["content"])
+
+            if choice.get("finish_reason") == "length":
+                return _split_on_truncation(encoded, log)
+
+            validated = _parse_content((choice.get("message") or {}).get("content") or "")
             if validated is None:
                 log.warning("Attempt %d returned unparseable payload; retrying", attempt + 1)
                 time.sleep(5)
@@ -218,11 +314,20 @@ def _aggregate(results: List[Dict]) -> Tuple[Dict[str, float], Dict[str, Dict]]:
     """Consensus per metric across frames: modal value if any read repeats,
     otherwise the median. Replaces max(), which let a single inflated
     misread win (observed in production: follows read as 3154, true 31).
+
+    The no-agreement median is median_LOW, not median_high: with exactly two
+    disagreeing reads — the common case, since most metrics survive dedup on
+    only one or two screens — median_high returns the larger value and is
+    therefore identical to the max() this was meant to replace. Misreads
+    inflate (digit repetition, see _MAX_PLAUSIBLE_VALUE) far more often than
+    they deflate, so ties break downward. For 3+ reads both pick the true
+    middle element and the choice is immaterial.
+
     Returns (summary, quality) where quality records reads/min/max and a
     disputed flag for metrics whose reads disagree materially.
     """
     from collections import Counter
-    from statistics import median_high
+    from statistics import median_low
 
     summary: Dict[str, float] = {}
     quality: Dict[str, Dict] = {}
@@ -236,7 +341,7 @@ def _aggregate(results: List[Dict]) -> Tuple[Dict[str, float], Dict[str, Dict]]:
         if not values:
             continue
         top, freq = Counter(values).most_common(1)[0]
-        chosen = top if freq > 1 else median_high(values)
+        chosen = top if freq > 1 else median_low(values)
         lo, hi = min(values), max(values)
         summary[metric] = chosen
         quality[metric] = {
@@ -268,8 +373,9 @@ def ocr_single_batch(batch: List[Path], job_id: Optional[str] = None) -> Optiona
 
     for r in results:
         idx = r.get("frame_index")
-        if isinstance(idx, int) and 0 <= idx < len(batch):
-            r["actual_frame"] = batch[idx].name
+        # Always set the key: it is no longer part of the wire schema, so
+        # downstream consumers would otherwise see it appear and disappear.
+        r["actual_frame"] = batch[idx].name if isinstance(idx, int) and 0 <= idx < len(batch) else None
     return results
 
 
@@ -331,6 +437,8 @@ def process_frames(
         unique_paths = list(frame_paths)
         duplicate_paths: List[Path] = []
     else:
+        from .dedup import dedupe_frames  # local: only this legacy path needs imagehash
+
         unique_paths, duplicate_paths = dedupe_frames(frame_paths)
         log.info("Dedup: %d unique / %d duplicates from %d input", len(unique_paths), len(duplicate_paths), len(frame_paths))
 

@@ -76,6 +76,10 @@ class Settings(BaseSettings):
     upload_dir: Path = Path("/tmp/uploads")
     processing_dir: Path = Path("/tmp/processing")
     log_dir: Path = APP_DIR / "logs"
+    # Job frames are deleted when the job settles, or the volume fills and every
+    # later job fails at extraction. Set KEEP_JOB_FRAMES=true to retain them for
+    # model evaluation (the 2026-08-22 eval sourced its ground truth this way).
+    keep_job_frames: bool = False
 
     # ----- S3 (Liara) -----
     liara_endpoint: Optional[str] = None

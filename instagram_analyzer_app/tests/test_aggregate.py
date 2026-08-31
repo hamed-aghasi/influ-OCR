@@ -1,5 +1,5 @@
 def test_aggregator_consensus_per_metric():
-    from processing.gemini_processor import _aggregate
+    from processing.ocr_processor import _aggregate
 
     results = [
         {"metrics": {"likes": 10, "views": 100}},
@@ -8,9 +8,10 @@ def test_aggregator_consensus_per_metric():
         {"metrics": None},
     ]
     summary, quality = _aggregate(results)
-    # Two distinct reads -> median_high (equals the old max() behavior here).
-    assert summary["likes"] == 25
-    assert summary["views"] == 105
+    # No read repeats -> median biased low, since misreads inflate (digit
+    # repetition) far more often than they deflate.
+    assert summary["likes"] == 10
+    assert summary["views"] == 100
     assert summary["shares"] == 4
     assert "follows" not in summary
     assert quality["shares"]["reads"] == 1
@@ -19,7 +20,7 @@ def test_aggregator_consensus_per_metric():
 def test_aggregator_outlier_outvoted():
     """Production case: follows read as 31 on two frames and 3154 on one.
     max() crowned 3154; consensus must pick 31 and flag the dispute."""
-    from processing.gemini_processor import _aggregate
+    from processing.ocr_processor import _aggregate
 
     results = [{"metrics": {"follows": v}} for v in (31, 31, 3154)]
     summary, quality = _aggregate(results)
@@ -28,8 +29,20 @@ def test_aggregator_outlier_outvoted():
     assert quality["follows"]["max"] == 3154
 
 
+def test_aggregator_two_disagreeing_reads_reject_the_inflated_one():
+    """The production failure (follows 31 read as 3154) with only TWO frames
+    carrying the metric — the common case after dedup. median_high would crown
+    the hallucination exactly as the old max() did."""
+    from processing.ocr_processor import _aggregate
+
+    results = [{"metrics": {"follows": v}} for v in (31, 3154)]
+    summary, quality = _aggregate(results)
+    assert summary["follows"] == 31
+    assert quality["follows"]["disputed"] is True
+
+
 def test_aggregator_median_when_all_distinct():
-    from processing.gemini_processor import _aggregate
+    from processing.ocr_processor import _aggregate
 
     results = [{"metrics": {"views": v}} for v in (100, 90, 4000)]
     summary, quality = _aggregate(results)
@@ -38,7 +51,7 @@ def test_aggregator_median_when_all_distinct():
 
 
 def test_aggregator_consistent_reads_not_disputed():
-    from processing.gemini_processor import _aggregate
+    from processing.ocr_processor import _aggregate
 
     results = [{"metrics": {"views": v}} for v in (100, 100, 101)]
     summary, quality = _aggregate(results)
@@ -47,7 +60,7 @@ def test_aggregator_consistent_reads_not_disputed():
 
 
 def test_aggregator_empty_inputs():
-    from processing.gemini_processor import _aggregate
+    from processing.ocr_processor import _aggregate
 
     assert _aggregate([]) == ({}, {})
     assert _aggregate([{}]) == ({}, {})

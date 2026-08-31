@@ -10,7 +10,7 @@ Re-verified against the working tree at commit `cc3af20` (2026-08-22):
 | 1. Add PySocks / requests[socks] to `requirements.txt` | ❌ Not done | No proxy-related packages in `requirements.txt` or `instagram_analyzer_app/requirements.txt` |
 | 2. Proxy env vars in `.env` template | ❌ Not done | `instagram_analyzer_app/.env.example` has no `HTTP_PROXY` / `SOCKS5_PROXY` / `NO_PROXY` entries |
 | 3. Create `processing/proxy_config.py` | ❌ Not done | File does not exist |
-| 4. `proxies=` param in the OCR API call | ❌ Not done | `instagram_analyzer_app/processing/gemini_processor.py:178` posts to `settings.openrouter_url` with no proxy |
+| 4. `proxies=` param in the OCR API call | ❌ Not done | `instagram_analyzer_app/processing/ocr_processor.py:178` posts to `settings.openrouter_url` with no proxy |
 | 5. botocore `Config(proxies=...)` in S3 client | ❌ Not done | `instagram_analyzer_app/processing/s3_storage.py:37` creates `boto3.client(...)` with no `config=` |
 | 6. Startup proxy logging in `main.py` | ❌ Not done | No proxy references in `main.py` |
 
@@ -45,7 +45,7 @@ This document outlines how to add comprehensive proxy support (HTTP/HTTPS + SOCK
 
 ## Current State
 
-- **`requests`** (gemini_processor.py:136) - No proxy configured
+- **`requests`** (ocr_processor.py:136) - No proxy configured
 - **`boto3`** (s3_storage.py:43) - No proxy configured
 - No proxy-related code exists in the codebase
 
@@ -120,7 +120,7 @@ def get_boto3_proxy_config() -> Optional[Dict[str, str]]:
 
 ### Step 4: Update Gemini Processor
 
-**File:** `processing/gemini_processor.py`
+**File:** `processing/ocr_processor.py`
 
 Modify the `call_gemini_api()` function (around line 136):
 
@@ -206,7 +206,7 @@ else:
 | `requirements.txt` | Add PySocks dependency |
 | `.env` | Add proxy variables |
 | `processing/proxy_config.py` | **New** - Proxy utility |
-| `processing/gemini_processor.py` | Add proxies param |
+| `processing/ocr_processor.py` | Add proxies param |
 | `processing/s3_storage.py` | Add botocore Config |
 | `main.py` | Log proxy status |
 
