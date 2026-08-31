@@ -92,7 +92,7 @@ async def _startup() -> None:
 async def login_page(request: Request):
     if _current_user(request):
         return RedirectResponse(url="/", status_code=303)
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    return templates.TemplateResponse(request, "login.html", {"error": None})
 
 
 @app.post("/login")
@@ -101,8 +101,9 @@ async def login(request: Request, username: str = Form(...), password: str = For
         request.session["user"] = username
         return RedirectResponse(url="/", status_code=303)
     return templates.TemplateResponse(
+        request,
         "login.html",
-        {"request": request, "error": "Invalid credentials"},
+        {"error": "Invalid credentials"},
         status_code=401,
     )
 
@@ -119,8 +120,9 @@ async def logout(request: Request):
 @app.get("/", response_class=HTMLResponse)
 async def upload_page(request: Request, user: str = Depends(_require_auth)):
     return templates.TemplateResponse(
+        request,
         "upload.html",
-        {"request": request, "title": "Upload Campaign", "user": user},
+        {"title": "Upload Campaign", "user": user},
     )
 
 
@@ -238,9 +240,9 @@ async def status_page(request: Request, job_id: str, user: str = Depends(_requir
     if not job:
         raise APIError(404, "Job not found")
     return templates.TemplateResponse(
+        request,
         "status.html",
         {
-            "request": request,
             "title": "Job Status",
             "job": job,
             "auto_refresh": job.get("status") in {"queued", "processing"},
@@ -256,9 +258,9 @@ async def jobs_page(
     user: str = Depends(_require_auth),
 ):
     return templates.TemplateResponse(
+        request,
         "jobs.html",
         {
-            "request": request,
             "title": "All Jobs",
             "jobs": get_all_jobs(limit=100, status_filter=status),
             "status_filter": status,
