@@ -70,18 +70,28 @@ def test_cleanup_job_dir_tolerates_missing_and_empty(tmp_path, monkeypatch):
     tasks._cleanup_job_dir(str(tmp_path / "never-existed"))
 
 
+def _real_jpeg() -> bytes:
+    import cv2
+    import numpy as np
+
+    ok, encoded = cv2.imencode(".jpg", np.zeros((10, 10, 3), np.uint8))
+    assert ok
+    return encoded.tobytes()
+
+
 def test_classifier_total_failure_is_reported_as_an_error(tmp_path, monkeypatch):
     """A broken model must not look like 'no Insights screens in this upload'."""
     from processing import frame_classifier
 
     frames = [tmp_path / "a.jpg", tmp_path / "b.jpg"]
+    payload = _real_jpeg()
     for f in frames:
-        f.write_bytes(b"garbage")
+        f.write_bytes(payload)
 
-    monkeypatch.setattr(frame_classifier, "load_model", lambda: object())
-    monkeypatch.setattr(
-        frame_classifier, "_classify_one", lambda p, m: (None, 0.0, "inference failed: boom")
-    )
+    def _boom(batch):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(frame_classifier, "load_model", lambda: _boom)
 
     result = frame_classifier.classify_frames(frames, job_id="j-broken")
 
@@ -114,13 +124,16 @@ def test_classifier_error_fails_the_job_with_a_distinct_message(tmp_path, monkey
 def test_healthy_classification_does_not_set_an_error(tmp_path, monkeypatch):
     """Zero good frames with no failures is a real 'no screens' result, not an
     infrastructure error — the two must stay distinguishable."""
+    import numpy as np
+
     from processing import frame_classifier
 
     frames = [tmp_path / "a.jpg"]
-    frames[0].write_bytes(b"garbage")
+    frames[0].write_bytes(_real_jpeg())
 
-    monkeypatch.setattr(frame_classifier, "load_model", lambda: object())
-    monkeypatch.setattr(frame_classifier, "_classify_one", lambda p, m: ("BAD", 0.1, ""))
+    monkeypatch.setattr(
+        frame_classifier, "load_model", lambda: lambda batch: np.full((len(batch), 1), 0.1, np.float32)
+    )
 
     result = frame_classifier.classify_frames(frames, job_id="j-nogood")
 

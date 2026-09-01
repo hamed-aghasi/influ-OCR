@@ -21,6 +21,10 @@ celery = Celery(
 celery.conf.update(
     task_track_started=True,
     task_acks_late=True,
+    # An OOM-killed worker child must redeliver its task, not ack it into the
+    # void — otherwise the job sits in 'processing' until the 2h reaper.
+    # Worst case is one duplicate run, which rewrites the same job row.
+    task_reject_on_worker_lost=True,
     worker_prefetch_multiplier=1,
     task_time_limit=60 * 60,        # 1h hard limit
     task_soft_time_limit=55 * 60,   # 55m soft

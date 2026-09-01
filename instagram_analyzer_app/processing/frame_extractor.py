@@ -73,6 +73,56 @@ def _convert_to_720p(input_path: Path, output_path: Path, log) -> bool:
     return True
 
 
+def _extract_with_ffmpeg(video_path: Path, output_folder: Path, do_scale: bool, log) -> Optional[List[Path]]:
+    """Single-pass fast path: one ffmpeg decode samples extract_fps frames/sec
+    and caps height at 720, replacing the old re-encode-then-decode-every-frame
+    flow (which decoded the video twice and saved ~10 frames/sec)."""
+    if not _check_ffmpeg():
+        return None
+
+    vf = f"fps={settings.extract_fps}"
+    if do_scale:
+        vf += ",scale=-2:min(720\\,ih)"  # downscale only; -2 keeps width even
+
+    cmd = [
+        "ffmpeg", "-y", "-i", str(video_path),
+        "-vf", vf, "-q:v", "3",
+        str(output_folder / "frame_%06d.jpg"),
+    ]
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=settings.ffmpeg_timeout_seconds,
+        )
+    except subprocess.TimeoutExpired:
+        log.error("ffmpeg extraction timed out after %ds", settings.ffmpeg_timeout_seconds)
+        return None
+    if result.returncode != 0:
+        log.error("ffmpeg extraction failed: %s", result.stderr[-500:])
+        return None
+    return sorted(output_folder.glob("frame_*.jpg"))
+
+
+def _write_metadata(video_path: Path, output_folder: Path, saved_count: int, log) -> None:
+    cap = cv2.VideoCapture(str(video_path))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.release()
+    metadata = {
+        "total_frames": total_frames,
+        "extracted_frames": saved_count,
+        "fps": fps,
+        "extraction_date": datetime.now().isoformat(),
+    }
+    try:
+        with open(output_folder / "extraction_metadata.json", "w") as f:
+            json.dump(metadata, f, indent=2)
+    except OSError as exc:
+        log.warning("Could not write extraction metadata: %s", exc)
+
+
 def extract_frames_from_video(
     video_path: Path,
     output_folder: Path,
@@ -90,6 +140,22 @@ def extract_frames_from_video(
             old.unlink()
         except OSError as exc:
             log.warning("Could not remove %s: %s", old.name, exc)
+
+    # Fast path: one ffmpeg decode does sampling + scaling. Explicit
+    # frame_interval / convert_to_720 overrides keep the exact every-Nth-frame
+    # OpenCV semantics below.
+    if frame_interval is None and convert_to_720 is None and settings.extract_fps > 0:
+        paths = _extract_with_ffmpeg(video_path, output_folder, do_convert, log)
+        if paths is not None:
+            _write_metadata(video_path, output_folder, len(paths), log)
+            log.info("Extracted %d frames from %s (ffmpeg fast path)", len(paths), video_path.name)
+            return len(paths), paths
+        for leftover in output_folder.glob("frame_*.jpg"):  # partial ffmpeg output
+            try:
+                leftover.unlink()
+            except OSError:
+                pass
+        log.warning("ffmpeg fast path unavailable; falling back to OpenCV decode")
 
     video_to_process = video_path
     temp_video: Optional[Path] = None

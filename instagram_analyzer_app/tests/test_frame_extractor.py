@@ -131,6 +131,39 @@ def test_unreadable_video_yields_no_frames(tmp_path):
     assert paths == []
 
 
+# ----- ffmpeg fast path -----
+
+def test_default_extraction_uses_ffmpeg_sampling(tmp_path):
+    """No explicit overrides → single ffmpeg pass sampling extract_fps=1:
+    a 3s clip yields ~3 frames, not every-3rd-of-30."""
+    from processing import frame_extractor as fe
+
+    if not fe._check_ffmpeg():
+        pytest.skip("ffmpeg not installed")
+
+    video = _write_video(tmp_path / "clip.avi", frames=30)  # 3s at 10fps
+    out = tmp_path / "frames"
+
+    count, paths = fe.extract_frames_from_video(video, out)
+
+    assert 2 <= count <= 4
+    assert paths == sorted(paths)
+    assert all(p.exists() and p.stat().st_size > 0 for p in paths)
+    meta = json.loads((out / "extraction_metadata.json").read_text())
+    assert meta["extracted_frames"] == count
+
+
+def test_fast_path_falls_back_to_opencv_without_ffmpeg(tmp_path, monkeypatch):
+    from processing import frame_extractor as fe
+
+    monkeypatch.setattr(fe, "_check_ffmpeg", lambda: False)
+    video = _write_video(tmp_path / "clip.avi", frames=9)
+
+    count, paths = fe.extract_frames_from_video(video, tmp_path / "frames")
+
+    assert count == 3  # legacy every-Nth sampling with frame_interval=3
+
+
 # ----- 720p conversion -----
 
 def test_conversion_skipped_when_ffmpeg_missing(tmp_path, monkeypatch):
@@ -216,8 +249,11 @@ def _zip_with(tmp_path: Path, members: dict) -> Path:
     return z
 
 
-def test_process_campaign_zip_extracts_each_video(tmp_path):
+def test_process_campaign_zip_extracts_each_video(tmp_path, monkeypatch):
+    from processing.config import settings
     from processing.frame_extractor import process_campaign_zip
+
+    monkeypatch.setattr(settings, "extract_fps", 0)  # pin legacy sampling for exact counts
 
     video_bytes = _write_video(tmp_path / "src.avi", frames=6).read_bytes()
     z = _zip_with(tmp_path, {"one.avi": video_bytes, "two.avi": video_bytes})

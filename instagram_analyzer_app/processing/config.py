@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     dark_frame_threshold: int = 80
 
     # ----- Frame extraction -----
+    extract_fps: float = 1.0  # ffmpeg fast path: frames sampled per second of video; 0 disables
     frame_interval: int = 3
     convert_to_720p: bool = True
     ffmpeg_timeout_seconds: int = 600

@@ -59,32 +59,30 @@ def _preprocess(img: np.ndarray) -> Optional[np.ndarray]:
         return None
 
 
-def _classify_one(frame_path: Path, model: Any) -> Tuple[Optional[str], float, str]:
-    """Returns (label, confidence, reason). `reason` is non-empty only on
-    failure, so the caller can report *why* a frame was dropped."""
+_INFER_BATCH = 32  # ponytail: fixed chunk bounds memory; tune only if profiling says so
+
+
+def _load_and_preprocess(frame_path: Path) -> Tuple[Optional[np.ndarray], str]:
+    """Returns (image array without batch dim, reason). `reason` is non-empty
+    only on failure, so the caller can report *why* a frame was dropped."""
     try:
         with open(frame_path, "rb") as f:
             arr = np.frombuffer(f.read(), np.uint8)
         img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
     except OSError as exc:
-        return None, 0.0, f"unreadable file: {exc}"
+        return None, f"unreadable file: {exc}"
 
     processed = _preprocess(img)
     if processed is None:
-        return None, 0.0, "frame could not be decoded or preprocessed"
+        return None, "frame could not be decoded or preprocessed"
+    return processed[0], ""
 
-    try:
-        prediction = model(processed)
-    except Exception as exc:  # noqa: BLE001 — TF inference can raise many things
-        return None, 0.0, f"inference failed: {exc}"
 
+def _confidences(prediction: Any, n: int) -> np.ndarray:
     if isinstance(prediction, dict):
-        pred_value = next(iter(prediction.values())).numpy()
-    else:
-        pred_value = prediction.numpy() if hasattr(prediction, "numpy") else prediction
-
-    confidence = float(pred_value[0][0]) if len(pred_value.shape) > 1 else float(pred_value[0])
-    return ("GOOD" if confidence > settings.classifier_threshold else "BAD"), confidence, ""
+        prediction = next(iter(prediction.values()))
+    arr = prediction.numpy() if hasattr(prediction, "numpy") else np.asarray(prediction)
+    return arr.reshape(n, -1)[:, 0]
 
 
 def classify_frames(
@@ -116,24 +114,41 @@ def classify_frames(
     bad_frames: List[Dict] = []
     failed_frames: List[Dict] = []
 
-    for i, frame_path in enumerate(frame_paths, 1):
-        path = Path(frame_path)
-        label, confidence, reason = _classify_one(path, model)
-        info = {"path": str(path), "filename": path.name, "confidence": confidence}
+    def _fail(path: Path, reason: str) -> None:
+        if not failed_frames:  # log the first failure only — the rest repeat it
+            log.warning("Frame %s could not be classified: %s", path.name, reason)
+        failed_frames.append({"path": str(path), "filename": path.name, "confidence": 0.0, "error": reason})
 
-        if label == "GOOD":
-            good_frames.append(info)
-            good_paths.append(path)
-        elif label == "BAD":
-            bad_frames.append(info)
-            bad_paths.append(path)
-        else:
-            if not failed_frames:  # log the first failure only — the rest repeat it
-                log.warning("Frame %s could not be classified: %s", path.name, reason)
-            failed_frames.append({**info, "error": reason})
+    # Batched inference: one model call per chunk instead of one per frame —
+    # the per-frame loop was the classify stage's dominant cost.
+    for offset in range(0, len(frame_paths), _INFER_BATCH):
+        chunk = [Path(p) for p in frame_paths[offset:offset + _INFER_BATCH]]
+        loaded = [_load_and_preprocess(p) for p in chunk]
 
-        if i % 50 == 0 or i == len(frame_paths):
-            log.info("Progress: %d/%d (good=%d bad=%d)", i, len(frame_paths), len(good_frames), len(bad_frames))
+        for path, (array, reason) in zip(chunk, loaded):
+            if array is None:
+                _fail(path, reason)
+
+        valid = [(p, a) for p, (a, _) in zip(chunk, loaded) if a is not None]
+        if valid:
+            try:
+                prediction = model(np.stack([a for _, a in valid]))
+                confs = _confidences(prediction, len(valid))
+            except Exception as exc:  # noqa: BLE001 — TF inference can raise many things
+                for path, _ in valid:
+                    _fail(path, f"inference failed: {exc}")
+            else:
+                for (path, _), confidence in zip(valid, confs):
+                    info = {"path": str(path), "filename": path.name, "confidence": float(confidence)}
+                    if confidence > settings.classifier_threshold:
+                        good_frames.append(info)
+                        good_paths.append(path)
+                    else:
+                        bad_frames.append(info)
+                        bad_paths.append(path)
+
+        done = min(offset + _INFER_BATCH, len(frame_paths))
+        log.info("Progress: %d/%d (good=%d bad=%d)", done, len(frame_paths), len(good_frames), len(bad_frames))
 
     elapsed = (datetime.now() - start).total_seconds()
     stats = {

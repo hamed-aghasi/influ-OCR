@@ -77,7 +77,7 @@ services:
     build:
       context: ./instagram_analyzer_app
     image: influ-ocr:latest
-    command: celery -A celery_app.celery worker --loglevel=info --concurrency=2 -Q celery
+    command: celery -A celery_app.celery worker --loglevel=info --concurrency=${WORKER_CONCURRENCY:-3} -Q celery
     environment: *app-env
     depends_on:
       postgres:
@@ -101,7 +101,7 @@ services:
     build:
       context: ./instagram_analyzer_app
     image: influ-ocr:latest
-    command: celery -A celery_app.celery worker --loglevel=info --concurrency=${OCR_WORKER_CONCURRENCY:-8} -Q ocr
+    command: celery -A celery_app.celery worker --loglevel=info --concurrency=${OCR_WORKER_CONCURRENCY:-12} -Q ocr
     environment: *app-env
     depends_on:
       postgres:
