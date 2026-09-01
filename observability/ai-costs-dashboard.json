@@ -13,7 +13,7 @@
       "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 4 } },
       "targets": [
         {
-          "expr": "sum(sum_over_time({service=~\"app|worker\"} |= `ai_call` | regexp `cost_usd=(?P<cost_usd>[0-9.]+)` | unwrap cost_usd [$__range]))",
+          "expr": "sum(sum_over_time({service=~\"app|worker.*\"} |= `ai_call` | regexp `cost_usd=(?P<cost_usd>[0-9.]+)` | unwrap cost_usd [$__range]))",
           "queryType": "instant"
         }
       ]
@@ -25,7 +25,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum(count_over_time({service=~\"app|worker\"} |= `ai_call` [$__range]))",
+          "expr": "sum(count_over_time({service=~\"app|worker.*\"} |= `ai_call` [$__range]))",
           "queryType": "instant"
         }
       ]
@@ -38,7 +38,7 @@
       "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 4 } },
       "targets": [
         {
-          "expr": "sum(sum_over_time({service=~\"app|worker\"} |= `ai_call` | regexp `cost_usd=(?P<cost_usd>[0-9.]+)` | unwrap cost_usd [$__interval]))"
+          "expr": "sum(sum_over_time({service=~\"app|worker.*\"} |= `ai_call` | regexp `cost_usd=(?P<cost_usd>[0-9.]+)` | unwrap cost_usd [$__interval]))"
         }
       ]
     },
@@ -49,11 +49,11 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
-          "expr": "sum(sum_over_time({service=~\"app|worker\"} |= `ai_call` | regexp `prompt_tokens=(?P<prompt_tokens>[0-9]+)` | unwrap prompt_tokens [$__interval]))",
+          "expr": "sum(sum_over_time({service=~\"app|worker.*\"} |= `ai_call` | regexp `prompt_tokens=(?P<prompt_tokens>[0-9]+)` | unwrap prompt_tokens [$__interval]))",
           "legendFormat": "prompt"
         },
         {
-          "expr": "sum(sum_over_time({service=~\"app|worker\"} |= `ai_call` | regexp `completion_tokens=(?P<completion_tokens>[0-9]+)` | unwrap completion_tokens [$__interval]))",
+          "expr": "sum(sum_over_time({service=~\"app|worker.*\"} |= `ai_call` | regexp `completion_tokens=(?P<completion_tokens>[0-9]+)` | unwrap completion_tokens [$__interval]))",
           "legendFormat": "completion"
         }
       ]
@@ -63,7 +63,7 @@
       "title": "Recent AI calls",
       "gridPos": { "x": 12, "y": 0, "w": 12, "h": 5 },
       "datasource": { "type": "loki", "uid": "loki" },
-      "targets": [{ "expr": "{service=~\"app|worker\"} |= `ai_call`" }]
+      "targets": [{ "expr": "{service=~\"app|worker.*\"} |= `ai_call`" }]
     }
   ]
 }
