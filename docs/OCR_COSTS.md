@@ -12,6 +12,33 @@
 \* qwen's higher end includes the OOM-retry re-runs from load-test run 2;
 $0.011 is its clean price.
 
+## Wider model sweep (2026-09-01, same 3 frames)
+
+Ground truth = the 11 fields qwen3.8-max and gemini-3.7-flash independently
+agree on. One OCR call each; per-video cost is the measured `cost_usd`.
+
+| Model | Fields correct | Invented | Latency | Per video |
+|---|---:|---:|---:|---:|
+| **openai/gpt-5.4-mini** | 11/11 | 0 | **3.4s** | $0.0030 |
+| mistralai/mistral-small-2603 | 11/11 | 0 | 4.8s | **$0.0005** |
+| google/gemini-3.5-flash-lite | 11/11 | 0 | 6.3s | $0.0033 |
+| anthropic/claude-haiku-4.5 | 11/11 | 0 | 7.8s | $0.0053 |
+| bytedance-seed/seed-2.0-mini | 11/11 | 0 | 20.4s | $0.0014 |
+| google/gemini-3.7-flash (default) | 11/11 | 0 | 10.8s | $0.0070 |
+| qwen/qwen3.8-max | 11/11 | 0 | 29.5s | $0.0111 |
+| qwen/qwen3.5-flash-02-23 | — | — | 29.4s | failed (no schema-valid output) |
+| z-ai/glm-5.3-flash | 11/11 | **8** | 10.8s | $0.0003 |
+
+Standouts: **gpt-5.4-mini** (fastest + perfect, 2.3x cheaper than the current
+default) and **mistral-small-2603** (perfect at 1/14th the default's cost).
+
+Caveat: this is one video with one screen layout. The 2026-08-22 50-frame
+benchmark showed models diverge on icon-strip layouts (flash recall 57.6% vs
+qwen 70.4%) — any model switch for production should re-run that benchmark
+(needs the `frames/` set from the original machine; see `eval-2026-08-22/`).
+glm-5.3-flash is rejected outright: it invents values for metrics not on
+screen (e.g. likes > interactions, which is impossible).
+
 ## What actually drives the cost
 
 It's **per OCR call, not per video**. Each call is ~$0.007–0.008 with flash,
