@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     # ----- OCR -----
     openrouter_api_key: Optional[str] = None
     openrouter_url: str = "https://openrouter.ai/api/v1/chat/completions"
-    openrouter_model: str = "qwen/qwen3.8-max"
+    openrouter_model: str = "google/gemini-3.7-flash"
     ocr_batch_size: int = 12
     ocr_delay_seconds: float = 2.0
     ocr_max_retries: int = 5

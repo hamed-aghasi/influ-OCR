@@ -43,7 +43,7 @@ Default login: `admin` / whatever you set as `ADMIN_PASSWORD`.
 | `DATABASE_URL`       | yes      | Postgres DSN                                      |
 | `REDIS_URL`          | yes      | Defaults to `redis://redis:6379/0`                |
 | `OPENROUTER_API_KEY` | yes for OCR | Without it, classification still works         |
-| `OPENROUTER_MODEL`   | no       | Default `qwen/qwen3.8-max`                 |
+| `OPENROUTER_MODEL`   | no       | Default `google/gemini-3.7-flash`                 |
 | `ADMIN_USERNAME`     | no       | Default `admin`                                   |
 | `ADMIN_PASSWORD`     | no       | Default `admin123` — change before any real use   |
 | `MINIO_ENDPOINT`     | optional | All four MINIO_* set → auto-ingest poller active  |

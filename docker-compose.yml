@@ -2,7 +2,7 @@ x-app-env: &app-env
   DATABASE_URL: postgresql://analyzer:analyzer@postgres:5432/instagram_analyzer
   REDIS_URL: redis://redis:6379/0
   OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-  OPENROUTER_MODEL: ${OPENROUTER_MODEL:-qwen/qwen3.8-max}
+  OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemini-3.7-flash}
   SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env (>= 16 chars)}
   ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
   ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}

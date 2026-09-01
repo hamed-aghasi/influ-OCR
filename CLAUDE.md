@@ -5,7 +5,7 @@
 FastAPI app that extracts Instagram Insights engagement metrics (views, reach,
 likes, shares, etc.) from uploaded screenshots/screen-recordings. Pipeline:
 frame extraction (OpenCV) -> TensorFlow MobileNetV2 frame classifier -> OCR via
-an OpenRouter vision model (default qwen/qwen3.8-max) -> results in Postgres, optional S3, Excel
+an OpenRouter vision model (default google/gemini-3.7-flash) -> results in Postgres, optional S3, Excel
 export. Supports English and Persian Insights screens. Project is dormant
 (last commit 2025-12-28).
 
