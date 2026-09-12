@@ -1,0 +1,8 @@
+# Training-only deps. Deliberately separate from the app requirements so the
+# runtime image does not ship a training stack.
+# Needs Python <= 3.12 — there are no TensorFlow wheels for 3.13/3.14 yet.
+tensorflow>=2.16,<3           # use tensorflow-cpu if you have no GPU
+opencv-python-headless>=4.8.0
+numpy>=1.24.0
+ImageHash>=4.3.1              # only needed for --dedup
+Pillow>=10.0.0                # only needed for --dedup
