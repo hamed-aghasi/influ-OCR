@@ -250,7 +250,9 @@ def test_run_job_passes_each_video_as_its_own_sequence(tmp_path, monkeypatch):
         seen.update(sequences=sequences, good=good, scores=scores)
         return Selection(selected=[], duplicates=list(good))
 
-    monkeypatch.setattr(tasks, "select_frames", fake_select)
+    import processing.selection_pipeline as pipeline
+    monkeypatch.setattr(pipeline, "select_frames", fake_select)
+    monkeypatch.setattr(pipeline.settings, "coverage_selection", False)
     monkeypatch.setattr(tasks.finalize_job, "delay", lambda *a, **k: None)
 
     tasks.run_job("j-seq", str(tmp_path / "v.mp4"), "video")
@@ -258,3 +260,69 @@ def test_run_job_passes_each_video_as_its_own_sequence(tmp_path, monkeypatch):
     assert seen["sequences"] == [frames]           # all frames, bad ones included, in order
     assert seen["good"] == frames[1:3]
     assert seen["scores"] == {frames[1]: 0.99, frames[2]: 0.97}
+
+
+# ----- duplicate content after coverage (round-01 review, 8102e03d) -----
+
+def test_frame_whose_content_is_all_in_another_kept_frame_is_dropped(tmp_path):
+    """Two frames of the same page, one scrolled 30 px: every row of the first
+    is readable in the second only if the second's window contains it. Here
+    frame B (y=60) sits inside A's window (y=40) except its last 20 rows, so
+    neither alone covers the other; frame C (y=40) is an exact duplicate of A."""
+    from processing.frame_selection import drop_duplicate_content, select_by_scroll
+
+    page = _page(21)
+    offsets = [0, 20, 40, 40, 40]
+    paths = _write(tmp_path, [_frame(page, y) for y in offsets])
+    sel = select_by_scroll([paths], paths)
+    kept, dropped = drop_duplicate_content(sel, [paths[2], paths[4]])
+    assert len(kept) == 1 and len(dropped) == 1
+
+
+def test_different_content_is_never_dropped(tmp_path):
+    from processing.frame_selection import drop_duplicate_content, select_by_scroll
+
+    page = _page(22)
+    offsets = list(range(0, 1200, 30))
+    paths = _write(tmp_path, [_frame(page, y) for y in offsets])
+    sel = select_by_scroll([paths], paths)
+    far_apart = [paths[0], paths[-1]]
+    assert drop_duplicate_content(sel, far_apart) == (far_apart, [])
+
+
+def test_duplicate_pass_keeps_the_better_ranked_frame(tmp_path):
+    from processing.frame_selection import drop_duplicate_content, select_by_scroll
+
+    page = _page(23)
+    paths = _write(tmp_path, [_frame(page, 200) for _ in range(4)])
+    sel = select_by_scroll([paths], paths)
+    kept, dropped = drop_duplicate_content(sel, [paths[1], paths[3]], rank={paths[1]: 5, paths[3]: 1})
+    assert kept == [paths[1]] and dropped == [paths[3]]
+
+
+def test_pipeline_runs_coverage_then_the_duplicate_pass(tmp_path, monkeypatch):
+    import dataclasses
+
+    import processing.selection_pipeline as pipeline
+    from processing.frame_selection import select_by_scroll
+    from processing.metric_coverage import Coverage
+
+    page = _page(24)
+    paths = _write(tmp_path, [_frame(page, 300) for _ in range(3)])
+
+    def two_identical_picks(seqs, good, scores):
+        # scroll selection itself would collapse identical frames to one; force two
+        # through so the duplicate pass has something to do
+        return dataclasses.replace(select_by_scroll(seqs, good, scores), selected=[paths[0], paths[2]])
+
+    def keep_all(ps, job_id=None):
+        return Coverage(selected=list(ps), dropped=[], metrics={p: {"views"} for p in ps},
+                        reasons={p: "cover" for p in ps})
+
+    monkeypatch.setattr(pipeline, "select_frames", two_identical_picks)
+    monkeypatch.setattr(pipeline, "select_by_coverage", keep_all)
+    monkeypatch.setattr(pipeline.settings, "coverage_selection", True)
+
+    choice = pipeline.choose_ocr_frames([paths], paths)
+    assert len(choice.final) == 1 and len(choice.dropped_as_duplicate) == 1
+    assert choice.coverage.reasons[choice.dropped_as_duplicate[0]] == "duplicate"

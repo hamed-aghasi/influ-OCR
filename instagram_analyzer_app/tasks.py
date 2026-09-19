@@ -31,8 +31,7 @@ from processing.db_client import (
 )
 from processing.naming import generate_job_id
 from processing.frame_classifier import classify_frames
-from processing.frame_selection import select_frames
-from processing.metric_coverage import select_by_coverage
+from processing.selection_pipeline import choose_ocr_frames
 from processing.frame_extractor import extract_frames_from_video, process_campaign_zip
 from processing.ocr_processor import (
     assemble_metrics,
@@ -122,13 +121,9 @@ def run_job(self, job_id: str, file_path: str, file_type: str, object_key: str =
 
         update_job_progress(job_id, "Selecting frames")
         scores = {Path(f["path"]): f["confidence"] for f in classification.get("good_frames", [])}
-        selection = select_frames(sequences, good_paths, scores)
-        unique_paths, duplicate_paths = selection.selected, selection.duplicates
-        if settings.coverage_selection and unique_paths:
-            update_job_progress(job_id, "Checking metric coverage")
-            coverage = select_by_coverage(unique_paths, job_id=job_id)
-            unique_paths = coverage.selected
-            duplicate_paths = duplicate_paths + coverage.dropped
+        choice = choose_ocr_frames(sequences, good_paths, scores, job_id=job_id)
+        selection = choice.selection
+        unique_paths, duplicate_paths = choice.final, choice.not_sent
         batches = chunk_batches(unique_paths)
         log.info(
             "Selection (%s): %d unique / %d duplicates from %d good frames -> %d OCR batches",

@@ -190,7 +190,7 @@ def test_value_backstop_keeps_a_frame_whose_number_is_nowhere_else():
     from processing.metric_coverage import select_by_coverage
 
     f = _frames(2)
-    table = {f[0]: ({"views", "likes"}, {"20532"}, True), f[1]: ({"views"}, {"20532", "3154"}, True)}
+    table = {f[0]: ({"views", "likes"}, {"20532"}, True), f[1]: ({"views"}, {"20532", "3154"}, True)}  # counts
     cov = select_by_coverage(f, detect=table.__getitem__)
     assert cov.selected == f
     assert cov.reasons[f[1]] == "backstop"
@@ -228,8 +228,10 @@ def test_run_job_applies_coverage_only_when_enabled(tmp_path, monkeypatch):
     monkeypatch.setattr(tasks, "extract_frames_from_video", lambda *a, **k: (3, frames))
     monkeypatch.setattr(tasks, "classify_frames", lambda *a, **k: {
         "good_paths": frames, "bad_frames": [], "good_frames": []})
-    monkeypatch.setattr(tasks, "select_frames", lambda *a, **k: Selection(selected=frames, duplicates=[]))
-    monkeypatch.setattr(tasks, "select_by_coverage",
+    import processing.selection_pipeline as pipeline
+    monkeypatch.setattr(pipeline, "select_frames",
+                        lambda *a, **k: Selection(selected=frames, duplicates=[], strategy="phash"))
+    monkeypatch.setattr(pipeline, "select_by_coverage",
                         lambda paths, job_id=None: Coverage(selected=paths[:1], dropped=paths[1:]))
     sent = {}
     monkeypatch.setattr(tasks.finalize_job, "delay", lambda *a, **k: None)
@@ -243,3 +245,93 @@ def test_run_job_applies_coverage_only_when_enabled(tmp_path, monkeypatch):
     monkeypatch.setattr(tasks.settings, "coverage_selection", True)
     tasks.run_job("j-on", str(tmp_path / "v.mp4"), "video")
     assert sent.pop("paths") == frames[:1]
+
+
+# ----- round-01 human review (review-rounds/round-01/*/feedback.json) -----
+# Exact Tesseract output of the frames the reviewer judged.
+
+R01_SKELETON_BF96_033 = ["0 x", "19 , \u06f33 \u00a9", "9 \u06f4*\u06f6 = |", "db & U", "Overview \u00a9", "Views", "Interactions", "Profile activity \u00a9", "Audience"]          # loading skeleton: reviewer "not needed"
+R01_RATES_5361_189 = ["6 all \u2018ull ).. 89 \u06f6", "+ __Reelinsights ya:", "Overview Engagement Audience", "W Save rate radi", "Ry Repost rate 94", "0 Comment rate Hees", "How long people watched your reel @", "\u06f5", "\u0633\u0627 \u06f1"]            # rates only: "not needed"
+R01_RATES_1F2B_183 = ["< Reel insights \u200f\u0646\u0645\u200e \u06f0", "Overview Engagement Audience", "11s 0", "Views over time \u00a9", "All Followers Non-followers", "4 an", "\u06f3", "/", "J", "What impacts your views \u00a9", "\u200f\u0627\u064d\u200e skip rate 46.0%", "0 \u06f0 rate 0.1%", "QD Like rate Oe", "\u200f\u0627\u0644\u0645\u200e rate 0.1%", "e Repost rate 0.0%"]            # rates only: "not needed"
+R01_RATES_4985_276 = ["Ht LTE 8(", "< Reel insights \u200f\u0645\u0631\u200e \u06f0", "Overview Engagement Audience", "9 Like rate 1.8%", "Lower", "\u200f\u0645\u0627\u200e Save rate 08%", "Ry Repost rate pide", "9", "0 Comment rate 0.3%", "Lower", "How long people watched your reel \u00a9", "100%", "0", "0:00 1:15", "Top sources of views Q"]            # rates + a bare sources header: "not needed"
+R01_SOURCES_5361_237 = ["OO al Sl GD 99 : \u06f9", "< ___Reelinsights \u200f\u0647\u0645\u200e :", "Overview Engagement Audience", "100", "50", "\u06f1 \u200f\u0633\u062d\u200e", "\u200e000 1:15", "Top sources of views @", "Feed", "ee 98.6%", "Reels tab", "\u06f1 11%", "Profile", "0.2%", "Explore", "01%", "Ad", "\u200f\u0647\u0645\u0645\u200e Boost this reel >"]          # Top sources of views: "should have been sent"
+R01_LOADED_BF96_060 = ["14:49 \u06f8 sf) LTE ED", "0 \u06f1 Xx", "db & U", "Overview \u06f5", "Interactions 64", "Profile activity 17", "Views \u00a9", "=", "Views", "23,813", "\u00a9 Followers 94.2%", "\u06f0 Non-followers 5.8%"]            # fully loaded: "should have been sent"
+R01_HALF_LOADED_BF96_054 = ["14:9 \u06f8 :: LTE 7", "0 x", "eT all", "\u200f\u06cc\u0645 \u062c\u0631\u200e ae \u200f\u0648 \u06f1\u06f0\u06f1 \u0628\u06cc\u0639\u200e", "ae \u201cWe", "dh & U", "Overview \u00a9", "Views \u00a9", "=", "Views", "23,813", "\u00a9 Followers 94.2%", "\u06f0 Non-followers 5.8%"]       # half loaded: "not needed"
+SOURCES_PERSIAN_E4C6_324 = ["\u200eMi co \u06f0 4 9 8\u06f5 \u06f8\u200f 5 \u06f1\u06f1 \u06f2\u06f4\u062f\u0631\u0635\u062f 8", "\u0628._ \u0627\u0637\u0644\u0627\u0639\u0627\u062a \u0622\u0645\u0627\u0631\u06cc \u062d\u0644\u0642\u0647 \u0641\u06cc\u0644\u0645 \u06f3\u06f3", "\u0645\u0631\u0648\u0631 \u06a9\u0644\u06cc \u062a\u0639\u0627\u0645\u0644 \u0645\u062e\u0627\u0637\u0628", "\u200et", "\u200e@ \u200f\u0628\u0631\u062a\u0631 \u0628\u0627\u0632\u062f\u06cc\u062f\u200e whe", "\u200f\u0642\u06cc\u062f\u200e", "\u200e\u2014\u2014\u2014 \u06f4", "Reels \u200f\u0628\u0631\u06af\u0647\u200e", "\u200e\u06f1/\u06f4\u06f6 6", "\u200f\u06a9\u0627\u0648\u0634\u200e", "\u200efx \u06f1", "+x", "\u200f\u0622\u06af\u0647\u06cc\u200e", "\u200e< \u200f\u062d\u0644\u0642\u0647 \u0641\u06cc\u0644\u0645\u200e oul clay! AA"]      # Persian Top sources, partly garbled
+
+
+def test_round01_unneeded_frames_are_not_kept_as_unrecognised():
+    from processing.metric_coverage import has_real_number, metrics_in_text
+
+    for lines in (R01_SKELETON_BF96_033, R01_RATES_5361_189, R01_RATES_1F2B_183, R01_RATES_4985_276):
+        assert metrics_in_text(lines) == set()
+        assert has_real_number(lines) is False
+
+
+def test_unread_values_still_count_as_real_numbers():
+    from processing.metric_coverage import has_real_number
+
+    assert has_real_number(["< Reel insights", "Summary", "20,532 14,472"])      # labels unread
+    assert has_real_number(["< Reel insights", "Viewz 1,234"])                   # garbled label + value
+    assert not has_real_number(["< Reel insights", "Jul 27 Jul 28 Jul 29", "30K", "15K", "0"])  # axes
+    assert has_real_number(["x", "Top sources of views", "Feed", "ee 98.6%"])    # rows under the header
+
+
+def test_top_sources_are_detected():
+    from processing.metric_coverage import metrics_in_text
+
+    assert metrics_in_text(R01_SOURCES_5361_237) == {
+        "source_feed", "source_reels_tab", "source_profile", "source_explore"}
+    assert metrics_in_text(SOURCES_PERSIAN_E4C6_324) >= {"source_feed", "source_reels_tab", "source_explore"}
+
+
+def test_profile_outside_the_sources_list_is_not_a_source():
+    from processing.metric_coverage import metrics_in_text
+
+    assert metrics_in_text(["Profile activity © 17", "Profile visits 17", "Follows 0"]) == {
+        "profile_activity", "profile_visits", "follows"}
+    assert metrics_in_text(["Profile", "0.2%"]) == set()          # one row, no header: not credited
+
+
+def test_loaded_frame_is_preferred_over_half_loaded():
+    """bf96a4ca: 054 (half loaded) and 060 (loaded) both show "23,813". When the
+    covering frame lacks that count, the backstop must keep 060, the more
+    complete frame, not the earlier half-loaded one. Percentages ("5.8%", which
+    the covering frame misread) are no longer guarded, so a misread % alone
+    keeps neither."""
+    from processing.metric_coverage import metrics_in_text, select_by_coverage, values_in
+
+    f = _frames(3)
+    lines = {f[0]: R01_HALF_LOADED_BF96_054, f[1]: R01_LOADED_BF96_060}
+    table = {p: (metrics_in_text(L), values_in(L), True) for p, L in lines.items()}
+    all_metrics = {"views", "followers", "non_followers", "interactions", "profile_activity", "accounts_reached"}
+
+    table[f[2]] = (all_metrics, {"94.2%", "58%", "64", "17", "19716"}, True)      # lacks 23813
+    cov = select_by_coverage(f, detect=table.__getitem__)
+    assert f[1] in cov.selected and f[0] not in cov.selected
+    assert cov.reasons[f[1]] == "backstop"
+
+    table[f[2]] = (all_metrics, {"23813", "94.2%", "58%", "64", "17", "19716"}, True)  # only "5.8%" differs
+    cov = select_by_coverage(f, detect=table.__getitem__)
+    assert cov.selected == [f[2]]
+
+
+def test_set_cover_ties_go_to_the_more_complete_later_frame():
+    from processing.metric_coverage import select_by_coverage
+
+    f = _frames(2)
+    table = {f[0]: ({"views"}, {"100"}, True), f[1]: ({"views"}, {"100", "5"}, True)}
+    assert select_by_coverage(f, detect=table.__getitem__).selected == [f[1]]
+
+
+def test_section_header_does_not_take_the_next_lines_number():
+    """4eb4b131 frame 075 (exact OCR): the Interactions header at the bottom edge,
+    followed by the donut's arc read as digits. The donut's own "Interactions 8"
+    line below it is what shows the metric."""
+    from processing.metric_coverage import metrics_in_text
+
+    edge = ["* Followers 98.6%", "۰ Non-followers 14%", "Viewers. 3,138", "Interactions ©", "6-۷", "f"]
+    assert "interactions" not in metrics_in_text(edge)
+    assert "interactions" in metrics_in_text(["Interactions ©", "Interactions", "8"])
+    assert "interactions" in metrics_in_text(["Interactions 8"])
+    assert "profile_activity" in metrics_in_text(["Profile activity © 17"])   # header with its own value

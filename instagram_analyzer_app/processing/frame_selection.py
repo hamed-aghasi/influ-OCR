@@ -51,6 +51,12 @@ class Selection:
     groups: Dict[Path, List[Path]] = field(default_factory=dict)  # sent frame -> good frames it stands for
     pages: int = 0
     strategy: str = "scroll"
+    # scroll strategy only: each frame's alignment state and its page's pinned
+    # bands, kept so later passes (drop_duplicate_content) can compare frames by
+    # content without re-aligning the whole video
+    frame_info: Dict[Path, "_Frame"] = field(default_factory=dict, repr=False)
+    sequence_of: Dict[Path, int] = field(default_factory=dict, repr=False)
+    bands: Dict[Tuple[int, int], Tuple[int, int]] = field(default_factory=dict, repr=False)
 
 
 @dataclass
@@ -431,8 +437,11 @@ def select_by_scroll(
     n_pages = 0
     unhashable = set()
     _ALIGN_CACHE.clear()
+    frame_info: Dict[Path, _Frame] = {}
+    sequence_of: Dict[Path, int] = {}
+    all_bands: Dict[Tuple[int, int], Tuple[int, int]] = {}
 
-    for seq in sequences:
+    for si, seq in enumerate(sequences):
         frames = [_Frame(Path(p), i, Path(p) in good_set, scores.get(Path(p), 0.0), _load_gray(Path(p)))
                   for i, p in enumerate(seq)]
         _stillness(frames)
@@ -453,6 +462,11 @@ def select_by_scroll(
             picks.extend(by_order[o] for o in _cover_page(page, h))
         picks = _verify(frames, picks, bands, h)
         chosen.extend(picks)
+        for f in frames:
+            if f.gray is not None:
+                frame_info[f.path] = f
+                sequence_of[f.path] = si
+        all_bands.update({(si, pid): b for pid, b in bands.items()})
         for f in frames:           # each good frame is represented by the pick most like it
             if not f.good or f.gray is None:
                 continue
@@ -478,7 +492,59 @@ def select_by_scroll(
                   if p not in survivors_set]
     _ALIGN_CACHE.clear()
     return Selection(selected=survivors, duplicates=duplicates,
-                     groups={s: groups.get(s, [s]) for s in survivors}, pages=n_pages)
+                     groups={s: groups.get(s, [s]) for s in survivors}, pages=n_pages,
+                     frame_info=frame_info, sequence_of=sequence_of, bands=all_bands)
+
+
+def content_covered(selection: Selection, target: Path, others: Sequence[Path]) -> bool:
+    """Is every textured row of `target` (pinned bands excluded) readable, with
+    the same content and away from a cut edge, in one of `others` from the same
+    video? False when that cannot be established (no alignment data, another
+    video, nothing to compare with) — never a guess towards "covered"."""
+    info, seq_of = selection.frame_info, selection.sequence_of
+    gf = info.get(Path(target))
+    if gf is None or gf.gray is None:
+        return False
+    peers = [info[Path(o)] for o in others
+             if Path(o) != Path(target) and Path(o) in info and seq_of.get(Path(o)) == seq_of.get(Path(target))]
+    if not peers:
+        return False
+    h = gf.gray.shape[0]
+    top, bottom = selection.bands.get((seq_of[Path(target)], gf.page), (int(h * 0.10), int(h * 0.08)))
+    need = gf.gray.std(axis=1) > TEXTURE_STD
+    need[:top] = False
+    need[h - bottom:] = False
+    missing = need & ~_covered_rows(gf, peers, max(1, int(h * ROW_HEIGHT)))
+    return int(missing.sum()) <= ROW_SLACK
+
+
+def drop_duplicate_content(
+    selection: Selection,
+    paths: Sequence[Path],
+    rank: Optional[Mapping[Path, float]] = None,
+) -> Tuple[List[Path], List[Path]]:
+    """Drop frames whose content is entirely readable in another kept frame.
+
+    A frame is a duplicate when every textured row of it (pinned header and nav
+    bands excluded) appears, with the same content and away from a cut edge, in
+    some other kept frame of the same video: the row-by-row check _verify
+    already relies on. It needs no OCR, so it catches duplicates that OCR
+    misreads make look different ("Likes 124" read as "'3 124"). Frames are
+    tried least valuable first (lowest `rank`, then earliest), so of two
+    identical frames the better-ranked one stays. Only works on a scroll
+    Selection; for anything else nothing is dropped. Returns (kept, dropped).
+    """
+    rank = rank or {}
+    keep = list(paths)
+    position = {p: i for i, p in enumerate(paths)}
+    dropped: List[Path] = []
+    _ALIGN_CACHE.clear()
+    for g in sorted(paths, key=lambda p: (rank.get(p, 0), position[p])):
+        if content_covered(selection, g, [o for o in keep if o != g]):
+            keep.remove(g)
+            dropped.append(g)
+    _ALIGN_CACHE.clear()
+    return keep, dropped
 
 
 def select_frames(

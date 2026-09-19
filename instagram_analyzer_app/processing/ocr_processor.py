@@ -35,10 +35,14 @@ _METRIC_FIELDS = (
     "forward", "next_story", "back", "exited",
     "profile_activity", "profile_visits", "external_link_taps", "follows",
     "gender_men", "gender_women",
+    "source_feed", "source_reels_tab", "source_profile", "source_explore",
+    "source_stories", "source_search", "source_other",
 )
 
 
-_PERCENT_FIELDS = {"followers", "non_followers", "gender_men", "gender_women"}
+_PERCENT_FIELDS = {"followers", "non_followers", "gender_men", "gender_women",
+                   "source_feed", "source_reels_tab", "source_profile", "source_explore",
+                   "source_stories", "source_search", "source_other"}
 
 # No real Instagram metric exceeds this; observed model failure mode is
 # digit-repetition hallucinations hundreds of digits long.
@@ -67,6 +71,13 @@ class Metrics(BaseModel):
     follows: Optional[int] = None
     gender_men: Optional[float] = None      # Audience > Gender: Men %
     gender_women: Optional[float] = None    # Audience > Gender: Women %
+    source_feed: Optional[float] = None       # Reel "Top sources of views", each a %
+    source_reels_tab: Optional[float] = None
+    source_profile: Optional[float] = None
+    source_explore: Optional[float] = None
+    source_stories: Optional[float] = None
+    source_search: Optional[float] = None
+    source_other: Optional[float] = None
 
     @field_validator("*", mode="after")
     @classmethod
@@ -154,6 +165,8 @@ Metric keys to extract (omit any not present):
 - forward, next_story, back, exited
 - profile_activity, profile_visits, external_link_taps, follows
 - gender_men, gender_women
+- source_feed, source_reels_tab, source_profile, source_explore,
+  source_stories, source_search, source_other
 
 On-screen label mapping (English / Persian):
 - "Viewers" / بینندگان -> accounts_reached (NOT views; the "Views" donut or
@@ -165,6 +178,11 @@ On-screen label mapping (English / Persian):
 - "Men" / مردان / مرد -> gender_men, "Women" / زنان / زن -> gender_women: the
   Gender split in the Audience section, as percentages (e.g. 95.9 and 4.1).
   Only from the Gender view — not from the Age or Country views.
+- "Top sources of views" / منابع برتر بازدید (Reels): one percentage per row.
+  Feed / فید -> source_feed, Reels tab / برگه Reels -> source_reels_tab,
+  Profile / نمایه -> source_profile, Explore / کاوش -> source_explore,
+  Stories -> source_stories, Search / جستجو -> source_search, Other / سایر ->
+  source_other. Only from that list — "Profile" elsewhere is not a source.
 
 Also read the icon strip at the top of Reel insights screens (heart=likes,
 speech bubble=replies, paper plane=shares) and the Engagement tab rows.

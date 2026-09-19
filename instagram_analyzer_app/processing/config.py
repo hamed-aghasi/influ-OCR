@@ -54,13 +54,13 @@ class Settings(BaseSettings):
 
     # ----- Classifier -----
     model_dir: Path = APP_DIR / "models"
-    # Tied to the deployed model, run 2026-09-19-relabel (trained after `good`
-    # was narrowed to "a schema metric is readable"; training/relabel/README.md).
-    # 0.30 is the highest cutoff holding recall 1.000 on the 9 held-out videos.
-    # End to end against training/ground_truth/ with scroll selection it sends
-    # 168 frames and loses no metric (the previous model at 0.95 sent 192).
-    # Rolling the model back means rolling this back too: the previous model,
-    # 2026-09-14-nodedup (models/backup_20260919T100558Z/), ran at 0.95.
+    # Tied to the deployed model, run 2026-09-19b-sources (good = a schema metric
+    # is readable, Top sources of views included; plus round-01 review feedback;
+    # training/relabel/2026-09-19b-sources/). Held-out recall is 1.000 from 0.05
+    # to 0.85; 0.30 keeps a wide margin for ~6 more frames per 10 videos than
+    # 0.85. End to end: ground truth 70 frames, no metric lost; round-01 feedback
+    # 21/21 checks pass. Rolling back: backup_* in models/ (previous: run
+    # 2026-09-19-relabel, also at 0.30).
     classifier_threshold: float = 0.30
     classifier_image_size: int = 224
     dark_frame_threshold: int = 80
@@ -100,9 +100,10 @@ class Settings(BaseSettings):
     frame_selection: Literal["phash", "scroll"] = "scroll"
     # Then keep only the fewest selected frames that together show every
     # metric, read locally with Tesseract (processing/metric_coverage.py).
-    # Against the ground truth (21 metrics incl. the gender split): 168 -> 68
-    # frames after scroll selection, no metric lost. Needs the tesseract binary with these languages (installed
-    # in the Dockerfile); if missing, the step is skipped and logged, never fatal.
+    # A final pass drops frames whose content is readable in another sent frame
+    # (processing/selection_pipeline.py). Ground truth: no metric lost.
+    # Needs the tesseract binary with these languages (installed in the
+    # Dockerfile); if missing, the step is skipped and logged, never fatal.
     coverage_selection: bool = True
     coverage_ocr_lang: str = "fas+eng"
 

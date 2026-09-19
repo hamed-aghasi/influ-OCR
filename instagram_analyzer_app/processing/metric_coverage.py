@@ -12,8 +12,9 @@ Fail-safe where it can fail:
   kept (the value backstop), so a label read but mis-paired cannot cost a value.
 - If Tesseract is not installed, or errors, the input is returned unchanged.
 
-Against training/ground_truth/ (10 videos, 21 metrics incl. the gender split)
-after scroll selection: 168 -> 68 frames, no metric lost.
+Evaluated with training/eval_selection.py (ground truth, Top sources and the
+gender split included: no metric lost) and training/eval_feedback.py (human
+review verdicts from review-rounds/).
 
 Detection is deliberately about *which* metric is on screen, never its value:
 the vision model still reads every number. A mis-read digit here changes nothing.
@@ -63,6 +64,20 @@ _LABELS: Dict[str, Sequence[str]] = {
 # and Persian "زن" of "بازنشر" (repost).
 _GENDER = {"gender_men": ("men", "مردان", "مرد"), "gender_women": ("women", "زنان", "زن")}
 
+# Reel "Top sources of views" rows: the label alone on its line, its percentage on
+# the next (after bar glyphs). Matched only as a whole line and only on a frame
+# that shows the section header or at least two source rows, because "Profile"
+# and "Feed" are ordinary words elsewhere.
+_SOURCES = {
+    "source_feed": ("feed", "فید", "قید"),          # "قید": Tesseract's usual misread of فید
+    "source_reels_tab": ("reels tab", "برگه reels", "reels برگه", "زبانه reels", "reels زبانه"),
+    "source_profile": ("profile", "نمایه"),
+    "source_explore": ("explore", "کاوش"),
+    "source_stories": ("stories", "استوری‌ها", "داستان‌ها"),
+    "source_search": ("search", "جستجو"),
+    "source_other": ("other", "سایر"),
+}
+
 # Lines that contain a metric word but are chart headers or tab bars, not values.
 _NOT_A_VALUE = ("viewsovertime", "درطولزمان", "whenpeoplelikedyourreel", "whatimpacts",
                 "whataffects", "howlongpeoplewatched", "topsourcesofviews", "rate",
@@ -95,6 +110,16 @@ _PATTERNS = sorted(((_norm(p), m) for m, pats in _LABELS.items() for p in pats),
 _GENDER_PATTERNS = sorted(((_norm(p), m) for m, pats in _GENDER.items() for p in pats),
                           key=lambda pm: -len(pm[0]))
 _LEADING_JUNK = re.compile(r"^[^a-z\u0600-\u06ff]+")
+_TRAILING_JUNK = re.compile(r"[^a-z\u0600-\u06ff]+$")
+_SOURCE_PATTERNS = {_norm(p): m for m, pats in _SOURCES.items() for p in pats}
+_SOURCE_HEADER = tuple(_norm(p) for p in ("top sources of views", "منابع برتر", "برتر بازدید"))
+
+
+def _source(n: str) -> Optional[str]:
+    """The source a normalised line names, if the line is just that label (plus
+    its value and OCR junk)."""
+    label = _TRAILING_JUNK.sub("", _LEADING_JUNK.sub("", re.sub(r"[\d%٪]+", "", n)))
+    return _SOURCE_PATTERNS.get(label)
 
 
 def _has_number(line: str) -> bool:
@@ -111,7 +136,28 @@ _CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b")
 
 
 def _numbers(line: str) -> List[str]:
-    return [t.strip() for t in _NUMBER.findall(unicodedata.normalize("NFKC", line).translate(_PERSIAN_DIGITS).lower())]
+    # Tesseract often reads "%" as "°"; Persian uses "٪"
+    text = unicodedata.normalize("NFKC", line).translate(_PERSIAN_DIGITS).lower().replace("°", "%").replace("٪", "%")
+    return [t.strip() for t in _NUMBER.findall(text)]
+
+
+_WORD = re.compile(r"[a-z\u0600-\u06ff]{3,}")
+_DECIMAL = re.compile(r"^(\d+)\.(\d)%?$")
+
+
+def _canonical(token: str) -> str:
+    """A value as compared across frames. Insights shows one-decimal values only
+    as percentages (never above 100), and bar glyphs before them OCR as an extra
+    leading digit ("96.5%" read as "896.5", "99.0%" as "699.0%"): drop leading
+    digits until the value is a possible percentage, and write it with "%"."""
+    t = token.replace(",", "").replace(" ", "")
+    m = _DECIMAL.match(t)
+    if not m:
+        return t
+    whole, frac = m.group(1), m.group(2)
+    while len(whole) > 1 and int(whole) > 100:
+        whole = whole[1:]
+    return f"{int(whole)}.{frac}%"
 
 
 def _mostly_numbers(line: str) -> bool:
@@ -131,6 +177,18 @@ def _split_kind(norm: Sequence[str], i: int, section: str) -> str:
         if after & {"accounts_reached", "views"}:
             return "views"
     return section
+
+
+_INFO_ICON = re.compile(r"[©®@ⓘ]\s*$|^[\s\u200e\u200f]*[©®@ⓘ]")
+
+
+def _is_section_header(line: str) -> bool:
+    """"Interactions ⓘ": a section title (OCR reads the info icon as ©, ®, @ or
+    ⓘ, at the end, or at the start in RTL). Its value is the donut's inner label
+    two lines down, not the next line, which at a screen edge is often the
+    donut's arc read as digits (4eb4b131 frame 075: "Interactions ©" then
+    "6-۷", credited Interactions it did not show)."""
+    return bool(_INFO_ICON.search(line.strip().replace("\u200e", "").replace("\u200f", "")))
 
 
 def _count_other_labels(n: str) -> int:
@@ -180,8 +238,20 @@ def metrics_in_text(lines: Sequence[str]) -> Set[str]:
     found: Set[str] = set()
     norm = [_norm(l) for l in lines]
     section = ""
+    sources_ctx = (any(h in n for n in norm for h in _SOURCE_HEADER)
+                   or sum(1 for n in norm if _source(n)) >= 2)
     for i, n in enumerate(norm):
         if _CLOCK.search(lines[i]):
+            continue
+        src = _source(n) if sources_ctx else None
+        if src:
+            # its percentage on the same line, or the next line or two (bar glyphs first)
+            for j in (i, i + 1, i + 2):
+                if j >= len(lines) or (j > i and (_source(norm[j]) or _labels(norm[j]))):
+                    break
+                if re.search(r"\d", lines[j].translate(_PERSIAN_DIGITS)):
+                    found.add(src)
+                    break
             continue
         tab_hits = sum(t in n for t in _TABS[0] + _TABS[1])
         if tab_hits >= 2:
@@ -211,7 +281,7 @@ def metrics_in_text(lines: Sequence[str]) -> Set[str]:
         if not labels:
             continue
         credited = labels if own else []
-        if not own:
+        if not own and not _is_section_header(lines[i]):
             # value line: the next line, or the one after if the next is OCR noise ("G", "—")
             for j in (i + 1, i + 2):
                 if j >= len(lines) or _CLOCK.search(lines[j]):
@@ -230,6 +300,29 @@ def metrics_in_text(lines: Sequence[str]) -> Set[str]:
     return found
 
 
+def metric_value_pairs(lines: Sequence[str]) -> Dict[str, Set[str]]:
+    """{metric: {value}} for the unambiguous rows only: exactly one schema label
+    on the line, and exactly one number on that line or on a bare line right
+    under it. Used as cross-frame evidence (see select_by_coverage)."""
+    norm = [_norm(l) for l in lines]
+    pairs: Dict[str, Set[str]] = {}
+    for i, n in enumerate(norm):
+        if _CLOCK.search(lines[i]) or any(x in n for x in _NOT_A_VALUE) or _is_filter_row(n):
+            continue
+        labels = _labels(n)
+        if len(labels) != 1:
+            continue
+        own = _numbers(lines[i])
+        if len(own) == 1:
+            pairs.setdefault(labels[0], set()).add(_canonical(own[0]))
+        elif not own and i + 1 < len(lines):
+            nxt = _numbers(lines[i + 1])
+            bare = not _WORD.findall(unicodedata.normalize("NFKC", lines[i + 1]).lower())
+            if len(nxt) == 1 and bare and not _CLOCK.search(lines[i + 1]):
+                pairs.setdefault(labels[0], set()).add(_canonical(nxt[0]))
+    return pairs
+
+
 _DEMOGRAPHICS = tuple(_norm(p) for p in ("age", "country", "gender", "سن", "کشور", "جنسیت"))
 
 
@@ -245,19 +338,62 @@ def values_in(lines: Sequence[str]) -> Set[str]:
             continue
         if any(norm[i].startswith(d) for d in _DEMOGRAPHICS):
             continue
-        above = i > 0 and (bool(_labels(norm[i - 1])) or bool(_gender(norm[i - 1]))) \
-            and not _is_filter_row(norm[i - 1])
-        labelled = bool(_labels(norm[i])) or bool(_gender(norm[i])) or (above and not _labels(norm[i]))
-        if labelled:
-            vals.update(t.replace(",", "").replace(" ", "") for t in _numbers(line))
+        above = i > 0 and (bool(_labels(norm[i - 1])) or bool(_gender(norm[i - 1]))
+                           or bool(_source(norm[i - 1]))) and not _is_filter_row(norm[i - 1])
+        own_label = bool(_labels(norm[i])) or bool(_gender(norm[i])) or bool(_source(norm[i]))
+        # a value line under a label has no label words of its own ("Saves 36" under
+        # "Likes 124" is its own, non-schema row)
+        bare = not _WORD.findall(unicodedata.normalize("NFKC", line).lower())
+        if own_label or (above and bare):
+            vals.update(_canonical(t) for t in _numbers(line))
     return vals
 
 
+_MONTHS = tuple(_norm(m) for m in (
+    "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
+    "ژانویه", "فوریه", "مارس", "آوریل", "مه", "ژوئن", "ژوئیه", "اوت", "سپتامبر", "اکتبر", "نوامبر", "دسامبر"))
+_NOT_EVIDENCE = tuple(_norm(p) for p in ("watch time", "زمان تماشا"))
+_PAGE_TITLE = ("insights", "اطلاعاتآماری")
+
+
 def has_real_number(lines: Sequence[str]) -> bool:
-    """Any number of two or more digits outside the clock — a frame without
-    one has nothing for the vision model to read."""
-    return any(len(re.sub(r"\D", "", t)) >= 2
-               for line in lines if not _CLOCK.search(line) for t in _numbers(line))
+    """Is there anything on screen the vision model could need, though no
+    metric label was recognised? Decides whether an unrecognised frame is kept.
+
+    Counts a number of three or more digits that is not a percentage or an axis
+    tick (e.g. "23,813"), or any number beside a word (e.g. a garbled label with
+    its value). Ignores what is never a metric: the status bar and anything
+    above the page title, rates, chart axes and dates, watch time. A Top sources
+    header with numbered rows under it counts even if no row was read.
+    Round-01 review: rate screens ("Skip rate 46.0%", "100%", "0:00 1:15") and a
+    loading skeleton with status-bar noise ("19 , ۳3") were kept by the older,
+    any-two-digits rule.
+    """
+    norm = [_norm(l) for l in lines]
+    title = next((i for i, n in enumerate(norm[:6]) if any(t in n for t in _PAGE_TITLE)), None)
+    start = title + 1 if title is not None else 1
+    for i in range(start, len(lines)):
+        n = norm[i]
+        if any(h in n for h in _SOURCE_HEADER):
+            # counts only with rows under it (a header on the last line shows no data)
+            if any(re.search(r"\d", l.translate(_PERSIAN_DIGITS)) for l in lines[i + 1:]):
+                return True
+            continue
+        if (_CLOCK.search(lines[i]) or any(x in n for x in _NOT_A_VALUE) or _is_filter_row(n)
+                or any(x in n for x in _NOT_EVIDENCE)):
+            continue
+        text = unicodedata.normalize("NFKC", lines[i]).translate(_PERSIAN_DIGITS).lower()
+        tokens = _numbers(lines[i])      # "%" read as "°" is normalised here
+        if not tokens:
+            continue
+        words = [w for w in _WORD.findall(text) if _norm(w) not in _MONTHS]
+        if words:
+            return True
+        for t in tokens:
+            digits = re.sub(r"\D", "", t)
+            if len(digits) >= 3 and not t.endswith(("%", "k", "m")):
+                return True
+    return False
 
 
 # ---------------------------------------------------------------- OCR
@@ -304,6 +440,7 @@ class Coverage:
     dropped: List[Path]
     metrics: Dict[Path, Set[str]] = field(default_factory=dict)
     applied: bool = True
+    values: Dict[Path, Set[str]] = field(default_factory=dict)   # labelled values read per frame
     reason: str = ""
     # per frame: "cover" (needed for a metric), "unrecognised" (no metric read but a
     # number on screen), "backstop" (shows a labelled value no other kept frame
@@ -328,20 +465,36 @@ def select_by_coverage(frames: Sequence[Path], job_id: Optional[str] = None,
             return Coverage(frames, [], applied=False, reason="tesseract unavailable")
         def detect(p):
             lines = read_lines(p)
-            return metrics_in_text(lines), values_in(lines), has_real_number(lines)
+            return metrics_in_text(lines), values_in(lines), has_real_number(lines), metric_value_pairs(lines)
 
     metrics: Dict[Path, Set[str]] = {}
     values: Dict[Path, Set[str]] = {}
     numeric: Dict[Path, bool] = {}
+    pairs: Dict[Path, Dict[str, Set[str]]] = {}
     for p in frames:
         try:
             got = detect(p)
             if not isinstance(got, tuple):
                 got = (got, set(), True)
             metrics[p], values[p], numeric[p] = set(got[0]), set(got[1]), bool(got[2])
+            pairs[p] = got[3] if len(got) > 3 else {}
         except Exception as exc:  # noqa: BLE001 — one unreadable frame must not drop anything
             log.warning("Coverage OCR failed on %s (%s); keeping it", p.name, exc)
-            metrics[p], values[p], numeric[p] = set(), set(), True
+            metrics[p], values[p], numeric[p], pairs[p] = set(), set(), True, {}
+
+    # Cross-frame evidence: when one frame pairs a metric with a value of three or
+    # more digits ("Likes 124"), another frame showing that same value in a
+    # labelled list shows that metric too, even if OCR garbled its label there
+    # (round-01, 8102e03d: "Likes 124" read as "'3 124" made two identical
+    # frames both look necessary).
+    for a in frames:
+        for metric, vals in pairs[a].items():
+            for v in vals:
+                if len(re.sub(r"\D", "", v)) < 3:
+                    continue
+                for b in frames:
+                    if b is not a and metric not in metrics[b] and v in values[b]:
+                        metrics[b].add(metric)
 
     # Nothing recognised but a number on screen: keep it, don't guess. Nothing
     # recognised and no number (skeleton, blank panel): nothing to read, drop.
@@ -351,7 +504,9 @@ def select_by_coverage(frames: Sequence[Path], job_id: Optional[str] = None,
     order = {p: i for i, p in enumerate(frames)}
     while todo:
         best = max((p for p in frames if p not in chosen and metrics[p]),
-                   key=lambda p: (len(metrics[p] & todo), len(metrics[p]), -order[p]))
+                   # ties go to the most complete frame, then the later one: a page
+                   # still loading reads fewer values, and loads top to bottom over time
+                   key=lambda p: (len(metrics[p] & todo), len(metrics[p]), len(values[p]), order[p]))
         if not metrics[best] & todo:
             break
         chosen.append(best)
@@ -362,12 +517,21 @@ def select_by_coverage(frames: Sequence[Path], job_id: Optional[str] = None,
     keep = set(chosen) | set(unknown)
     reasons = {p: "cover" for p in chosen}
     reasons.update({p: "unrecognised" for p in unknown})
+    # The backstop guards counts only. Percentages (followers split, gender, Top
+    # sources) have reliably detected labels, and OCR reads small ones
+    # inconsistently ("1.1%" as "11%", "0.1%" as "01%"), so guarding them kept a
+    # new frame for every misread (round-01b: 3 copies of one sources list).
+    # Single digits are too common to identify anything.
+    guarded = {p: {v for v in values[p] if not v.endswith("%") and len(re.sub(r"\D", "", v)) >= 2}
+               for p in frames}
     while True:
         seen = set().union(*(values[p] for p in keep)) if keep else set()
-        orphans = [p for p in frames if p not in keep and values[p] - seen]
+        orphans = [p for p in frames if p not in keep and guarded[p] - seen]
         if not orphans:
             break
-        extra = max(orphans, key=lambda p: (len(values[p] - seen), -order[p]))
+        # among frames showing the missing value, the most complete one (round-01:
+        # a half-loaded frame was kept over the fully loaded frame_000060)
+        extra = max(orphans, key=lambda p: (len(guarded[p] - seen), len(metrics[p]), len(values[p]), order[p]))
         keep.add(extra)
         reasons[extra] = "backstop"
     for p in frames:
@@ -377,4 +541,4 @@ def select_by_coverage(frames: Sequence[Path], job_id: Optional[str] = None,
     dropped = [p for p in frames if p not in keep]
     log.info("Coverage: %d -> %d frames (%d unrecognised kept), %d metrics",
              len(frames), len(selected), len(unknown), len(set().union(*metrics.values())) if metrics else 0)
-    return Coverage(selected, dropped, metrics, reasons=reasons)
+    return Coverage(selected, dropped, metrics, values=values, reasons=reasons)

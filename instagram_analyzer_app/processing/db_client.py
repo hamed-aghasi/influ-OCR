@@ -357,6 +357,13 @@ _METRIC_KEYS = (
     "external_link_taps",
     "gender_men",
     "gender_women",
+    "source_feed",
+    "source_reels_tab",
+    "source_profile",
+    "source_explore",
+    "source_stories",
+    "source_search",
+    "source_other",
 )
 
 

@@ -1,7 +1,7 @@
 {
-  "run_id": "2026-09-19-relabel",
-  "training_date": "2026-09-19T10:03:25+00:00",
-  "model_version": "relabel-2026-09-19",
+  "run_id": "2026-09-19b-sources",
+  "training_date": "2026-09-19T16:11:28+00:00",
+  "model_version": "sources-feedback-2026-09-19",
   "architecture": "MobileNetV2_transfer_learning",
   "input_shape": [
     224,
@@ -12,58 +12,58 @@
     "0": "bad_frame",
     "1": "good_frame"
   },
-  "validation_accuracy": 0.989011,
+  "validation_accuracy": 0.970027,
   "epochs_requested": 20,
-  "epochs_ran": 16,
-  "best_epoch": 11,
+  "epochs_ran": 15,
+  "best_epoch": 10,
   "final_metrics": {
-    "accuracy": 0.989011,
-    "auc": 0.999263,
-    "loss": 0.030616
+    "accuracy": 0.970027,
+    "auc": 0.999052,
+    "loss": 0.062629
   },
   "threshold_sweep": {
     "configured": {
-      "threshold": 0.65,
-      "tp": 112,
-      "fp": 3,
-      "fn": 2,
-      "tn": 247,
-      "precision": 0.9739,
-      "recall": 0.9825,
-      "f1": 0.9782,
-      "kept": 115,
-      "accuracy": 0.9863
+      "threshold": 0.3,
+      "tp": 128,
+      "fp": 11,
+      "fn": 0,
+      "tn": 228,
+      "precision": 0.9209,
+      "recall": 1.0,
+      "f1": 0.9588,
+      "kept": 139,
+      "accuracy": 0.97
     },
     "best_f1": {
-      "threshold": 0.3,
-      "tp": 114,
+      "threshold": 0.9,
+      "tp": 127,
       "fp": 3,
-      "fn": 0,
-      "tn": 247,
-      "precision": 0.9744,
-      "recall": 1.0,
-      "f1": 0.987,
-      "kept": 117,
-      "accuracy": 0.9918
+      "fn": 1,
+      "tn": 236,
+      "precision": 0.9769,
+      "recall": 0.9922,
+      "f1": 0.9845,
+      "kept": 130,
+      "accuracy": 0.9891
     },
     "cheapest_at_min_recall": {
-      "threshold": 0.85,
-      "tp": 104,
-      "fp": 1,
-      "fn": 10,
-      "tn": 249,
-      "precision": 0.9905,
-      "recall": 0.9123,
-      "f1": 0.9498,
-      "kept": 105,
-      "accuracy": 0.9698
+      "threshold": 0.95,
+      "tp": 125,
+      "fp": 2,
+      "fn": 3,
+      "tn": 237,
+      "precision": 0.9843,
+      "recall": 0.9766,
+      "f1": 0.9804,
+      "kept": 127,
+      "accuracy": 0.9864
     }
   },
   "dataset": {
     "root": "train",
-    "frames_total": 2265,
-    "frames_train": 1901,
-    "frames_val": 364,
+    "frames_total": 2284,
+    "frames_train": 1917,
+    "frames_val": 367,
     "train_videos": [
       "10e0036d-4ff7-4d4b-8d12-88b1df397351",
       "1481e13e-101b-41ef-ad0c-540b3042fd3e",
@@ -71,6 +71,7 @@
       "18b19529-fdec-4ec5-9e8d-fa7f157b3753",
       "1c226716-d72f-4353-a23e-102ba2920811",
       "1eed0fb5-a57b-4e01-bafa-4e916a057a9e",
+      "1f2bdcac-d03d-47b6-a9ee-77b96ebfb055",
       "20c18db5-92cb-4082-ac5a-4030c2e12242",
       "26f8b87a-0323-46cf-bc48-8b6ff0eab7a2",
       "30dbb682-86f8-4228-9530-c38683e1a40c",
@@ -78,8 +79,10 @@
       "3c50a8ce-56ad-4582-bb36-11a8507868b7",
       "3e711024-fa1b-47a9-bc48-36dfbcda82b8",
       "453ccb37-a7db-43b6-9f51-cab270850f70",
+      "4985b8cc-bddb-406b-9c6a-cea56c173969",
       "4fc5cd74-516d-4272-a20a-b492aace6dc9",
       "51762331-2b38-4ec6-b7e5-36626b310f0d",
+      "5361dd11-6020-4e3d-ae13-0bf7ce1de42a",
       "55cf0d56-d0bb-421b-a482-dce8cc687205",
       "59576c43-230f-4ccd-b4c2-ac26e6983b86",
       "5d5559a6-bff6-49ed-9278-62d17e8fd569",
@@ -111,6 +114,7 @@
       "e1340a91-c24a-429a-8959-f1ad91d19b2e",
       "e24f6507-3e23-4280-b1b9-23428033ffdd",
       "e83eabc0-9c0b-4b44-9e7c-a44c0c1d47d7",
+      "edc93edd-8ed8-4373-bbb2-0af1a091797a",
       "f9936993-e7a0-4485-9109-c4dce3c53437",
       "fd90f1ae-e81c-4c38-8643-211407492e7a",
       "shot post siah tulani"
@@ -124,6 +128,7 @@
       "4eb4b131-f5b4-4ea5-a6b7-9dd061c21965",
       "57e39f36-8ef2-44b4-8b50-3c911dae13a8",
       "9de61dcd-eec2-44f8-b4e1-837dd8cbb00c",
+      "bf96a4ca-2e6a-49ef-be53-841d4e89ae3d",
       "e4c6723d-f3b7-4e8d-b3ed-09b817061c38"
     ],
     "per_video": {
@@ -133,9 +138,9 @@
         "dark_good": 0
       },
       "08165dca-1f49-4011-a665-1cb51d96784b": {
-        "good": 25,
-        "bad": 17,
-        "dark_good": 25
+        "good": 28,
+        "bad": 14,
+        "dark_good": 28
       },
       "10e0036d-4ff7-4d4b-8d12-88b1df397351": {
         "good": 14,
@@ -148,9 +153,9 @@
         "dark_good": 0
       },
       "189e2343-f522-44af-8941-701785c6862c": {
-        "good": 15,
-        "bad": 47,
-        "dark_good": 15
+        "good": 18,
+        "bad": 44,
+        "dark_good": 18
       },
       "18b19529-fdec-4ec5-9e8d-fa7f157b3753": {
         "good": 5,
@@ -158,9 +163,9 @@
         "dark_good": 0
       },
       "1c226716-d72f-4353-a23e-102ba2920811": {
-        "good": 3,
-        "bad": 33,
-        "dark_good": 3
+        "good": 10,
+        "bad": 26,
+        "dark_good": 10
       },
       "1caae563-d82e-447f-8441-dd14c32cfb81": {
         "good": 5,
@@ -168,9 +173,14 @@
         "dark_good": 0
       },
       "1eed0fb5-a57b-4e01-bafa-4e916a057a9e": {
-        "good": 4,
-        "bad": 20,
-        "dark_good": 4
+        "good": 11,
+        "bad": 13,
+        "dark_good": 11
+      },
+      "1f2bdcac-d03d-47b6-a9ee-77b96ebfb055": {
+        "good": 6,
+        "bad": 1,
+        "dark_good": 0
       },
       "20c18db5-92cb-4082-ac5a-4030c2e12242": {
         "good": 14,
@@ -178,13 +188,13 @@
         "dark_good": 14
       },
       "26f8b87a-0323-46cf-bc48-8b6ff0eab7a2": {
-        "good": 13,
-        "bad": 38,
-        "dark_good": 13
+        "good": 21,
+        "bad": 30,
+        "dark_good": 21
       },
       "2eaa4f49-a5b3-479a-a56e-307788c53a3a": {
-        "good": 1,
-        "bad": 27,
+        "good": 2,
+        "bad": 26,
         "dark_good": 0
       },
       "307e449d-9de2-4afe-a90d-b51ac39955e9": {
@@ -193,13 +203,13 @@
         "dark_good": 0
       },
       "30dbb682-86f8-4228-9530-c38683e1a40c": {
-        "good": 13,
-        "bad": 25,
-        "dark_good": 13
+        "good": 20,
+        "bad": 18,
+        "dark_good": 20
       },
       "39ab7f4c-1293-4dd4-b0e0-319df5b19aa0": {
-        "good": 10,
-        "bad": 21,
+        "good": 15,
+        "bad": 16,
         "dark_good": 0
       },
       "3c50a8ce-56ad-4582-bb36-11a8507868b7": {
@@ -208,13 +218,18 @@
         "dark_good": 0
       },
       "3e711024-fa1b-47a9-bc48-36dfbcda82b8": {
-        "good": 3,
-        "bad": 12,
+        "good": 7,
+        "bad": 8,
         "dark_good": 0
       },
       "453ccb37-a7db-43b6-9f51-cab270850f70": {
         "good": 43,
         "bad": 25,
+        "dark_good": 0
+      },
+      "4985b8cc-bddb-406b-9c6a-cea56c173969": {
+        "good": 0,
+        "bad": 1,
         "dark_good": 0
       },
       "4eb4b131-f5b4-4ea5-a6b7-9dd061c21965": {
@@ -223,13 +238,18 @@
         "dark_good": 0
       },
       "4fc5cd74-516d-4272-a20a-b492aace6dc9": {
-        "good": 27,
-        "bad": 3,
-        "dark_good": 27
+        "good": 30,
+        "bad": 0,
+        "dark_good": 30
       },
       "51762331-2b38-4ec6-b7e5-36626b310f0d": {
         "good": 57,
         "bad": 7,
+        "dark_good": 0
+      },
+      "5361dd11-6020-4e3d-ae13-0bf7ce1de42a": {
+        "good": 1,
+        "bad": 1,
         "dark_good": 0
       },
       "55cf0d56-d0bb-421b-a482-dce8cc687205": {
@@ -243,13 +263,13 @@
         "dark_good": 0
       },
       "59576c43-230f-4ccd-b4c2-ac26e6983b86": {
-        "good": 10,
-        "bad": 28,
-        "dark_good": 10
+        "good": 15,
+        "bad": 23,
+        "dark_good": 15
       },
       "5d5559a6-bff6-49ed-9278-62d17e8fd569": {
-        "good": 16,
-        "bad": 76,
+        "good": 17,
+        "bad": 75,
         "dark_good": 0
       },
       "5dae63be-6c58-4c33-95f1-417378082e4a": {
@@ -258,8 +278,8 @@
         "dark_good": 0
       },
       "661ebb2d-36c5-4178-8043-4e3b122fb174": {
-        "good": 8,
-        "bad": 23,
+        "good": 12,
+        "bad": 19,
         "dark_good": 0
       },
       "70cf83a8-8540-4d2f-949f-1f71d45d05ca": {
@@ -293,13 +313,13 @@
         "dark_good": 0
       },
       "89e53922-c8b3-44c0-a035-5a7a0ffeb04f": {
-        "good": 7,
-        "bad": 6,
+        "good": 13,
+        "bad": 0,
         "dark_good": 0
       },
       "9279fff1-baa2-47f4-bba2-15759b9bd660": {
-        "good": 6,
-        "bad": 45,
+        "good": 7,
+        "bad": 44,
         "dark_good": 0
       },
       "9aecfeb9-9a24-4d80-bbaf-0639136adcc0": {
@@ -308,23 +328,23 @@
         "dark_good": 37
       },
       "9d9a3853-02d7-4e27-8cfb-ab79b63ea3de": {
-        "good": 4,
-        "bad": 29,
+        "good": 5,
+        "bad": 28,
         "dark_good": 0
       },
       "9de61dcd-eec2-44f8-b4e1-837dd8cbb00c": {
-        "good": 8,
-        "bad": 22,
-        "dark_good": 8
+        "good": 13,
+        "bad": 17,
+        "dark_good": 13
       },
       "9dfbe840-65d8-4d09-86c5-e4bedbdbd115": {
-        "good": 8,
-        "bad": 8,
+        "good": 16,
+        "bad": 0,
         "dark_good": 0
       },
       "9e23c081-27e6-4044-ad45-801494d816e4": {
-        "good": 12,
-        "bad": 53,
+        "good": 19,
+        "bad": 46,
         "dark_good": 0
       },
       "9faba1f7-efa0-4f91-8f00-a10662314b31": {
@@ -333,9 +353,9 @@
         "dark_good": 17
       },
       "a5b20a76-d95e-495f-a6c0-25c86e5a850f": {
-        "good": 7,
-        "bad": 20,
-        "dark_good": 7
+        "good": 12,
+        "bad": 15,
+        "dark_good": 12
       },
       "abd38c90-3b4c-4906-ab71-2d0d73611748": {
         "good": 20,
@@ -343,8 +363,8 @@
         "dark_good": 0
       },
       "acb99bfd-89ff-4386-96e5-7e362d2dd477": {
-        "good": 4,
-        "bad": 34,
+        "good": 8,
+        "bad": 30,
         "dark_good": 0
       },
       "afed44b2-1958-44a3-b6d2-a889a03f5941": {
@@ -358,28 +378,33 @@
         "dark_good": 0
       },
       "b9a79271-d14e-42b7-a36c-a40aceecfe7c": {
-        "good": 4,
-        "bad": 9,
+        "good": 5,
+        "bad": 8,
+        "dark_good": 0
+      },
+      "bf96a4ca-2e6a-49ef-be53-841d4e89ae3d": {
+        "good": 1,
+        "bad": 2,
         "dark_good": 0
       },
       "c04e0842-51c0-480b-b61f-d6b09eb7446b": {
-        "good": 14,
-        "bad": 23,
+        "good": 22,
+        "bad": 15,
         "dark_good": 0
       },
       "c35650c5-516d-48ab-8544-6a279e18d92a": {
-        "good": 9,
-        "bad": 28,
+        "good": 11,
+        "bad": 26,
         "dark_good": 0
       },
       "c5b35493-a31a-4b85-9f9c-1d09470fdeb5": {
-        "good": 11,
-        "bad": 25,
+        "good": 16,
+        "bad": 20,
         "dark_good": 0
       },
       "cda8eb1f-8b4e-483d-a698-81a2857dc704": {
-        "good": 8,
-        "bad": 11,
+        "good": 9,
+        "bad": 10,
         "dark_good": 0
       },
       "e1340a91-c24a-429a-8959-f1ad91d19b2e": {
@@ -388,23 +413,28 @@
         "dark_good": 0
       },
       "e24f6507-3e23-4280-b1b9-23428033ffdd": {
-        "good": 7,
-        "bad": 74,
-        "dark_good": 7
+        "good": 8,
+        "bad": 73,
+        "dark_good": 8
       },
       "e4c6723d-f3b7-4e8d-b3ed-09b817061c38": {
-        "good": 9,
-        "bad": 27,
+        "good": 13,
+        "bad": 23,
         "dark_good": 0
       },
       "e83eabc0-9c0b-4b44-9e7c-a44c0c1d47d7": {
-        "good": 3,
-        "bad": 20,
+        "good": 8,
+        "bad": 15,
         "dark_good": 0
       },
+      "edc93edd-8ed8-4373-bbb2-0af1a091797a": {
+        "good": 6,
+        "bad": 0,
+        "dark_good": 6
+      },
       "f9936993-e7a0-4485-9109-c4dce3c53437": {
-        "good": 5,
-        "bad": 45,
+        "good": 9,
+        "bad": 41,
         "dark_good": 0
       },
       "fd90f1ae-e81c-4c38-8643-211407492e7a": {
@@ -413,16 +443,16 @@
         "dark_good": 9
       },
       "shot post siah tulani": {
-        "good": 16,
-        "bad": 32,
-        "dark_good": 16
+        "good": 21,
+        "bad": 27,
+        "dark_good": 21
       }
     }
   },
   "args": {
     "data_dir": "train",
-    "output_dir": "training/runs/2026-09-19-relabel",
-    "run_name": "relabel-2026-09-19",
+    "output_dir": "training/runs/2026-09-19b-sources",
+    "run_name": "sources-feedback-2026-09-19",
     "deploy": false,
     "epochs": 20,
     "batch_size": 32,
@@ -432,7 +462,7 @@
     "lr": 0.001,
     "image_size": 224,
     "dark_threshold": 80,
-    "threshold": 0.65,
+    "threshold": 0.3,
     "min_recall": 0.9,
     "no_dark_boost": false,
     "no_augment": false,
@@ -442,10 +472,10 @@
     "patience": 5,
     "cache_file": ""
   },
-  "git_sha": "364790d47bc557cba9385a284bd06fcceb7392aa",
+  "git_sha": "6663bf27c612fdcb9ecde55d5edf44f939435bc9",
   "inference_contract": {
     "preprocess": "BGR, optional dark boost, resize, /255.0",
-    "decision": "sigmoid > 0.65 => GOOD",
+    "decision": "sigmoid > 0.3 => GOOD",
     "dark_boost": true
   }
 }
