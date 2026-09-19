@@ -86,6 +86,34 @@
     "gender_women": {
       "value": null,
       "frames": ""
+    },
+    "source_feed": {
+      "value": null,
+      "frames": ""
+    },
+    "source_reels_tab": {
+      "value": null,
+      "frames": ""
+    },
+    "source_profile": {
+      "value": null,
+      "frames": ""
+    },
+    "source_explore": {
+      "value": null,
+      "frames": ""
+    },
+    "source_stories": {
+      "value": null,
+      "frames": ""
+    },
+    "source_search": {
+      "value": null,
+      "frames": ""
+    },
+    "source_other": {
+      "value": null,
+      "frames": ""
     }
   },
   "notes": "Persian UI (Persian digits, RTL). exited = تعداد ضربه‌ها برای خروج از داستان. 000-039 story playback + skeleton, 120-156 story playback, archive, settings, profile.",

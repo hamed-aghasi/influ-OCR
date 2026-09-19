@@ -1,0 +1,81 @@
+{
+  "video": "1f2bdcac-d03d-47b6-a9ee-77b96ebfb055.mp4",
+  "reviewer": "user",
+  "status": "done",
+  "sent_frames": [
+    {
+      "frame": "frame_000108.jpg",
+      "request": "b0.0",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "accounts_reached",
+        "follows",
+        "likes",
+        "replies",
+        "shares",
+        "views"
+      ],
+      "needed": true,
+      "note": "reviewer: had the required info, fine as-is"
+    },
+    {
+      "frame": "frame_000168.jpg",
+      "request": "b0.1",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "accounts_reached",
+        "follows",
+        "likes",
+        "replies",
+        "shares",
+        "views"
+      ],
+      "needed": true,
+      "note": "reviewer: had the required info, fine as-is"
+    },
+    {
+      "frame": "frame_000183.jpg",
+      "request": "b0.2",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": false,
+      "note": "only rates data, not needed"
+    },
+    {
+      "frame": "frame_000210.jpg",
+      "request": "b0.3",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": true,
+      "note": "reviewer: had the required info, fine as-is"
+    },
+    {
+      "frame": "frame_000216.jpg",
+      "request": "b0.4",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": true,
+      "note": "reviewer: had the required info, fine as-is"
+    },
+    {
+      "frame": "frame_000219.jpg",
+      "request": "b0.5",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": true,
+      "note": "reviewer: had the required info, fine as-is"
+    },
+    {
+      "frame": "frame_000225.jpg",
+      "request": "b0.6",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": true,
+      "note": "reviewer: had the required info, fine as-is"
+    }
+  ],
+  "should_have_been_sent": [],
+  "metrics_missing_from_final_set": [],
+  "notes": "",
+  "reviewed_on": "2026-09-19"
+}

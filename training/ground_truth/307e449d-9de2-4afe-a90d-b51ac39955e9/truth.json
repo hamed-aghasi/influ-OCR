@@ -86,6 +86,34 @@
     "gender_women": {
       "value": 73.5,
       "frames": "333-363"
+    },
+    "source_feed": {
+      "value": null,
+      "frames": ""
+    },
+    "source_reels_tab": {
+      "value": null,
+      "frames": ""
+    },
+    "source_profile": {
+      "value": null,
+      "frames": ""
+    },
+    "source_explore": {
+      "value": null,
+      "frames": ""
+    },
+    "source_stories": {
+      "value": null,
+      "frames": ""
+    },
+    "source_search": {
+      "value": null,
+      "frames": ""
+    },
+    "source_other": {
+      "value": null,
+      "frames": ""
     }
   },
   "notes": "Viewers = accounts_reached. Views donut fades in at 135 (excluded). 183-282: Viewers tab (who viewed list), no metrics. Interactions donut split 100%/0% not recorded.",

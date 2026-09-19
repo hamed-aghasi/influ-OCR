@@ -1,0 +1,86 @@
+{
+  "video": "4985b8cc-bddb-406b-9c6a-cea56c173969.mp4",
+  "reviewer": "user",
+  "status": "done",
+  "sent_frames": [
+    {
+      "frame": "frame_000159.jpg",
+      "request": "b0.0",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "accounts_reached",
+        "follows",
+        "likes",
+        "replies",
+        "shares",
+        "views"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000276.jpg",
+      "request": "b0.1",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": false,
+      "note": "only rates data, not needed"
+    },
+    {
+      "frame": "frame_000279.jpg",
+      "request": "b0.2",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000285.jpg",
+      "request": "b0.3",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000288.jpg",
+      "request": "b0.4",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000342.jpg",
+      "request": "b0.5",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "follows",
+        "likes",
+        "profile_visits",
+        "replies",
+        "shares"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000372.jpg",
+      "request": "b0.6",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "followers",
+        "likes",
+        "non_followers",
+        "replies",
+        "shares"
+      ],
+      "needed": null,
+      "note": ""
+    }
+  ],
+  "should_have_been_sent": [],
+  "metrics_missing_from_final_set": [],
+  "notes": "",
+  "reviewed_on": "2026-09-19"
+}

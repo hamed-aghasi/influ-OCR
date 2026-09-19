@@ -45,6 +45,7 @@ frames. Check it, fix anything wrong, then set its status to `"done"`.
 | `navigation`, `forward`, `next_story`, `back`, `exited` | the Navigation block (Stories) |
 | `profile_activity`, `profile_visits`, `external_link_taps`, `follows` | the Profile activity block |
 | `gender_men`, `gender_women` | Audience > **Gender** view: Men % / Women % (مردان / زنان). Not the Age or Country view |
+| `source_feed`, `source_reels_tab`, `source_profile`, `source_explore`, `source_stories`, `source_search`, `source_other` | Reel **Top sources of views** (منابع برتر بازدید): one % per row. Label and value both visible |
 
 The icon strip also shows reposts (⟳) and saves (🔖). They are not in the
 schema, so skip them.

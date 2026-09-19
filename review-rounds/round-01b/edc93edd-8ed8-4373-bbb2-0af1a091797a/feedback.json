@@ -1,0 +1,105 @@
+{
+  "video": "edc93edd-8ed8-4373-bbb2-0af1a091797a.mp4",
+  "reviewer": "",
+  "status": "todo",
+  "sent_frames": [
+    {
+      "frame": "frame_000231.jpg",
+      "request": "b0.0",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "interactions",
+        "profile_activity",
+        "views"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000267.jpg",
+      "request": "b0.1",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "accounts_reached",
+        "followers",
+        "interactions",
+        "non_followers",
+        "views"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000315.jpg",
+      "request": "b0.2",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "followers",
+        "forward",
+        "likes",
+        "navigation",
+        "non_followers",
+        "replies",
+        "shares",
+        "sticker_taps"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000318.jpg",
+      "request": "b0.3",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "back",
+        "exited",
+        "forward",
+        "likes",
+        "navigation",
+        "next_story",
+        "non_followers",
+        "replies",
+        "shares",
+        "sticker_taps"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000333.jpg",
+      "request": "b0.4",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "back",
+        "exited",
+        "follows",
+        "forward",
+        "navigation",
+        "next_story",
+        "profile_activity",
+        "profile_visits"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000354.jpg",
+      "request": "b0.5",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "back",
+        "follows",
+        "gender_men",
+        "gender_women",
+        "next_story",
+        "profile_activity",
+        "profile_visits"
+      ],
+      "needed": null,
+      "note": ""
+    }
+  ],
+  "should_have_been_sent": [],
+  "metrics_missing_from_final_set": [],
+  "notes": ""
+}

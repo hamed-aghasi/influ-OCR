@@ -86,6 +86,34 @@
     "gender_women": {
       "value": null,
       "frames": ""
+    },
+    "source_feed": {
+      "value": 96.7,
+      "frames": "096-111"
+    },
+    "source_reels_tab": {
+      "value": 0.5,
+      "frames": "096-111"
+    },
+    "source_profile": {
+      "value": 2.5,
+      "frames": "096-111"
+    },
+    "source_explore": {
+      "value": 0.1,
+      "frames": "096-108"
+    },
+    "source_stories": {
+      "value": null,
+      "frames": ""
+    },
+    "source_search": {
+      "value": null,
+      "frames": ""
+    },
+    "source_other": {
+      "value": null,
+      "frames": ""
     }
   },
   "notes": "Visits Overview, Engagement (Actions after viewing + Interactions list) and Audience tabs. followers/non_followers from Audience > Who viewed your reel. Icon strip reposts 1, saves 1 (not in schema). 000-018 and 213-231 post view, 234-243 profile grid. Audience tab shows the Age view only (Gender never tapped), so no gender split is on screen.",

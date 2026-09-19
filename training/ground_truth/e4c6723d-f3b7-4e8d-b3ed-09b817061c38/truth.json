@@ -86,6 +86,34 @@
     "gender_women": {
       "value": null,
       "frames": ""
+    },
+    "source_feed": {
+      "value": 97.6,
+      "frames": "315-342"
+    },
+    "source_reels_tab": {
+      "value": 1.4,
+      "frames": "318-342"
+    },
+    "source_profile": {
+      "value": 0.3,
+      "frames": "324-342"
+    },
+    "source_explore": {
+      "value": 0.4,
+      "frames": "324-342"
+    },
+    "source_stories": {
+      "value": null,
+      "frames": ""
+    },
+    "source_search": {
+      "value": null,
+      "frames": ""
+    },
+    "source_other": {
+      "value": null,
+      "frames": ""
     }
   },
   "notes": "Persian UI (Persian digits). Icon strip read right-to-left: likes 300, comments 2, reposts 1, shares 1, saves 1. 000-099 and 345-486 are the post itself (not Insights). 102-138 skeleton, 147 tiles fading in. 219-342 charts, rates list, retention, top sources.",

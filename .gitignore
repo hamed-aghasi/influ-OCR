@@ -84,3 +84,9 @@ instagram_analyzer_app/models/backup_*/
 test-frame-output*/*
 !test-frame-output*/README.md
 !test-frame-output*/_generate_review.py
+# human-feedback review rounds (training/review_videos.py): frames and pages stay
+# local; the reviewer's feedback.json files and each round's README are tracked
+review-rounds/**
+!review-rounds/**/
+!review-rounds/**/feedback.json
+!review-rounds/*/README.md

@@ -9,7 +9,7 @@ and Persian. Pipeline, per video:
 1. frame extraction: ffmpeg 720p, then every 3rd frame (`processing/frame_extractor.py`)
 2. MobileNetV2 good/bad classifier, threshold 0.30 (`processing/frame_classifier.py`, `models/`)
 3. scroll-aware selection: fewest frames covering each scrolled page (`processing/frame_selection.py`)
-4. metric coverage: Tesseract `fas+eng` reads which metrics each frame shows, and a set cover keeps the fewest (`processing/metric_coverage.py`)
+4. metric coverage: Tesseract `fas+eng` reads which metrics each frame shows, and a set cover keeps the fewest (`processing/metric_coverage.py`); then a pass drops frames whose content is readable in another sent frame. Steps 3 and 4 run through one function, `processing/selection_pipeline.choose_ocr_frames`, which production and every tool call
 5. OCR via an OpenRouter vision model (default `qwen/qwen3.8-max`, `processing/ocr_processor.py`)
 6. consensus aggregation, then Postgres, optional S3, Excel export
 
@@ -34,7 +34,9 @@ or tesseract needed for most of them).
 - `extract_frames.py` → sort into `train/<video>/good|bad` → `train_frame_classifier.py` (runs in `training/runs/`; `--deploy` backs up and swaps into `models/`).
 - `eval_selection.py`: frames sent and **metrics lost** per strategy, against the hand-built `training/ground_truth/`. Run it before changing selection, coverage or the threshold.
 - `trace_frames.py`: which frames one video would send to OpenRouter (no network).
-- `relabel/`: the 2026-09-19 narrowing of `good` to schema metrics (`apply_relabel.py --restore` undoes it).
+- `review_videos.py VIDEOS --out review-rounds/<round>`: a human review round (per-video `review.html`, `final/`, and a `feedback.json` to fill in).
+- `eval_feedback.py`: replays every `review-rounds/*/*/feedback.json` marked done as regression checks. Run it with `eval_selection.py` before changing selection, coverage or the model.
+- `relabel/`: label changes, each with an exact undo. 2026-09-19 narrowed `good` to schema metrics; `2026-09-19b-sources/` added Top sources of views and the round-01 feedback.
 - `train/`, `test-frame/`, `training/runs/`, the model backups and the review outputs are local only (see `.gitignore`).
 
 ## Docs status

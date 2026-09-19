@@ -1,0 +1,74 @@
+{
+  "video": "4985b8cc-bddb-406b-9c6a-cea56c173969.mp4",
+  "reviewer": "",
+  "status": "todo",
+  "sent_frames": [
+    {
+      "frame": "frame_000279.jpg",
+      "request": "b0.0",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "source_feed"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000285.jpg",
+      "request": "b0.1",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "source_feed",
+        "source_reels_tab"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000327.jpg",
+      "request": "b0.2",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "accounts_reached",
+        "follows",
+        "likes",
+        "replies",
+        "shares",
+        "views"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000351.jpg",
+      "request": "b0.3",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "follows",
+        "likes",
+        "profile_visits",
+        "replies",
+        "shares"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000423.jpg",
+      "request": "b0.4",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "followers",
+        "likes",
+        "non_followers",
+        "replies",
+        "shares"
+      ],
+      "needed": null,
+      "note": ""
+    }
+  ],
+  "should_have_been_sent": [],
+  "metrics_missing_from_final_set": [],
+  "notes": ""
+}

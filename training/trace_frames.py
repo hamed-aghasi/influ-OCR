@@ -43,8 +43,7 @@ os.environ.setdefault("PROCESSING_DIR", str(PROJECT / "training" / "_trace_work"
 sys.path.insert(0, str(APP))
 
 from processing.config import settings                                  # noqa: E402
-from processing.frame_selection import select_frames                    # noqa: E402
-from processing.metric_coverage import select_by_coverage               # noqa: E402
+from processing.selection_pipeline import choose_ocr_frames             # noqa: E402
 from processing.frame_classifier import classify_frames                 # noqa: E402
 from processing.frame_extractor import extract_frames_from_video        # noqa: E402
 from processing.ocr_processor import chunk_batches                      # noqa: E402
@@ -117,22 +116,18 @@ def main():
 
     print(f"\n=== 3. SELECT   (frame_selection={settings.frame_selection})")
     scores = {Path(f["path"]): f["confidence"] for f in cls["good_frames"]}
-    sel = select_frames([frames], good, scores)          # exactly as tasks.run_job calls it
-    unique, dupes = list(sel.selected), list(sel.duplicates)
-    print(f"    kept={len(unique)}  dropped={len(dupes)}")
-
-    coverage = None
-    if settings.coverage_selection and unique:
-        print(f"\n=== 3b. COVERAGE (Tesseract {settings.coverage_ocr_lang})")
-        coverage = select_by_coverage(unique, job_id="trace")
-        if coverage.applied:
-            reasons = {}
-            for p in unique:
-                reasons[coverage.reasons[p]] = reasons.get(coverage.reasons[p], 0) + 1
-            print(f"    kept={len(coverage.selected)}  dropped={len(coverage.dropped)}  reasons={reasons}")
-            unique, dupes = coverage.selected, dupes + coverage.dropped
-        else:
-            print(f"    SKIPPED: {coverage.reason} — the pipeline would send the frames above")
+    choice = choose_ocr_frames([frames], good, scores, job_id="trace")   # exactly as tasks.run_job
+    sel, coverage = choice.selection, choice.coverage
+    print(f"    frame selection kept={len(sel.selected)}  dropped={len(sel.duplicates)}")
+    if coverage is not None and coverage.applied:
+        reasons = {}
+        for p in sel.selected:
+            reasons[coverage.reasons[p]] = reasons.get(coverage.reasons[p], 0) + 1
+        print(f"\n=== 3b. COVERAGE (Tesseract {settings.coverage_ocr_lang}) + duplicate pass")
+        print(f"    kept={len(choice.final)}  reasons={reasons}")
+    elif coverage is not None:
+        print(f"    coverage SKIPPED: {coverage.reason} — the pipeline would send the frames above")
+    unique, dupes = choice.final, choice.not_sent
 
     print(f"\n=== 4. BATCH    (ocr_batch_size={settings.ocr_batch_size})")
     batches = chunk_batches(unique)

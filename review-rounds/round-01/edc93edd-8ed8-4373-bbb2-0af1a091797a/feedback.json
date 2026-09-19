@@ -1,0 +1,102 @@
+{
+  "video": "edc93edd-8ed8-4373-bbb2-0af1a091797a.mp4",
+  "reviewer": "user",
+  "status": "done",
+  "sent_frames": [
+    {
+      "frame": "frame_000231.jpg",
+      "request": "b0.0",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "interactions",
+        "profile_activity",
+        "views"
+      ],
+      "needed": true,
+      "note": "reviewer: final result good"
+    },
+    {
+      "frame": "frame_000264.jpg",
+      "request": "b0.1",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "accounts_reached",
+        "followers",
+        "interactions",
+        "non_followers",
+        "views"
+      ],
+      "needed": true,
+      "note": "reviewer: final result good"
+    },
+    {
+      "frame": "frame_000297.jpg",
+      "request": "b0.2",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "likes",
+        "replies",
+        "shares"
+      ],
+      "needed": true,
+      "note": "reviewer: final result good"
+    },
+    {
+      "frame": "frame_000318.jpg",
+      "request": "b0.3",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "back",
+        "exited",
+        "forward",
+        "likes",
+        "navigation",
+        "next_story",
+        "replies",
+        "shares",
+        "sticker_taps"
+      ],
+      "needed": true,
+      "note": "reviewer: final result good"
+    },
+    {
+      "frame": "frame_000327.jpg",
+      "request": "b0.4",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "back",
+        "exited",
+        "forward",
+        "navigation",
+        "next_story",
+        "profile_activity",
+        "profile_visits",
+        "replies",
+        "shares",
+        "sticker_taps"
+      ],
+      "needed": true,
+      "note": "reviewer: final result good"
+    },
+    {
+      "frame": "frame_000348.jpg",
+      "request": "b0.5",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "back",
+        "follows",
+        "gender_men",
+        "gender_women",
+        "next_story",
+        "profile_activity",
+        "profile_visits"
+      ],
+      "needed": true,
+      "note": "reviewer: final result good"
+    }
+  ],
+  "should_have_been_sent": [],
+  "metrics_missing_from_final_set": [],
+  "notes": "Final result was good, no changes needed.",
+  "reviewed_on": "2026-09-19"
+}

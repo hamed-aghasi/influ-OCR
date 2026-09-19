@@ -1,5 +1,17 @@
 # HANDOFF — session state for the next context
 
+## 2026-09-19 (later) — human feedback loop, round 01
+
+- **Rounds:** `training/review_videos.py` produces rounds in `review-rounds/`; you fill in `feedback.json`,
+  and `training/eval_feedback.py` replays them as checks.
+- **Round 01** (6 unseen videos): the feedback exposed five causes, all fixed and tested. See
+  `review-rounds/round-01c/README.md`. Round-01 frames sent went from 39 to 24; feedback checks pass 21/21.
+- **Schema:** Top sources of views is now metrics `source_*`.
+- **Classifier:** retrained as run `2026-09-19b-sources` (131 frames relabelled, plus the round-01 verdicts),
+  deployed at 0.30. The previous model is in `models/backup_20260919T162324Z/`.
+- **Ground truth** (Top sources added for 5 Reels): 60 frames sent, **0 metrics lost**; the floor is 30.
+- **Docker:** the image has **not** been rebuilt since; rebuild and re-run the container check before relying on it.
+
 ## 2026-09-19 — frame selection overhaul (branch `feat/scroll-coverage-selection`, local only, not pushed)
 
 **What changed:** the OCR input per video went from a median of ~27 frames to ~6, with no ground-truth

@@ -38,7 +38,8 @@ sys.path.insert(0, str(REPO / "instagram_analyzer_app"))
 from processing.config import settings  # noqa: E402
 from processing.frame_classifier import classify_frames  # noqa: E402
 from processing.frame_selection import select_frames  # noqa: E402
-from processing.metric_coverage import select_by_coverage, tesseract_available  # noqa: E402
+from processing.metric_coverage import tesseract_available  # noqa: E402
+from processing.selection_pipeline import choose_ocr_frames  # noqa: E402
 
 
 def parse_ranges(text: str) -> set:
@@ -83,7 +84,8 @@ def floor_cover(metric_frames: dict, available: set) -> int:
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--strategies", default="phash,scroll",
-                    help="comma-separated: phash, scroll, coverage (= scroll then metric coverage)")
+                    help="comma-separated: phash, scroll, coverage (= the production pipeline: scroll, "
+                         "metric coverage, duplicate pass)")
     ap.add_argument("--include-drafts", action="store_true", help="also score truth files not yet marked done")
     ap.add_argument("--json", type=Path, help="write per-video results here")
     ap.add_argument("--model-dir", help="evaluate a run's model instead of the deployed one "
@@ -124,8 +126,7 @@ def main():
             if s == "coverage":           # scroll selection, then metric coverage (Tesseract)
                 if not tesseract_available():
                     sys.exit("coverage strategy needs tesseract with " + settings.coverage_ocr_lang)
-                picked = select_frames([paths], good, scores, strategy="scroll").selected
-                chosen = select_by_coverage(picked, job_id=f"eval-{video[:8]}").selected
+                chosen = choose_ocr_frames([paths], good, scores, job_id=f"eval-{video[:8]}").final
             else:
                 chosen = select_frames([paths], good, scores, strategy=s).selected
             sent = {fnum(p) for p in chosen}

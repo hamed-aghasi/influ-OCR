@@ -86,6 +86,34 @@
     "gender_women": {
       "value": null,
       "frames": ""
+    },
+    "source_feed": {
+      "value": 91.1,
+      "frames": "162-192"
+    },
+    "source_reels_tab": {
+      "value": 6.2,
+      "frames": "165-192"
+    },
+    "source_profile": {
+      "value": 0.9,
+      "frames": "165-189"
+    },
+    "source_explore": {
+      "value": 1.8,
+      "frames": "165-189"
+    },
+    "source_stories": {
+      "value": null,
+      "frames": ""
+    },
+    "source_search": {
+      "value": null,
+      "frames": ""
+    },
+    "source_other": {
+      "value": null,
+      "frames": ""
     }
   },
   "notes": "Viewers = accounts_reached. 000-075 profile + post, 078-102 skeleton (icon strip readable from 090), 138-204 charts/rates/retention/top sources, 252-276 post again, 279-300 control center. Icon strip also shows reposts 0, saves 2.",

@@ -1,0 +1,39 @@
+{
+  "video": "5361dd11-6020-4e3d-ae13-0bf7ce1de42a.mp4",
+  "reviewer": "user",
+  "status": "done",
+  "sent_frames": [
+    {
+      "frame": "frame_000117.jpg",
+      "request": "b0.0",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "accounts_reached",
+        "follows",
+        "likes",
+        "replies",
+        "shares",
+        "views"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000189.jpg",
+      "request": "b0.1",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": false,
+      "note": "only rates-tab data, not needed"
+    }
+  ],
+  "should_have_been_sent": [
+    {
+      "frame": "frame_000237.jpg",
+      "why": "should have been in the final set but was not"
+    }
+  ],
+  "metrics_missing_from_final_set": [],
+  "notes": "",
+  "reviewed_on": "2026-09-19"
+}

@@ -1,0 +1,156 @@
+{
+  "video": "8102e03d-e934-4097-8c25-c172f3004964.mp4",
+  "reviewer": "user",
+  "status": "done",
+  "sent_frames": [
+    {
+      "frame": "frame_000201.jpg",
+      "request": "b0.0",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "interactions",
+        "profile_activity",
+        "views"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000228.jpg",
+      "request": "b0.1",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "followers",
+        "interactions",
+        "non_followers",
+        "profile_activity",
+        "views"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000234.jpg",
+      "request": "b0.2",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "followers",
+        "non_followers",
+        "profile_activity"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000366.jpg",
+      "request": "b0.3",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "accounts_reached",
+        "views"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000390.jpg",
+      "request": "b0.4",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000396.jpg",
+      "request": "b0.5",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000399.jpg",
+      "request": "b0.6",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000402.jpg",
+      "request": "b0.7",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "accounts_reached",
+        "interactions"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000471.jpg",
+      "request": "b0.8",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": null,
+      "note": "duplicate pair with frame_000480: identical data, only one should be sent"
+    },
+    {
+      "frame": "frame_000480.jpg",
+      "request": "b0.9",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "interactions",
+        "likes"
+      ],
+      "needed": null,
+      "note": "duplicate pair with frame_000471: identical data, only one should be sent"
+    },
+    {
+      "frame": "frame_000585.jpg",
+      "request": "b0.10",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "followers",
+        "follows",
+        "gender_men",
+        "gender_women",
+        "profile_activity",
+        "replies",
+        "shares"
+      ],
+      "needed": null,
+      "note": "duplicate pair with frame_000603: identical data, only one should be sent"
+    },
+    {
+      "frame": "frame_000603.jpg",
+      "request": "b0.11",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "follows",
+        "gender_men",
+        "gender_women",
+        "likes",
+        "profile_activity",
+        "replies",
+        "shares"
+      ],
+      "needed": null,
+      "note": "duplicate pair with frame_000585: identical data, only one should be sent"
+    }
+  ],
+  "should_have_been_sent": [],
+  "metrics_missing_from_final_set": [],
+  "notes": "Duplicates increase OCR cost: keep one frame of each duplicate group.",
+  "duplicate_groups": [
+    [
+      "frame_000585.jpg",
+      "frame_000603.jpg"
+    ],
+    [
+      "frame_000471.jpg",
+      "frame_000480.jpg"
+    ]
+  ],
+  "reviewed_on": "2026-09-19"
+}

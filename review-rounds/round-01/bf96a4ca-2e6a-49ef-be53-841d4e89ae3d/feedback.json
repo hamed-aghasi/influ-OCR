@@ -1,0 +1,90 @@
+{
+  "video": "bf96a4ca-2e6a-49ef-be53-841d4e89ae3d.mp4",
+  "reviewer": "user",
+  "status": "done",
+  "sent_frames": [
+    {
+      "frame": "frame_000033.jpg",
+      "request": "b0.0",
+      "coverage_reason": "unrecognised",
+      "metrics_read": [],
+      "needed": false,
+      "note": "captured before Instagram's numbers finished loading: values blank"
+    },
+    {
+      "frame": "frame_000054.jpg",
+      "request": "b0.1",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "followers",
+        "non_followers",
+        "views"
+      ],
+      "needed": false,
+      "note": "captured before Instagram's numbers finished loading: values blank"
+    },
+    {
+      "frame": "frame_000087.jpg",
+      "request": "b0.2",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "accounts_reached",
+        "followers",
+        "interactions",
+        "non_followers",
+        "profile_activity",
+        "views"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000114.jpg",
+      "request": "b0.3",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "back",
+        "exited",
+        "follows",
+        "forward",
+        "gender_men",
+        "gender_women",
+        "navigation",
+        "next_story",
+        "profile_activity",
+        "profile_visits"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000117.jpg",
+      "request": "b0.4",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "back",
+        "exited",
+        "follows",
+        "forward",
+        "likes",
+        "navigation",
+        "next_story",
+        "profile_activity",
+        "profile_visits",
+        "replies",
+        "shares"
+      ],
+      "needed": null,
+      "note": ""
+    }
+  ],
+  "should_have_been_sent": [
+    {
+      "frame": "frame_000060.jpg",
+      "why": "numbers fully loaded by this frame; it was dropped. Prefer loaded frames over unloaded ones."
+    }
+  ],
+  "metrics_missing_from_final_set": [],
+  "notes": "Investigate where frame_000060 was filtered out; use as a training case (loaded > unloaded).",
+  "reviewed_on": "2026-09-19"
+}

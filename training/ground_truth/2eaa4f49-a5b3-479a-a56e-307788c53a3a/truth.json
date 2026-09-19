@@ -86,6 +86,34 @@
     "gender_women": {
       "value": null,
       "frames": ""
+    },
+    "source_feed": {
+      "value": 98.6,
+      "frames": "267-291"
+    },
+    "source_reels_tab": {
+      "value": 0.6,
+      "frames": "270-288"
+    },
+    "source_profile": {
+      "value": 0.7,
+      "frames": "267-291"
+    },
+    "source_explore": {
+      "value": 0.1,
+      "frames": "270-288"
+    },
+    "source_stories": {
+      "value": null,
+      "frames": ""
+    },
+    "source_search": {
+      "value": null,
+      "frames": ""
+    },
+    "source_other": {
+      "value": null,
+      "frames": ""
     }
   },
   "notes": "000-021 control center, 024-090 profile + the post itself (post view shows 87 likes/7 shares but is not an Insights screen), 093-177 spinner, 180-189 icon-strip numbers render before the icons (excluded), 213 tiles fading in. 258-303 charts/rates/retention/top sources. Icon strip also shows reposts 0, saves 8 (not in schema).",

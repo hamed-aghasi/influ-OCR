@@ -1,0 +1,119 @@
+{
+ "note": "round-01 human feedback as training labels (partial: judged frames only)",
+ "labels": [
+  {
+   "video": "5361dd11-6020-4e3d-ae13-0bf7ce1de42a",
+   "frame": "frame_000237.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "5361dd11-6020-4e3d-ae13-0bf7ce1de42a",
+   "frame": "frame_000189.jpg",
+   "label": "bad",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "1f2bdcac-d03d-47b6-a9ee-77b96ebfb055",
+   "frame": "frame_000108.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "1f2bdcac-d03d-47b6-a9ee-77b96ebfb055",
+   "frame": "frame_000168.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "1f2bdcac-d03d-47b6-a9ee-77b96ebfb055",
+   "frame": "frame_000210.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "1f2bdcac-d03d-47b6-a9ee-77b96ebfb055",
+   "frame": "frame_000216.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "1f2bdcac-d03d-47b6-a9ee-77b96ebfb055",
+   "frame": "frame_000219.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "1f2bdcac-d03d-47b6-a9ee-77b96ebfb055",
+   "frame": "frame_000225.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "1f2bdcac-d03d-47b6-a9ee-77b96ebfb055",
+   "frame": "frame_000183.jpg",
+   "label": "bad",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "4985b8cc-bddb-406b-9c6a-cea56c173969",
+   "frame": "frame_000276.jpg",
+   "label": "bad",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "bf96a4ca-2e6a-49ef-be53-841d4e89ae3d",
+   "frame": "frame_000060.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "bf96a4ca-2e6a-49ef-be53-841d4e89ae3d",
+   "frame": "frame_000033.jpg",
+   "label": "bad",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "bf96a4ca-2e6a-49ef-be53-841d4e89ae3d",
+   "frame": "frame_000054.jpg",
+   "label": "bad",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "edc93edd-8ed8-4373-bbb2-0af1a091797a",
+   "frame": "frame_000231.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "edc93edd-8ed8-4373-bbb2-0af1a091797a",
+   "frame": "frame_000264.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "edc93edd-8ed8-4373-bbb2-0af1a091797a",
+   "frame": "frame_000297.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "edc93edd-8ed8-4373-bbb2-0af1a091797a",
+   "frame": "frame_000318.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "edc93edd-8ed8-4373-bbb2-0af1a091797a",
+   "frame": "frame_000327.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  },
+  {
+   "video": "edc93edd-8ed8-4373-bbb2-0af1a091797a",
+   "frame": "frame_000348.jpg",
+   "label": "good",
+   "source": "review-rounds/round-01 feedback.json"
+  }
+ ]
+}

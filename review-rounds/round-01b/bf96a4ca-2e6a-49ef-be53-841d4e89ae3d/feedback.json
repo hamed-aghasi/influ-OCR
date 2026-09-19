@@ -1,0 +1,79 @@
+{
+  "video": "bf96a4ca-2e6a-49ef-be53-841d4e89ae3d.mp4",
+  "reviewer": "",
+  "status": "todo",
+  "sent_frames": [
+    {
+      "frame": "frame_000087.jpg",
+      "request": "b0.0",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "accounts_reached",
+        "followers",
+        "interactions",
+        "non_followers",
+        "profile_activity",
+        "views"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000114.jpg",
+      "request": "b0.1",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "back",
+        "exited",
+        "follows",
+        "forward",
+        "gender_men",
+        "gender_women",
+        "navigation",
+        "next_story",
+        "profile_activity",
+        "profile_visits"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000117.jpg",
+      "request": "b0.2",
+      "coverage_reason": "cover",
+      "metrics_read": [
+        "back",
+        "exited",
+        "followers",
+        "follows",
+        "forward",
+        "likes",
+        "navigation",
+        "next_story",
+        "profile_activity",
+        "profile_visits",
+        "replies",
+        "shares"
+      ],
+      "needed": null,
+      "note": ""
+    },
+    {
+      "frame": "frame_000144.jpg",
+      "request": "b0.3",
+      "coverage_reason": "backstop",
+      "metrics_read": [
+        "followers",
+        "interactions",
+        "non_followers",
+        "profile_activity",
+        "views"
+      ],
+      "needed": null,
+      "note": ""
+    }
+  ],
+  "should_have_been_sent": [],
+  "metrics_missing_from_final_set": [],
+  "notes": ""
+}
