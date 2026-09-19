@@ -22,6 +22,17 @@ next step.
 - gender-only screens have never been seen by the classifier;
 - `c70ca2f3` is the only unseen test video.
 
+**Docker check (2026-09-19):** image `influ-ocr:latest` (Debian: Python 3.11, TF 2.21, Tesseract 5.5.0).
+- Inside the worker, `eval_selection.py --strategies scroll,coverage` (repo mounted read-only) sends **71**
+  frames with **0 metrics lost**; locally it is 68.
+- The classifier and scroll selection are identical; only coverage differs.
+- The Tesseract model files are byte-identical, but Tesseract 5.5.0 reads some text worse than 5.5.3
+  (e.g. "Follows A" for "Follows 0"), so coverage keeps a few more frames. It never drops needed ones.
+- The real `tasks.run_job` in the container sends c70ca2f3 069+111 (same as local) and siah tulani 102+162
+  (local: 102+168; 162 and 168 are the same Summary screen). The JPEG bytes differ because ffmpeg is 7.1
+  vs 8.1.
+- Evaluate against the container, not the Mac, when numbers matter.
+
 **Review outputs:** `test-frame-output/` (v1 baseline), `-v2/` (regenerated in place, see its README), `-v3/`
 (current). All are local only; their generators and READMEs are tracked.
 
