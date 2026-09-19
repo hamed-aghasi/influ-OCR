@@ -30,8 +30,9 @@ from processing.db_client import (
     update_job_status,
 )
 from processing.naming import generate_job_id
-from processing.dedup import dedupe_frames
 from processing.frame_classifier import classify_frames
+from processing.frame_selection import select_frames
+from processing.metric_coverage import select_by_coverage
 from processing.frame_extractor import extract_frames_from_video, process_campaign_zip
 from processing.ocr_processor import (
     assemble_metrics,
@@ -87,14 +88,20 @@ def run_job(self, job_id: str, file_path: str, file_type: str, object_key: str =
         update_job_status(job_id, "processing")
         update_job_progress(job_id, "Extracting frames")
 
+        # `sequences` keeps each source video's frames in time order: scroll-aware
+        # selection aligns consecutive frames, which only makes sense per video.
         if file_type == "zip":
             extract = process_campaign_zip(file_p, settings.processing_dir, job_id)
             frame_paths: List[Path] = [Path(p) for p in extract.get("frame_paths", [])]
             output_dir = Path(extract.get("output_directory", output_dir))
+            sequences = [[Path(p) for p in r.get("frame_paths", [])]
+                         for r in extract.get("results", []) if r.get("status") == "success"]
         elif file_type == "video":
             _, frame_paths = extract_frames_from_video(file_p, output_dir / "frames", job_id=job_id)
+            sequences = [frame_paths]
         else:
             frame_paths = [file_p]
+            sequences = [frame_paths]
 
         log.info("Extracted %d frames", len(frame_paths))
         update_job_progress(job_id, f"Classifying {len(frame_paths)} frames")
@@ -113,12 +120,19 @@ def run_job(self, job_id: str, file_path: str, file_type: str, object_key: str =
         good_paths: List[Path] = classification.get("good_paths", [])
         log.info("Classified: good=%d bad=%d", len(good_paths), len(classification.get("bad_frames", [])))
 
-        update_job_progress(job_id, "Deduplicating frames")
-        unique_paths, duplicate_paths = dedupe_frames(good_paths)
+        update_job_progress(job_id, "Selecting frames")
+        scores = {Path(f["path"]): f["confidence"] for f in classification.get("good_frames", [])}
+        selection = select_frames(sequences, good_paths, scores)
+        unique_paths, duplicate_paths = selection.selected, selection.duplicates
+        if settings.coverage_selection and unique_paths:
+            update_job_progress(job_id, "Checking metric coverage")
+            coverage = select_by_coverage(unique_paths, job_id=job_id)
+            unique_paths = coverage.selected
+            duplicate_paths = duplicate_paths + coverage.dropped
         batches = chunk_batches(unique_paths)
         log.info(
-            "Dedup: %d unique / %d duplicates from %d good frames -> %d OCR batches",
-            len(unique_paths), len(duplicate_paths), len(good_paths), len(batches),
+            "Selection (%s): %d unique / %d duplicates from %d good frames -> %d OCR batches",
+            selection.strategy, len(unique_paths), len(duplicate_paths), len(good_paths), len(batches),
         )
 
         context = {

@@ -1,44 +1,44 @@
 # influ-OCR — Instagram Campaign Analyzer
 
-> Session state + open threads: see `HANDOFF.md` (dated 2026-08-22).
+> Session state + open threads: see `HANDOFF.md` (latest section dated 2026-09-19).
 
-FastAPI app that extracts Instagram Insights engagement metrics (views, reach,
-likes, shares, etc.) from uploaded screenshots/screen-recordings. Pipeline:
-frame extraction (OpenCV) -> TensorFlow MobileNetV2 frame classifier -> OCR via
-an OpenRouter vision model (default qwen/qwen3.8-max) -> results in Postgres, optional S3, Excel
-export. Supports English and Persian Insights screens. Project is dormant
-(last commit 2025-12-28).
+FastAPI + Celery app that extracts Instagram Insights metrics (views, reach,
+likes, shares, gender split, …) from screen recordings and screenshots, English
+and Persian. Pipeline, per video:
 
-## One codebase (verified 2026-08-22)
+1. frame extraction: ffmpeg 720p, then every 3rd frame (`processing/frame_extractor.py`)
+2. MobileNetV2 good/bad classifier, threshold 0.30 (`processing/frame_classifier.py`, `models/`)
+3. scroll-aware selection: fewest frames covering each scrolled page (`processing/frame_selection.py`)
+4. metric coverage: Tesseract `fas+eng` reads which metrics each frame shows, and a set cover keeps the fewest (`processing/metric_coverage.py`)
+5. OCR via an OpenRouter vision model (default `qwen/qwen3.8-max`, `processing/ocr_processor.py`)
+6. consensus aggregation, then Postgres, optional S3, Excel export
 
-- `instagram_analyzer_app/` — the app, tracked by git. The 2026-05-05 refactor
-  (security hardening, Celery + Redis worker, Alembic, phash dedup,
-  docker-compose) was merged to main via PR #1 (commit 2867be4). A leftover
-  nested copy (`influ-OCR-refactor/`) was deleted 2026-08-22.
+Steps 3 and 4 are switched by `FRAME_SELECTION` (`scroll` or `phash`) and
+`COVERAGE_SELECTION`. The classifier threshold is tied to the deployed model;
+see the comments in `processing/config.py`.
 
 ## Running
 
-Original app:
-```bash
-pip install -r requirements.txt
-# .env needs DATABASE_URL, OPENROUTER_API_KEY, SECRET_KEY, ADMIN_PASSWORD (see README.md)
-uvicorn instagram_analyzer_app.main:app --host 0.0.0.0 --port 8000
-```
+`docker compose up --build` from the repo root brings up postgres, redis,
+alembic migrate, the app on **:8010**, the celery worker and beat. It needs
+`SECRET_KEY` (and `OPENROUTER_API_KEY` for OCR) in a root `.env` (see
+`instagram_analyzer_app/.env.example`). Beat's reaper fails jobs stuck
+queued/processing.
 
-Preferred: `docker compose up --build` from repo root
-(brings up postgres, redis, alembic migrate, app on :8000, celery worker).
+Tests: `cd instagram_analyzer_app && python -m pytest tests/` (no TensorFlow
+or tesseract needed for most of them).
 
-## Where things live
+## Training and evaluation (`training/`)
 
-- OCR / OpenRouter calls: `instagram_analyzer_app/processing/ocr_processor.py`
-- Frame extraction: `processing/frame_extractor.py`; classifier: `processing/frame_classifier.py`
-- S3: `processing/s3_storage.py`; DB: `processing/db_client.py`
-- Routes/auth/upload flow: `main.py`; TF model weights: `models/`
-- (Same layout inside `influ-OCR-refactor/instagram_analyzer_app/`, plus
-  `tasks.py` / `celery_app.py` and `alembic.ini`.)
+- `.venv-train/` (repo root, untracked): Python 3.9 + TF 2.20 environment for everything below.
+- `extract_frames.py` → sort into `train/<video>/good|bad` → `train_frame_classifier.py` (runs in `training/runs/`; `--deploy` backs up and swaps into `models/`).
+- `eval_selection.py`: frames sent and **metrics lost** per strategy, against the hand-built `training/ground_truth/`. Run it before changing selection, coverage or the threshold.
+- `trace_frames.py`: which frames one video would send to OpenRouter (no network).
+- `relabel/`: the 2026-09-19 narrowing of `good` to schema metrics (`apply_relabel.py --restore` undoes it).
+- `train/`, `test-frame/`, `training/runs/`, the model backups and the review outputs are local only (see `.gitignore`).
 
 ## Docs status
 
-- `PROXY_SUPPORT_PLAN.md` — proposal only, NEVER implemented (see its status header).
-- `CODE_REVIEW.md` — 2024-12-24 review of the original app; the refactor repo
-  addressed much of it. Do not treat its findings as current for the refactor.
+- `PROXY_SUPPORT_PLAN.md`: proposal only, never implemented (see its status header).
+- `SESSION-2026-09-12.md`: the dark-mode classifier diagnosis and the start of retraining.
+- `test-frame-output*/`: v1/v2/v3 reviews of the two test videos (each README says what it shows).

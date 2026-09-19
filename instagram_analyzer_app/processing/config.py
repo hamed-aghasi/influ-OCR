@@ -7,7 +7,7 @@ previously scattered across modules live here. Import as
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -54,7 +54,14 @@ class Settings(BaseSettings):
 
     # ----- Classifier -----
     model_dir: Path = APP_DIR / "models"
-    classifier_threshold: float = 0.65
+    # Tied to the deployed model, run 2026-09-19-relabel (trained after `good`
+    # was narrowed to "a schema metric is readable"; training/relabel/README.md).
+    # 0.30 is the highest cutoff holding recall 1.000 on the 9 held-out videos.
+    # End to end against training/ground_truth/ with scroll selection it sends
+    # 168 frames and loses no metric (the previous model at 0.95 sent 192).
+    # Rolling the model back means rolling this back too: the previous model,
+    # 2026-09-14-nodedup (models/backup_20260919T100558Z/), ran at 0.95.
+    classifier_threshold: float = 0.30
     classifier_image_size: int = 224
     dark_frame_threshold: int = 80
 
@@ -64,8 +71,40 @@ class Settings(BaseSettings):
     ffmpeg_timeout_seconds: int = 600
 
     # ----- Dedup -----
-    perceptual_hash_size: int = 8
-    perceptual_hash_distance: int = 4
+    # 16/16, not the historical 8/4. An 8x8 hash reduces a frame to 64
+    # low-frequency bits, and in Instagram screen recordings the story strip,
+    # header and nav bar are pixel-identical throughout while the numbers that
+    # differ are small text — exactly the detail that resolution discards.
+    # Measured across 58 videos: 59% of multi-frame clusters held screens
+    # showing *different* values, so dedup was deleting metrics before OCR ever
+    # saw them. On one video a loading skeleton, "Views 22,360", a 24-donut,
+    # "Back 2,507" and an Audience split were all merged into one cluster.
+    #
+    # 16/16 is the same 6.25% bit tolerance as 4/64, just computed at higher
+    # resolution. Against pixel-level ground truth it keeps genuinely identical
+    # frames collapsed as well as before (93%) while separating clearly
+    # different frames far better (56% -> 90%). Expect more frames to survive
+    # to OCR, which costs more per video and is the intended trade.
+    perceptual_hash_size: int = 16
+    perceptual_hash_distance: int = 16
+
+    # ----- Frame selection (which good frames go to OCR) -----
+    # "scroll": reconstruct the scroll, propose the fewest frames covering each
+    # page, then verify every good frame against the picks row by row
+    # (processing/frame_selection.py). "phash": the dedup above only.
+    # Measured against the hand-built ground truth (training/ground_truth/, 10
+    # videos, 113 metric appearances): scroll sent 192 frames and lost 0
+    # metrics; phash sent 217 and lost 2 (a whole-image hash merged two screens
+    # differing only in the Profile visits / Follows row). Re-run
+    # training/eval_selection.py before changing either.
+    frame_selection: Literal["phash", "scroll"] = "scroll"
+    # Then keep only the fewest selected frames that together show every
+    # metric, read locally with Tesseract (processing/metric_coverage.py).
+    # Against the ground truth (21 metrics incl. the gender split): 168 -> 68
+    # frames after scroll selection, no metric lost. Needs the tesseract binary with these languages (installed
+    # in the Dockerfile); if missing, the step is skipped and logged, never fatal.
+    coverage_selection: bool = True
+    coverage_ocr_lang: str = "fas+eng"
 
     # ----- Upload guards -----
     max_upload_bytes: int = 500 * 1024 * 1024  # 500 MB

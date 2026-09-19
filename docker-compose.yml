@@ -3,6 +3,17 @@ x-app-env: &app-env
   REDIS_URL: redis://redis:6379/0
   OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
   OPENROUTER_MODEL: ${OPENROUTER_MODEL:-qwen/qwen3.8-max}
+  # Tied to the deployed classifier — see processing/config.py before changing.
+  CLASSIFIER_THRESHOLD: ${CLASSIFIER_THRESHOLD:-0.30}
+  # Dedup resolution. 8/4 merged frames showing different numbers — see the
+  # note in processing/config.py before lowering these.
+  PERCEPTUAL_HASH_SIZE: ${PERCEPTUAL_HASH_SIZE:-16}
+  PERCEPTUAL_HASH_DISTANCE: ${PERCEPTUAL_HASH_DISTANCE:-16}
+  # "scroll" (default) or "phash" — see processing/config.py.
+  FRAME_SELECTION: ${FRAME_SELECTION:-scroll}
+  # Tesseract pass that keeps only frames needed to cover every metric.
+  COVERAGE_SELECTION: ${COVERAGE_SELECTION:-true}
+  KEEP_JOB_FRAMES: ${KEEP_JOB_FRAMES:-false}
   SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env (>= 16 chars)}
   ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
   ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}

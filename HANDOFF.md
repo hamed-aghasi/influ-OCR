@@ -1,5 +1,34 @@
 # HANDOFF — session state for the next context
 
+## 2026-09-19 — frame selection overhaul (branch `feat/scroll-coverage-selection`, local only, not pushed)
+
+**What changed:** the OCR input per video went from a median of ~27 frames to ~6, with no ground-truth
+metric lost:
+- `processing/frame_selection.py`: scroll-aware selection (default; `FRAME_SELECTION=phash` restores the old dedup);
+- `processing/metric_coverage.py`: Tesseract `fas+eng` metric-coverage pass (`COVERAGE_SELECTION`);
+- classifier retrained after narrowing `good` to "a schema metric is readable" (`training/relabel/`), deployed as
+  run `2026-09-19-relabel` at threshold **0.30** (the previous model is in `models/backup_20260919T100558Z/`,
+  which ran at 0.95);
+- new schema fields `gender_men` / `gender_women` (Audience > Gender %), in the prompt, Excel and coverage;
+- the Dockerfile installs `tesseract-ocr` + `eng` + `fas`; `requirements.txt` adds `pytesseract`.
+
+**Evidence:** `training/eval_selection.py` against `training/ground_truth/` (10 videos, 21 metrics). The truth
+files were labelled by Claude, not a human (`labelled_by`). A human spot-check is still the most useful
+next step.
+
+**Known limits:**
+- a gender split can only be captured if it is on screen. Reel Audience defaults to the Age view, so
+  recorders must tap Gender;
+- gender-only screens have never been seen by the classifier;
+- `c70ca2f3` is the only unseen test video.
+
+**Review outputs:** `test-frame-output/` (v1 baseline), `-v2/` (regenerated in place, see its README), `-v3/`
+(current). All are local only; their generators and READMEs are tracked.
+
+---
+
+## 2026-08-22 (earlier state, unchanged)
+
 STATUS (2026-08-22): ✅ pipeline live and verified end-to-end on real campaign
 videos; model = qwen/qwen3.8-max; all work committed through `d6fe3f5`.
 Read CLAUDE.md first for the project map; this file is session state + open threads.

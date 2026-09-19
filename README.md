@@ -7,11 +7,13 @@ and screen-recordings using a TF classifier + an OpenRouter vision model for OCR
 
 1. User uploads a video, image, or ZIP of screenshots through the web UI.
 2. Frames are extracted (every Nth frame; videos optionally downscaled to 720p).
-3. A TensorFlow MobileNetV2 classifier filters out blurred/transition frames.
-4. Surviving frames are de-duplicated by perceptual hash.
-5. Unique frames are OCR'd in batches via OpenRouter.
-6. Aggregated metrics are saved to Postgres and (optionally) to Liara S3.
-7. User can browse jobs, view per-campaign metrics, and export everything to Excel.
+3. A TensorFlow MobileNetV2 classifier keeps frames that show a schema metric.
+4. Scroll-aware selection keeps the fewest frames covering each scrolled page.
+5. Metric coverage (local Tesseract, Persian + English) keeps the fewest frames
+   that together show every metric found.
+6. Those frames are OCR'd in batches via OpenRouter; readings are aggregated by consensus.
+7. Aggregated metrics are saved to Postgres and (optionally) to Liara S3.
+8. User can browse jobs, view per-campaign metrics, and export everything to Excel.
 
 Persian and English Insights screens are both supported.
 
@@ -29,7 +31,7 @@ That brings up:
 | postgres | Persistent storage                               |
 | redis    | Celery broker + result backend                   |
 | migrate  | One-shot `alembic upgrade head`                  |
-| app      | FastAPI on `http://localhost:8000`               |
+| app      | FastAPI on `http://localhost:8010`               |
 | worker   | Celery worker that runs the ingest pipeline      |
 | beat     | Celery beat: reaps jobs stuck queued/processing  |
 
@@ -44,6 +46,10 @@ Default login: `admin` / whatever you set as `ADMIN_PASSWORD`.
 | `REDIS_URL`          | yes      | Defaults to `redis://redis:6379/0`                |
 | `OPENROUTER_API_KEY` | yes for OCR | Without it, classification still works         |
 | `OPENROUTER_MODEL`   | no       | Default `qwen/qwen3.8-max`                 |
+| `CLASSIFIER_THRESHOLD` | no     | Default `0.30`; tied to the deployed model (see `processing/config.py`) |
+| `FRAME_SELECTION`    | no       | `scroll` (default) or `phash`                     |
+| `COVERAGE_SELECTION` | no       | `true` (default): Tesseract pass; skipped with a log line if tesseract/`fas`/`eng` are missing |
+| `KEEP_JOB_FRAMES`    | no       | `false`; `true` keeps each job's extracted frames (evaluation only; fills disk) |
 | `ADMIN_USERNAME`     | no       | Default `admin`                                   |
 | `ADMIN_PASSWORD`     | no       | Default `admin123` — change before any real use   |
 | `MINIO_ENDPOINT`     | optional | All four MINIO_* set → auto-ingest poller active  |
@@ -82,7 +88,9 @@ instagram_analyzer_app/
 │   ├── errors.py             APIError + handler
 │   ├── frame_extractor.py    ffmpeg + OpenCV frame sampling
 │   ├── frame_classifier.py   TF SavedModel classifier
-│   ├── dedup.py              Perceptual-hash deduplication
+│   ├── dedup.py              Perceptual-hash deduplication (FRAME_SELECTION=phash)
+│   ├── frame_selection.py    Scroll-aware selection (default)
+│   ├── metric_coverage.py    Tesseract metric-coverage selection
 │   ├── ocr_processor.py   OCR via OpenRouter
 │   ├── db_client.py          Postgres pool + in-memory fallback
 │   └── s3_storage.py         Liara S3 wrapper

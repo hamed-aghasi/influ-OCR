@@ -34,8 +34,11 @@ _METRIC_FIELDS = (
     "links_clicks", "sticker_taps", "navigation",
     "forward", "next_story", "back", "exited",
     "profile_activity", "profile_visits", "external_link_taps", "follows",
+    "gender_men", "gender_women",
 )
 
+
+_PERCENT_FIELDS = {"followers", "non_followers", "gender_men", "gender_women"}
 
 # No real Instagram metric exceeds this; observed model failure mode is
 # digit-repetition hallucinations hundreds of digits long.
@@ -62,13 +65,15 @@ class Metrics(BaseModel):
     profile_visits: Optional[int] = None
     external_link_taps: Optional[int] = None
     follows: Optional[int] = None
+    gender_men: Optional[float] = None      # Audience > Gender: Men %
+    gender_women: Optional[float] = None    # Audience > Gender: Women %
 
     @field_validator("*", mode="after")
     @classmethod
     def _drop_implausible(cls, v, info):
         if v is None:
             return None
-        if info.field_name in {"followers", "non_followers"}:  # percentages
+        if info.field_name in _PERCENT_FIELDS:
             return v if 0 <= v <= 100 else None
         return v if 0 <= v <= _MAX_PLAUSIBLE_VALUE else None
 
@@ -148,6 +153,7 @@ Metric keys to extract (omit any not present):
 - links_clicks, sticker_taps, navigation
 - forward, next_story, back, exited
 - profile_activity, profile_visits, external_link_taps, follows
+- gender_men, gender_women
 
 On-screen label mapping (English / Persian):
 - "Viewers" / بینندگان -> accounts_reached (NOT views; the "Views" donut or
@@ -156,6 +162,9 @@ On-screen label mapping (English / Persian):
 - "Bio link clicks" / کلیک‌های پیوند بیو -> links_clicks
 - followers / non_followers are the percentage split under the Views donut —
   report the percentage number (e.g. 62.2)
+- "Men" / مردان / مرد -> gender_men, "Women" / زنان / زن -> gender_women: the
+  Gender split in the Audience section, as percentages (e.g. 95.9 and 4.1).
+  Only from the Gender view — not from the Age or Country views.
 
 Also read the icon strip at the top of Reel insights screens (heart=likes,
 speech bubble=replies, paper plane=shares) and the Engagement tab rows.

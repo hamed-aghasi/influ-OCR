@@ -21,6 +21,7 @@ tensorflow>=2.15.0
 opencv-python-headless>=4.8.0
 Pillow>=10.0.0
 imagehash>=4.3.1
+pytesseract>=0.3.10           # metric-coverage selection; needs the tesseract binary (Dockerfile)
 numpy>=1.24.0
 
 # Network

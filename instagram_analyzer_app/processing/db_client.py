@@ -355,6 +355,8 @@ _METRIC_KEYS = (
     "exited",
     "profile_activity",
     "external_link_taps",
+    "gender_men",
+    "gender_women",
 )
 
 
