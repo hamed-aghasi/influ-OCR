@@ -68,3 +68,19 @@ temp/
 
 # Claude specific
 .claude/
+# ----- Local training / review data (added 2026-09-19) -----
+# Kept on disk, never committed: ~2 GB of video frames, models and a venv.
+.venv-train/
+train/
+test-frame/
+# every trained model + its reports; only the index is tracked
+training/runs/*
+!training/runs/README.md
+training/_trace_work/
+training/logs/
+# local rollback copies made by train_frame_classifier.py --deploy
+instagram_analyzer_app/models/backup_*/
+# review outputs: images/CSVs/HTML stay local; the generator and README are tracked
+test-frame-output*/*
+!test-frame-output*/README.md
+!test-frame-output*/_generate_review.py

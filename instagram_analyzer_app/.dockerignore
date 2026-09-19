@@ -26,3 +26,6 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local model rollback copies (see .gitignore)
+models/backup_*/
