@@ -1,0 +1,38 @@
+{
+ "frame_000300.jpg": {
+  "label": "good",
+  "why": "views donut 2,523 + followers % + reached"
+ },
+ "frame_000303.jpg": {
+  "label": "good",
+  "why": "followers % + accounts reached + interactions 14"
+ },
+ "frame_000306.jpg": {
+  "label": "good",
+  "why": "accounts reached + interactions 14"
+ },
+ "frame_000309.jpg": {
+  "label": "good",
+  "why": "interactions 14 + likes/replies/shares"
+ },
+ "frame_000312.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000315.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000318.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000327.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000333.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ }
+}

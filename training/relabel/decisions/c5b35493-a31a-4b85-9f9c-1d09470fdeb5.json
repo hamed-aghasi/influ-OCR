@@ -1,0 +1,66 @@
+{
+ "frame_000123.jpg": {
+  "label": "good",
+  "why": "icon strip counts (summary still skeleton)"
+ },
+ "frame_000132.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000135.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000141.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000162.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000165.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000168.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000171.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000174.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000177.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000180.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000237.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000240.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000249.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000255.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000261.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ }
+}

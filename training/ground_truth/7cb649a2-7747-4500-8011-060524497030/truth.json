@@ -1,0 +1,93 @@
+{
+  "video": "7cb649a2-7747-4500-8011-060524497030",
+  "status": "done",
+  "insights_type": "story",
+  "metrics": {
+    "views": {
+      "value": 70061,
+      "frames": "042-075"
+    },
+    "accounts_reached": {
+      "value": 60401,
+      "frames": "069-081"
+    },
+    "followers": {
+      "value": 96.5,
+      "frames": "069-078"
+    },
+    "non_followers": {
+      "value": 3.5,
+      "frames": "069-078"
+    },
+    "interactions": {
+      "value": 88,
+      "frames": "051-063, 078-093"
+    },
+    "likes": {
+      "value": 77,
+      "frames": "084-102"
+    },
+    "replies": {
+      "value": 4,
+      "frames": "084-105"
+    },
+    "shares": {
+      "value": 7,
+      "frames": "087-108"
+    },
+    "links_clicks": {
+      "value": null,
+      "frames": ""
+    },
+    "sticker_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "navigation": {
+      "value": 68408,
+      "frames": "096-117"
+    },
+    "forward": {
+      "value": 54169,
+      "frames": "096-117"
+    },
+    "next_story": {
+      "value": 2818,
+      "frames": "096-117"
+    },
+    "back": {
+      "value": 4808,
+      "frames": "096-117"
+    },
+    "exited": {
+      "value": 6613,
+      "frames": "096-117"
+    },
+    "profile_activity": {
+      "value": 535,
+      "frames": "051-066, 099-117"
+    },
+    "profile_visits": {
+      "value": 535,
+      "frames": "105-117"
+    },
+    "external_link_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "follows": {
+      "value": 0,
+      "frames": "108-117"
+    },
+    "gender_men": {
+      "value": null,
+      "frames": ""
+    },
+    "gender_women": {
+      "value": null,
+      "frames": ""
+    }
+  },
+  "notes": "Persian UI (Persian digits, RTL). exited = تعداد ضربه‌ها برای خروج از داستان. 000-039 story playback + skeleton, 120-156 story playback, archive, settings, profile.",
+  "labelled_by": "claude (visual inspection, not human-reviewed)"
+}

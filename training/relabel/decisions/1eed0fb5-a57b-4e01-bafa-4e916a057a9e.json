@@ -1,0 +1,66 @@
+{
+ "frame_000045.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000054.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000066.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000075.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000081.jpg": {
+  "label": "bad",
+  "why": "views-over-time chart + rates list"
+ },
+ "frame_000084.jpg": {
+  "label": "bad",
+  "why": "views-over-time chart + rates list"
+ },
+ "frame_000087.jpg": {
+  "label": "bad",
+  "why": "rates list"
+ },
+ "frame_000090.jpg": {
+  "label": "bad",
+  "why": "rates list + retention"
+ },
+ "frame_000093.jpg": {
+  "label": "bad",
+  "why": "rates list + retention"
+ },
+ "frame_000096.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000099.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000102.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000105.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000108.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000111.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000132.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ }
+}

@@ -1,0 +1,50 @@
+{
+ "frame_000084.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000111.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000132.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000135.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000138.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000174.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000177.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000180.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000183.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000186.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000222.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000225.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ }
+}

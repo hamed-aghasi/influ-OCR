@@ -1,0 +1,10 @@
+{
+ "frame_000252.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000273.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ }
+}

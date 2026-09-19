@@ -1,0 +1,93 @@
+{
+  "video": "2eaa4f49-a5b3-479a-a56e-307788c53a3a",
+  "status": "done",
+  "insights_type": "reel",
+  "metrics": {
+    "views": {
+      "value": 23703,
+      "frames": "216-252, 306-366"
+    },
+    "accounts_reached": {
+      "value": 20133,
+      "frames": "216-252, 312-366"
+    },
+    "followers": {
+      "value": null,
+      "frames": ""
+    },
+    "non_followers": {
+      "value": null,
+      "frames": ""
+    },
+    "interactions": {
+      "value": null,
+      "frames": ""
+    },
+    "likes": {
+      "value": 87,
+      "frames": "192-252, 312-366"
+    },
+    "replies": {
+      "value": 0,
+      "frames": "192-252, 312-366"
+    },
+    "shares": {
+      "value": 7,
+      "frames": "192-252, 312-366"
+    },
+    "links_clicks": {
+      "value": null,
+      "frames": ""
+    },
+    "sticker_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "navigation": {
+      "value": null,
+      "frames": ""
+    },
+    "forward": {
+      "value": null,
+      "frames": ""
+    },
+    "next_story": {
+      "value": null,
+      "frames": ""
+    },
+    "back": {
+      "value": null,
+      "frames": ""
+    },
+    "exited": {
+      "value": null,
+      "frames": ""
+    },
+    "profile_activity": {
+      "value": null,
+      "frames": ""
+    },
+    "profile_visits": {
+      "value": null,
+      "frames": ""
+    },
+    "external_link_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "follows": {
+      "value": 0,
+      "frames": "216-255, 309-366"
+    },
+    "gender_men": {
+      "value": null,
+      "frames": ""
+    },
+    "gender_women": {
+      "value": null,
+      "frames": ""
+    }
+  },
+  "notes": "000-021 control center, 024-090 profile + the post itself (post view shows 87 likes/7 shares but is not an Insights screen), 093-177 spinner, 180-189 icon-strip numbers render before the icons (excluded), 213 tiles fading in. 258-303 charts/rates/retention/top sources. Icon strip also shows reposts 0, saves 8 (not in schema).",
+  "labelled_by": "claude (visual inspection, not human-reviewed)"
+}

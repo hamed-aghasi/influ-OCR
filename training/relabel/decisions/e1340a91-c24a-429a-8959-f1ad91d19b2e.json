@@ -1,0 +1,18 @@
+{
+ "frame_000108.jpg": {
+  "label": "good",
+  "why": "followers % + accounts reached + interactions 8"
+ },
+ "frame_000168.jpg": {
+  "label": "good",
+  "why": "likes/replies/shares/link clicks + navigation"
+ },
+ "frame_000171.jpg": {
+  "label": "good",
+  "why": "likes/replies/shares/link clicks + navigation"
+ },
+ "frame_000183.jpg": {
+  "label": "good",
+  "why": "interactions 8 + likes/link clicks"
+ }
+}

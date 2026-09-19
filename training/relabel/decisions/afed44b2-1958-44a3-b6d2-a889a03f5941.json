@@ -1,0 +1,66 @@
+{
+ "frame_000141.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000147.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000150.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000153.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000189.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000216.jpg": {
+  "label": "good",
+  "why": "viewers 5,193 row under top sources"
+ },
+ "frame_000240.jpg": {
+  "label": "bad",
+  "why": "retention curve + skip rate + watch time"
+ },
+ "frame_000252.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000255.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000258.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000273.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000276.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000285.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000327.jpg": {
+  "label": "good",
+  "why": "icon strip / overview rows / donut / likes, profile activity rows"
+ },
+ "frame_000348.jpg": {
+  "label": "bad",
+  "why": "retention curve + skip rate + watch time"
+ },
+ "frame_000357.jpg": {
+  "label": "good",
+  "why": "viewers 5,193 row under top sources"
+ }
+}

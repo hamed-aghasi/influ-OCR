@@ -1,0 +1,78 @@
+{
+ "frame_000186.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000192.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000234.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000246.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000255.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000261.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000264.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000267.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000270.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000273.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000309.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000312.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000315.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000321.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000327.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000333.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000336.jpg": {
+  "label": "bad",
+  "why": "comment rate + retention curve + top sources"
+ },
+ "frame_000393.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ },
+ "frame_000405.jpg": {
+  "label": "good",
+  "why": "reel icon strip + summary tiles"
+ }
+}

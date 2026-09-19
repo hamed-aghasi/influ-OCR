@@ -1,0 +1,93 @@
+{
+  "video": "e4c6723d-f3b7-4e8d-b3ed-09b817061c38",
+  "status": "done",
+  "insights_type": "reel",
+  "metrics": {
+    "views": {
+      "value": 7303,
+      "frames": "150-213"
+    },
+    "accounts_reached": {
+      "value": 5097,
+      "frames": "150-213"
+    },
+    "followers": {
+      "value": null,
+      "frames": ""
+    },
+    "non_followers": {
+      "value": null,
+      "frames": ""
+    },
+    "interactions": {
+      "value": null,
+      "frames": ""
+    },
+    "likes": {
+      "value": 300,
+      "frames": "141-210"
+    },
+    "replies": {
+      "value": 2,
+      "frames": "141-210"
+    },
+    "shares": {
+      "value": 1,
+      "frames": "141-210"
+    },
+    "links_clicks": {
+      "value": null,
+      "frames": ""
+    },
+    "sticker_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "navigation": {
+      "value": null,
+      "frames": ""
+    },
+    "forward": {
+      "value": null,
+      "frames": ""
+    },
+    "next_story": {
+      "value": null,
+      "frames": ""
+    },
+    "back": {
+      "value": null,
+      "frames": ""
+    },
+    "exited": {
+      "value": null,
+      "frames": ""
+    },
+    "profile_activity": {
+      "value": null,
+      "frames": ""
+    },
+    "profile_visits": {
+      "value": null,
+      "frames": ""
+    },
+    "external_link_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "follows": {
+      "value": 0,
+      "frames": "150-216"
+    },
+    "gender_men": {
+      "value": null,
+      "frames": ""
+    },
+    "gender_women": {
+      "value": null,
+      "frames": ""
+    }
+  },
+  "notes": "Persian UI (Persian digits). Icon strip read right-to-left: likes 300, comments 2, reposts 1, shares 1, saves 1. 000-099 and 345-486 are the post itself (not Insights). 102-138 skeleton, 147 tiles fading in. 219-342 charts, rates list, retention, top sources.",
+  "labelled_by": "claude (visual inspection, not human-reviewed)"
+}

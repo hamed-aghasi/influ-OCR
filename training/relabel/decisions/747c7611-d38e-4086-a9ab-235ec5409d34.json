@@ -1,0 +1,30 @@
+{
+ "frame_000000.jpg": {
+  "label": "good",
+  "why": "story overview views/interactions/profile activity"
+ },
+ "frame_000024.jpg": {
+  "label": "good",
+  "why": "views donut 61,671 + followers % + viewers"
+ },
+ "frame_000027.jpg": {
+  "label": "good",
+  "why": "interactions 70 + likes + navigation"
+ },
+ "frame_000033.jpg": {
+  "label": "good",
+  "why": "profile activity/profile visits/follows"
+ },
+ "frame_000051.jpg": {
+  "label": "good",
+  "why": "followers % + viewers + interactions 70"
+ },
+ "frame_000057.jpg": {
+  "label": "good",
+  "why": "story overview + views donut"
+ },
+ "frame_000072.jpg": {
+  "label": "good",
+  "why": "story overview rows readable (thumbnail mid-transition)"
+ }
+}

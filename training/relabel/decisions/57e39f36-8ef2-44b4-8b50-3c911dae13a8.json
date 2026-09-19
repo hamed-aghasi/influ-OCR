@@ -1,0 +1,78 @@
+{
+ "frame_000309.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000327.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000330.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000333.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000372.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000375.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000378.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000381.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000384.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000387.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000390.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000393.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000405.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000408.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000414.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000426.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000429.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000432.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000435.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ }
+}

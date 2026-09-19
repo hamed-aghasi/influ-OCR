@@ -1,0 +1,50 @@
+{
+ "frame_000330.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers)"
+ },
+ "frame_000333.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers)"
+ },
+ "frame_000336.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers)"
+ },
+ "frame_000339.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers)"
+ },
+ "frame_000342.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers)"
+ },
+ "frame_000399.jpg": {
+  "label": "bad",
+  "why": "views over time + rates list"
+ },
+ "frame_000414.jpg": {
+  "label": "bad",
+  "why": "rates list"
+ },
+ "frame_000417.jpg": {
+  "label": "bad",
+  "why": "rates list + retention skeleton"
+ },
+ "frame_000468.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000471.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000477.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000489.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ }
+}

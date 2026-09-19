@@ -1,0 +1,26 @@
+{
+ "frame_000153.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000162.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000171.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000174.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000210.jpg": {
+  "label": "bad",
+  "why": "rates list (what impacts your views)"
+ },
+ "frame_000237.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources of views"
+ }
+}

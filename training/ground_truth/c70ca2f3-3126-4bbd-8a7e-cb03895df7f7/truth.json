@@ -1,0 +1,93 @@
+{
+  "video": "c70ca2f3-3126-4bbd-8a7e-cb03895df7f7",
+  "status": "done",
+  "insights_type": "reel",
+  "metrics": {
+    "views": {
+      "value": 21756,
+      "frames": "066-108"
+    },
+    "accounts_reached": {
+      "value": 15735,
+      "frames": "066-108"
+    },
+    "followers": {
+      "value": null,
+      "frames": ""
+    },
+    "non_followers": {
+      "value": null,
+      "frames": ""
+    },
+    "interactions": {
+      "value": null,
+      "frames": ""
+    },
+    "likes": {
+      "value": 213,
+      "frames": "060-102"
+    },
+    "replies": {
+      "value": 9,
+      "frames": "060-102"
+    },
+    "shares": {
+      "value": 142,
+      "frames": "060-102"
+    },
+    "links_clicks": {
+      "value": null,
+      "frames": ""
+    },
+    "sticker_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "navigation": {
+      "value": null,
+      "frames": ""
+    },
+    "forward": {
+      "value": null,
+      "frames": ""
+    },
+    "next_story": {
+      "value": null,
+      "frames": ""
+    },
+    "back": {
+      "value": null,
+      "frames": ""
+    },
+    "exited": {
+      "value": null,
+      "frames": ""
+    },
+    "profile_activity": {
+      "value": null,
+      "frames": ""
+    },
+    "profile_visits": {
+      "value": null,
+      "frames": ""
+    },
+    "external_link_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "follows": {
+      "value": null,
+      "frames": ""
+    },
+    "gender_men": {
+      "value": null,
+      "frames": ""
+    },
+    "gender_women": {
+      "value": null,
+      "frames": ""
+    }
+  },
+  "notes": "Follows shows -- (no value). Icon strip also shows reposts 4, saves 7 (not in schema). 000-045 profile + post, 048-063 skeleton (icon strip readable from 060). 111-153 charts, retention, top sources.",
+  "labelled_by": "claude (visual inspection, not human-reviewed)"
+}

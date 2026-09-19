@@ -1,0 +1,90 @@
+{
+ "frame_000132.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000171.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000174.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000177.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000180.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000183.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000186.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000189.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000228.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000231.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000234.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000237.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000267.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000270.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000276.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000282.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000309.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000312.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000315.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000321.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000324.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000327.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ }
+}

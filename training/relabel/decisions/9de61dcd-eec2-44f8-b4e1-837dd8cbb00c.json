@@ -1,0 +1,66 @@
+{
+ "frame_000105.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000108.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000114.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000126.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000129.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000150.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ },
+ "frame_000153.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ },
+ "frame_000165.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ },
+ "frame_000168.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ },
+ "frame_000177.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ },
+ "frame_000180.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ },
+ "frame_000183.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ },
+ "frame_000204.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ },
+ "frame_000216.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000222.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000249.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ }
+}

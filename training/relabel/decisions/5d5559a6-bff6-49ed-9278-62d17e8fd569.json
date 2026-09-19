@@ -1,0 +1,78 @@
+{
+ "frame_000294.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000312.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000315.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000318.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000321.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000345.jpg": {
+  "label": "bad",
+  "why": "views over time chart + rates list"
+ },
+ "frame_000351.jpg": {
+  "label": "bad",
+  "why": "views over time chart + rates list"
+ },
+ "frame_000384.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources of views"
+ },
+ "frame_000405.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000414.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000417.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000420.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000423.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000426.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000429.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000432.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles / profile visits, likes, shares rows"
+ },
+ "frame_000471.jpg": {
+  "label": "good",
+  "why": "who viewed: followers / non-followers %"
+ },
+ "frame_000480.jpg": {
+  "label": "good",
+  "why": "who viewed: followers / non-followers %"
+ },
+ "frame_000498.jpg": {
+  "label": "good",
+  "why": "icon strip + followers / non-followers %"
+ }
+}

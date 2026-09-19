@@ -1,0 +1,30 @@
+{
+ "frame_000036.jpg": {
+  "label": "good",
+  "why": "Persian summary tiles (views/reached/follows) + icon strip"
+ },
+ "frame_000042.jpg": {
+  "label": "good",
+  "why": "Persian summary tiles (views/reached/follows) + icon strip"
+ },
+ "frame_000045.jpg": {
+  "label": "good",
+  "why": "Persian summary tiles (views/reached/follows) + icon strip"
+ },
+ "frame_000069.jpg": {
+  "label": "bad",
+  "why": "Persian retention curve + top sources"
+ },
+ "frame_000072.jpg": {
+  "label": "bad",
+  "why": "Persian retention curve + top sources"
+ },
+ "frame_000075.jpg": {
+  "label": "bad",
+  "why": "Persian retention curve + top sources"
+ },
+ "frame_000078.jpg": {
+  "label": "bad",
+  "why": "Persian retention curve + top sources"
+ }
+}

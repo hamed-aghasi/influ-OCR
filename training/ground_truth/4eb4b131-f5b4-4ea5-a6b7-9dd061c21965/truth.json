@@ -1,0 +1,93 @@
+{
+  "video": "4eb4b131-f5b4-4ea5-a6b7-9dd061c21965",
+  "status": "done",
+  "insights_type": "story",
+  "metrics": {
+    "views": {
+      "value": 3657,
+      "frames": "054-075, 099-114"
+    },
+    "accounts_reached": {
+      "value": 3138,
+      "frames": "075, 099"
+    },
+    "followers": {
+      "value": 98.6,
+      "frames": "054-075, 099"
+    },
+    "non_followers": {
+      "value": 1.4,
+      "frames": "057-075, 099"
+    },
+    "interactions": {
+      "value": 8,
+      "frames": "057-072, 096, 102-114"
+    },
+    "likes": {
+      "value": 7,
+      "frames": "078, 096"
+    },
+    "replies": {
+      "value": 1,
+      "frames": "078, 096"
+    },
+    "shares": {
+      "value": 0,
+      "frames": "078, 096"
+    },
+    "links_clicks": {
+      "value": null,
+      "frames": ""
+    },
+    "sticker_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "navigation": {
+      "value": 3656,
+      "frames": "078, 096"
+    },
+    "forward": {
+      "value": 2673,
+      "frames": "078, 093-096"
+    },
+    "next_story": {
+      "value": 376,
+      "frames": "078, 090-096"
+    },
+    "back": {
+      "value": 157,
+      "frames": "078, 087-096"
+    },
+    "exited": {
+      "value": 450,
+      "frames": "078, 090-096"
+    },
+    "profile_activity": {
+      "value": 6,
+      "frames": "057-072, 081-093, 102-114"
+    },
+    "profile_visits": {
+      "value": 6,
+      "frames": "081-093"
+    },
+    "external_link_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "follows": {
+      "value": 0,
+      "frames": "081-093"
+    },
+    "gender_men": {
+      "value": 95.9,
+      "frames": "081-093"
+    },
+    "gender_women": {
+      "value": 4.1,
+      "frames": "081-093"
+    }
+  },
+  "notes": "Fast scroll: most of the metric list is visible in only 1-3 frames. Viewers = accounts_reached. 000-051 story playback + skeleton; 117-186 story playback, archive, settings, profile. Interactions donut split 100%/0% not recorded.",
+  "labelled_by": "claude (visual inspection, not human-reviewed)"
+}

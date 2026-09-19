@@ -1,0 +1,93 @@
+{
+  "video": "1caae563-d82e-447f-8441-dd14c32cfb81",
+  "status": "done",
+  "insights_type": "story",
+  "metrics": {
+    "views": {
+      "value": 22273,
+      "frames": "297-321"
+    },
+    "accounts_reached": {
+      "value": 16838,
+      "frames": "318-330"
+    },
+    "followers": {
+      "value": 99.7,
+      "frames": "318-327"
+    },
+    "non_followers": {
+      "value": 0.3,
+      "frames": "318-327"
+    },
+    "interactions": {
+      "value": 51,
+      "frames": "297-315, 327-333"
+    },
+    "likes": {
+      "value": 45,
+      "frames": "336-339"
+    },
+    "replies": {
+      "value": 3,
+      "frames": "336-342"
+    },
+    "shares": {
+      "value": 3,
+      "frames": "336-342"
+    },
+    "links_clicks": {
+      "value": null,
+      "frames": ""
+    },
+    "sticker_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "navigation": {
+      "value": 20549,
+      "frames": "336-342"
+    },
+    "forward": {
+      "value": 14110,
+      "frames": "336-342"
+    },
+    "next_story": {
+      "value": 2229,
+      "frames": "336-369"
+    },
+    "back": {
+      "value": 2451,
+      "frames": "336-342"
+    },
+    "exited": {
+      "value": 1759,
+      "frames": "336-369"
+    },
+    "profile_activity": {
+      "value": 17,
+      "frames": "297-315, 339-369"
+    },
+    "profile_visits": {
+      "value": 17,
+      "frames": "339-369"
+    },
+    "external_link_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "follows": {
+      "value": 0,
+      "frames": "342-369"
+    },
+    "gender_men": {
+      "value": 70.4,
+      "frames": "345-369"
+    },
+    "gender_women": {
+      "value": 29.6,
+      "frames": "345-369"
+    }
+  },
+  "notes": "Persian-language account, English UI. 000-219 profile/settings/archive/story playback; 222-294 spinner + skeleton. Interactions donut split 100%/0% not recorded.",
+  "labelled_by": "claude (visual inspection, not human-reviewed)"
+}

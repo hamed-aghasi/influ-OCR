@@ -1,0 +1,190 @@
+{
+ "frame_000165.jpg": {
+  "label": "good",
+  "why": "icon strip + overview views/interactions"
+ },
+ "frame_000168.jpg": {
+  "label": "good",
+  "why": "icon strip + overview"
+ },
+ "frame_000171.jpg": {
+  "label": "good",
+  "why": "icon strip + overview"
+ },
+ "frame_000174.jpg": {
+  "label": "good",
+  "why": "icon strip + overview"
+ },
+ "frame_000189.jpg": {
+  "label": "good",
+  "why": "views donut 23,791 + followers %"
+ },
+ "frame_000192.jpg": {
+  "label": "good",
+  "why": "views donut + followers %"
+ },
+ "frame_000195.jpg": {
+  "label": "good",
+  "why": "views donut + followers %"
+ },
+ "frame_000198.jpg": {
+  "label": "good",
+  "why": "views donut + followers %"
+ },
+ "frame_000201.jpg": {
+  "label": "good",
+  "why": "views donut + followers %"
+ },
+ "frame_000207.jpg": {
+  "label": "good",
+  "why": "views donut + followers %"
+ },
+ "frame_000210.jpg": {
+  "label": "good",
+  "why": "views donut + followers %"
+ },
+ "frame_000213.jpg": {
+  "label": "good",
+  "why": "followers/non-followers %"
+ },
+ "frame_000216.jpg": {
+  "label": "good",
+  "why": "accounts reached 16,027"
+ },
+ "frame_000219.jpg": {
+  "label": "good",
+  "why": "accounts reached 16,027"
+ },
+ "frame_000222.jpg": {
+  "label": "good",
+  "why": "accounts reached 16,027"
+ },
+ "frame_000225.jpg": {
+  "label": "good",
+  "why": "accounts reached 16,027"
+ },
+ "frame_000228.jpg": {
+  "label": "good",
+  "why": "accounts reached 16,027"
+ },
+ "frame_000231.jpg": {
+  "label": "good",
+  "why": "accounts reached 16,027"
+ },
+ "frame_000234.jpg": {
+  "label": "bad",
+  "why": "retention + skip rate + watch time only"
+ },
+ "frame_000237.jpg": {
+  "label": "bad",
+  "why": "retention + skip rate, interactions donut cut"
+ },
+ "frame_000240.jpg": {
+  "label": "bad",
+  "why": "retention + skip rate + avg watch time"
+ },
+ "frame_000243.jpg": {
+  "label": "bad",
+  "why": "skip rate, interactions donut number not shown"
+ },
+ "frame_000246.jpg": {
+  "label": "good",
+  "why": "interactions 255"
+ },
+ "frame_000249.jpg": {
+  "label": "good",
+  "why": "interactions 255"
+ },
+ "frame_000252.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000255.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000258.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000261.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000264.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000267.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000270.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000273.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000276.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000279.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000282.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000285.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000288.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000291.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000294.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000297.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000300.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000303.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000306.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000309.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000312.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000315.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ },
+ "frame_000330.jpg": {
+  "label": "good",
+  "why": "reel metrics readable"
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "frame_000159.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000162.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000222.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000225.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000228.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000231.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000258.jpg": {
+  "label": "bad",
+  "why": "rates list + retention"
+ },
+ "frame_000261.jpg": {
+  "label": "bad",
+  "why": "rates list + retention"
+ },
+ "frame_000270.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources of views"
+ },
+ "frame_000273.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources of views"
+ },
+ "frame_000315.jpg": {
+  "label": "bad",
+  "why": "views over time chart + rates list"
+ },
+ "frame_000321.jpg": {
+  "label": "bad",
+  "why": "views over time chart + rates list"
+ },
+ "frame_000330.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000333.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ },
+ "frame_000336.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/viewers/follows)"
+ }
+}

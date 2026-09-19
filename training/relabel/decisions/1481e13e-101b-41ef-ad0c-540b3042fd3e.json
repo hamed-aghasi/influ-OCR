@@ -1,0 +1,54 @@
+{
+ "frame_000147.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/accounts reached/follows), dimmed but readable"
+ },
+ "frame_000198.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/accounts reached/follows), dimmed but readable"
+ },
+ "frame_000201.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/accounts reached/follows), dimmed but readable"
+ },
+ "frame_000204.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/accounts reached/follows), dimmed but readable"
+ },
+ "frame_000339.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/accounts reached/follows), dimmed but readable"
+ },
+ "frame_000342.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/accounts reached/follows), dimmed but readable"
+ },
+ "frame_000345.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/accounts reached/follows), dimmed but readable"
+ },
+ "frame_000354.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/accounts reached/follows), dimmed but readable"
+ },
+ "frame_000372.jpg": {
+  "label": "bad",
+  "why": "phone control center overlay"
+ },
+ "frame_000375.jpg": {
+  "label": "bad",
+  "why": "phone control center"
+ },
+ "frame_000378.jpg": {
+  "label": "bad",
+  "why": "phone control center"
+ },
+ "frame_000381.jpg": {
+  "label": "bad",
+  "why": "phone control center"
+ },
+ "frame_000387.jpg": {
+  "label": "bad",
+  "why": "phone control center"
+ }
+}

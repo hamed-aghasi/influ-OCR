@@ -1,0 +1,22 @@
+{
+ "frame_000000.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000036.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000066.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000111.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000114.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (slightly faded)"
+ }
+}

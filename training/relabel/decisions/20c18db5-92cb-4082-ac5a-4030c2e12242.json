@@ -1,0 +1,58 @@
+{
+ "frame_000132.jpg": {
+  "label": "good",
+  "why": "story overview views/interactions + views donut"
+ },
+ "frame_000138.jpg": {
+  "label": "good",
+  "why": "views donut 4,115 + followers % + reached"
+ },
+ "frame_000141.jpg": {
+  "label": "good",
+  "why": "views donut + followers % + reached"
+ },
+ "frame_000156.jpg": {
+  "label": "good",
+  "why": "interactions 13 + likes/replies/shares + navigation"
+ },
+ "frame_000159.jpg": {
+  "label": "good",
+  "why": "interactions 13 + likes + navigation"
+ },
+ "frame_000162.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000165.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000168.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000171.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000174.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000177.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000192.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000198.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ },
+ "frame_000213.jpg": {
+  "label": "good",
+  "why": "story metrics: navigation/profile activity rows"
+ }
+}

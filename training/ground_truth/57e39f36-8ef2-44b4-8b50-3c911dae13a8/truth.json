@@ -1,0 +1,93 @@
+{
+  "video": "57e39f36-8ef2-44b4-8b50-3c911dae13a8",
+  "status": "done",
+  "insights_type": "story",
+  "metrics": {
+    "views": {
+      "value": 14593,
+      "frames": "297-336"
+    },
+    "accounts_reached": {
+      "value": 11302,
+      "frames": "318-360"
+    },
+    "followers": {
+      "value": 99.9,
+      "frames": "312-348"
+    },
+    "non_followers": {
+      "value": 0.1,
+      "frames": "315-354"
+    },
+    "interactions": {
+      "value": 10,
+      "frames": "306-312, 345-375"
+    },
+    "likes": {
+      "value": 10,
+      "frames": "366-393"
+    },
+    "replies": {
+      "value": 0,
+      "frames": "369-399"
+    },
+    "shares": {
+      "value": 0,
+      "frames": "372-402"
+    },
+    "links_clicks": {
+      "value": null,
+      "frames": ""
+    },
+    "sticker_taps": {
+      "value": 2,
+      "frames": "375-411"
+    },
+    "navigation": {
+      "value": 14207,
+      "frames": "381-426"
+    },
+    "forward": {
+      "value": 5500,
+      "frames": "384-429"
+    },
+    "next_story": {
+      "value": 4836,
+      "frames": "387-429"
+    },
+    "back": {
+      "value": 1835,
+      "frames": "390-432"
+    },
+    "exited": {
+      "value": 2036,
+      "frames": "390-432"
+    },
+    "profile_activity": {
+      "value": 15,
+      "frames": "306-315, 402-447"
+    },
+    "profile_visits": {
+      "value": 15,
+      "frames": "405-447"
+    },
+    "external_link_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "follows": {
+      "value": 0,
+      "frames": "411-447"
+    },
+    "gender_men": {
+      "value": 8.5,
+      "frames": "432-447"
+    },
+    "gender_women": {
+      "value": 91.5,
+      "frames": "435-447"
+    }
+  },
+  "notes": "Frames 000-291: profile, loading, settings, story archive, story playback, Insights skeleton (views donut fades in at 294). Interactions donut has its own followers split (100%/0%) - not recorded; followers/non_followers here are the Views split.",
+  "labelled_by": "claude (visual inspection, not human-reviewed)"
+}

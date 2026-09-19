@@ -1,0 +1,93 @@
+{
+  "video": "307e449d-9de2-4afe-a90d-b51ac39955e9",
+  "status": "done",
+  "insights_type": "story",
+  "metrics": {
+    "views": {
+      "value": 22281,
+      "frames": "138-180, 285-312"
+    },
+    "accounts_reached": {
+      "value": 19008,
+      "frames": "306-318"
+    },
+    "followers": {
+      "value": 99.8,
+      "frames": "138-180, 285-315"
+    },
+    "non_followers": {
+      "value": 0.2,
+      "frames": "138-147, 306-315"
+    },
+    "interactions": {
+      "value": 88,
+      "frames": "150-180, 285-303, 312-321"
+    },
+    "likes": {
+      "value": 79,
+      "frames": "318-327"
+    },
+    "replies": {
+      "value": 9,
+      "frames": "321-327"
+    },
+    "shares": {
+      "value": 0,
+      "frames": "321-330"
+    },
+    "links_clicks": {
+      "value": null,
+      "frames": ""
+    },
+    "sticker_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "navigation": {
+      "value": 21638,
+      "frames": "321-330"
+    },
+    "forward": {
+      "value": 17241,
+      "frames": "321-333"
+    },
+    "next_story": {
+      "value": 1367,
+      "frames": "324-336, 345-363"
+    },
+    "back": {
+      "value": 1886,
+      "frames": "324-333, 348-363"
+    },
+    "exited": {
+      "value": 1144,
+      "frames": "324-363"
+    },
+    "profile_activity": {
+      "value": 20,
+      "frames": "132, 150-180, 285-306, 327-363"
+    },
+    "profile_visits": {
+      "value": 20,
+      "frames": "327-363"
+    },
+    "external_link_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "follows": {
+      "value": 0,
+      "frames": "327-363"
+    },
+    "gender_men": {
+      "value": 26.5,
+      "frames": "333-363"
+    },
+    "gender_women": {
+      "value": 73.5,
+      "frames": "333-363"
+    }
+  },
+  "notes": "Viewers = accounts_reached. Views donut fades in at 135 (excluded). 183-282: Viewers tab (who viewed list), no metrics. Interactions donut split 100%/0% not recorded.",
+  "labelled_by": "claude (visual inspection, not human-reviewed)"
+}

@@ -1,0 +1,82 @@
+{
+ "frame_000144.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000162.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000165.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000180.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000183.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000249.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources (blurred)"
+ },
+ "frame_000252.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000255.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000258.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000261.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000291.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000294.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000396.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000399.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000402.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000405.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000408.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000411.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000414.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000444.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ }
+}

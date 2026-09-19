@@ -1,0 +1,93 @@
+{
+  "video": "08165dca-1f49-4011-a665-1cb51d96784b",
+  "status": "done",
+  "insights_type": "reel",
+  "metrics": {
+    "views": {
+      "value": 20532,
+      "frames": "051-078, 117-138"
+    },
+    "accounts_reached": {
+      "value": 14472,
+      "frames": "051-078, 117-138"
+    },
+    "followers": {
+      "value": 74.0,
+      "frames": "189-210"
+    },
+    "non_followers": {
+      "value": 26.0,
+      "frames": "189-210"
+    },
+    "interactions": {
+      "value": null,
+      "frames": ""
+    },
+    "likes": {
+      "value": 186,
+      "frames": "042-078, 117-153, 168-195"
+    },
+    "replies": {
+      "value": 0,
+      "frames": "042-078, 117-195"
+    },
+    "shares": {
+      "value": 3,
+      "frames": "042-078, 117-195"
+    },
+    "links_clicks": {
+      "value": null,
+      "frames": ""
+    },
+    "sticker_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "navigation": {
+      "value": null,
+      "frames": ""
+    },
+    "forward": {
+      "value": null,
+      "frames": ""
+    },
+    "next_story": {
+      "value": null,
+      "frames": ""
+    },
+    "back": {
+      "value": null,
+      "frames": ""
+    },
+    "exited": {
+      "value": null,
+      "frames": ""
+    },
+    "profile_activity": {
+      "value": null,
+      "frames": ""
+    },
+    "profile_visits": {
+      "value": 20,
+      "frames": "141-150, 168-186"
+    },
+    "external_link_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "follows": {
+      "value": 0,
+      "frames": "051-084, 117-150, 168-186"
+    },
+    "gender_men": {
+      "value": null,
+      "frames": ""
+    },
+    "gender_women": {
+      "value": null,
+      "frames": ""
+    }
+  },
+  "notes": "Visits Overview, Engagement (Actions after viewing + Interactions list) and Audience tabs. followers/non_followers from Audience > Who viewed your reel. Icon strip reposts 1, saves 1 (not in schema). 000-018 and 213-231 post view, 234-243 profile grid. Audience tab shows the Age view only (Gender never tapped), so no gender split is on screen.",
+  "labelled_by": "claude (visual inspection, not human-reviewed)"
+}

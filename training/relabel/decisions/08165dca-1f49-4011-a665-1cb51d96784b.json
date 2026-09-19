@@ -1,0 +1,114 @@
+{
+ "frame_000051.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000054.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000063.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000066.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000069.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000072.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000078.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000096.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ },
+ "frame_000099.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ },
+ "frame_000105.jpg": {
+  "label": "bad",
+  "why": "ground truth: no schema metric fully readable"
+ },
+ "frame_000120.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000138.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000141.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000150.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000153.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000156.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000159.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000165.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000168.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000171.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000186.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000189.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000192.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000195.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000198.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000204.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000207.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000210.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ }
+}

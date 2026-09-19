@@ -1,0 +1,74 @@
+{
+ "frame_000060.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000063.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000066.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000069.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000072.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000075.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles (views/reached/follows)"
+ },
+ "frame_000099.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000102.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000105.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000120.jpg": {
+  "label": "good",
+  "why": "shares 10 row (interactions list)"
+ },
+ "frame_000123.jpg": {
+  "label": "good",
+  "why": "interactions list likes/comments/shares"
+ },
+ "frame_000126.jpg": {
+  "label": "good",
+  "why": "interactions list likes/comments/shares"
+ },
+ "frame_000132.jpg": {
+  "label": "good",
+  "why": "interactions list likes/comments/shares"
+ },
+ "frame_000138.jpg": {
+  "label": "good",
+  "why": "interactions list likes/comments/shares"
+ },
+ "frame_000162.jpg": {
+  "label": "good",
+  "why": "followers/non-followers % (who viewed) + age split"
+ },
+ "frame_000165.jpg": {
+  "label": "good",
+  "why": "followers/non-followers % (who viewed) + age split"
+ },
+ "frame_000174.jpg": {
+  "label": "good",
+  "why": "followers/non-followers % (who viewed) + age split"
+ },
+ "frame_000186.jpg": {
+  "label": "good",
+  "why": "followers/non-followers % (who viewed) + age split"
+ }
+}

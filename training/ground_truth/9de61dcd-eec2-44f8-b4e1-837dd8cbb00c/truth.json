@@ -1,0 +1,93 @@
+{
+  "video": "9de61dcd-eec2-44f8-b4e1-837dd8cbb00c",
+  "status": "done",
+  "insights_type": "reel",
+  "metrics": {
+    "views": {
+      "value": 2264,
+      "frames": "105-132, 207-249"
+    },
+    "accounts_reached": {
+      "value": 1497,
+      "frames": "105-132, 207-249"
+    },
+    "followers": {
+      "value": null,
+      "frames": ""
+    },
+    "non_followers": {
+      "value": null,
+      "frames": ""
+    },
+    "interactions": {
+      "value": null,
+      "frames": ""
+    },
+    "likes": {
+      "value": 25,
+      "frames": "090-129, 210-249"
+    },
+    "replies": {
+      "value": 0,
+      "frames": "090-129, 210-249"
+    },
+    "shares": {
+      "value": 0,
+      "frames": "090-129, 210-249"
+    },
+    "links_clicks": {
+      "value": null,
+      "frames": ""
+    },
+    "sticker_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "navigation": {
+      "value": null,
+      "frames": ""
+    },
+    "forward": {
+      "value": null,
+      "frames": ""
+    },
+    "next_story": {
+      "value": null,
+      "frames": ""
+    },
+    "back": {
+      "value": null,
+      "frames": ""
+    },
+    "exited": {
+      "value": null,
+      "frames": ""
+    },
+    "profile_activity": {
+      "value": null,
+      "frames": ""
+    },
+    "profile_visits": {
+      "value": null,
+      "frames": ""
+    },
+    "external_link_taps": {
+      "value": null,
+      "frames": ""
+    },
+    "follows": {
+      "value": 0,
+      "frames": "105-135, 207-249"
+    },
+    "gender_men": {
+      "value": null,
+      "frames": ""
+    },
+    "gender_women": {
+      "value": null,
+      "frames": ""
+    }
+  },
+  "notes": "Viewers = accounts_reached. 000-075 profile + post, 078-102 skeleton (icon strip readable from 090), 138-204 charts/rates/retention/top sources, 252-276 post again, 279-300 control center. Icon strip also shows reposts 0, saves 2.",
+  "labelled_by": "claude (visual inspection, not human-reviewed)"
+}

@@ -1,0 +1,42 @@
+{
+ "frame_000117.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000123.jpg": {
+  "label": "good",
+  "why": "icon strip + summary tiles"
+ },
+ "frame_000165.jpg": {
+  "label": "good",
+  "why": "summary tiles (views/reached/follows)"
+ },
+ "frame_000180.jpg": {
+  "label": "bad",
+  "why": "views over time/retention + top sources"
+ },
+ "frame_000186.jpg": {
+  "label": "bad",
+  "why": "views over time/retention + top sources"
+ },
+ "frame_000189.jpg": {
+  "label": "bad",
+  "why": "views over time/retention + top sources"
+ },
+ "frame_000195.jpg": {
+  "label": "bad",
+  "why": "views over time/retention + top sources"
+ },
+ "frame_000198.jpg": {
+  "label": "bad",
+  "why": "views over time/retention + top sources"
+ },
+ "frame_000201.jpg": {
+  "label": "bad",
+  "why": "views over time/retention + top sources"
+ },
+ "frame_000210.jpg": {
+  "label": "bad",
+  "why": "views over time/retention + top sources"
+ }
+}

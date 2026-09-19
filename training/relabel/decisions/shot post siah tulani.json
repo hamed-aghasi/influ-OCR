@@ -1,0 +1,110 @@
+{
+ "frame_000099.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000108.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000117.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000126.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000138.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000162.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000165.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000171.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000231.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000234.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000240.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000243.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000249.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000261.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000279.jpg": {
+  "label": "good",
+  "why": "summary tiles views/reached/follows"
+ },
+ "frame_000282.jpg": {
+  "label": "good",
+  "why": "follows tile readable (views tiles label cut)"
+ },
+ "frame_000321.jpg": {
+  "label": "bad",
+  "why": "rates list"
+ },
+ "frame_000336.jpg": {
+  "label": "bad",
+  "why": "rates list"
+ },
+ "frame_000339.jpg": {
+  "label": "bad",
+  "why": "rates list"
+ },
+ "frame_000342.jpg": {
+  "label": "bad",
+  "why": "rates list"
+ },
+ "frame_000345.jpg": {
+  "label": "bad",
+  "why": "rates list"
+ },
+ "frame_000357.jpg": {
+  "label": "bad",
+  "why": "rates list"
+ },
+ "frame_000402.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000405.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000408.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000432.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ },
+ "frame_000438.jpg": {
+  "label": "bad",
+  "why": "retention curve + top sources"
+ }
+}

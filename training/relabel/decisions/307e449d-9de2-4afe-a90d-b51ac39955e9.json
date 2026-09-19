@@ -1,0 +1,54 @@
+{
+ "frame_000150.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000306.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000309.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000312.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000318.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000321.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000324.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000327.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000330.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000333.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000336.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000339.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000351.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ }
+}

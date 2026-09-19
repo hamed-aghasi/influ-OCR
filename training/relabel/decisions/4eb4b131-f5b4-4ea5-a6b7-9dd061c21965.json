@@ -1,0 +1,18 @@
+{
+ "frame_000057.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000075.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000102.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ },
+ "frame_000111.jpg": {
+  "label": "good",
+  "why": "ground truth: metric readable"
+ }
+}
