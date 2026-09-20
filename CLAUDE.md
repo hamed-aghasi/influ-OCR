@@ -1,6 +1,8 @@
 # influ-OCR — Instagram Campaign Analyzer
 
-> Session state + open threads: see `HANDOFF.md` (latest section dated 2026-09-19).
+> Session state + open threads: see `HANDOFF.md` (latest section dated 2026-09-20).
+> How the pipeline works stage by stage, its settings and its failure modes:
+> **`PIPELINE.md`** — read it before running a large batch.
 
 FastAPI + Celery app that extracts Instagram Insights metrics (views, reach,
 likes, shares, gender split, …) from screen recordings and screenshots, English

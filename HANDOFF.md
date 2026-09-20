@@ -1,5 +1,29 @@
 # HANDOFF — session state for the next context
 
+## 2026-09-20 — Docker rebuilt at round-01c; PIPELINE.md written
+
+- **Image rebuilt** at commit `04e4254`. The previous image is kept as
+  `influ-ocr:pre-round-01c`. Model is byte-identical in the image
+  (`d4a4e0494b7efc75703f8c43c73fed4b`, run `2026-09-19b-sources`).
+- **Container vs local, four checks.** Ground truth: **60 frames, 0 metrics
+  lost — identical to local.** `run_job` on both `test-frame/` videos: 3 and 4
+  frames on both sides. Round-01 feedback: container **25 frames, 19/21**;
+  local 24 frames, 21/21.
+- **The two failures are cost, not loss.** Debian Tesseract 5.5.0 reads
+  `1f2bdcac` 183 as `115 0` where 5.5.3 reads `11s 0` (three digits ⇒ kept as
+  "unrecognised"), and hallucinates the Persian word `تال` on `bf96a4ca` 033's
+  blurred status bar (number + 3-letter word ⇒ kept). Both frames were marked
+  "not needed" by the reviewer. **Metrics delivered are identical on both sides
+  for all eight videos.**
+- **Evaluate against the container, not the Mac**, when numbers matter.
+- **`PIPELINE.md`** is new: every stage, its settings, its failure modes, and a
+  scale-readiness section. Its §8 lists the risks for a thousands-of-videos run;
+  the top three are a corrupt video recorded as success (0 frames, no error),
+  frames never swept after a hard kill, and the reaper failing jobs that are
+  merely queued. **None of these were fixed** — the round-01c state was verified
+  and documented, not changed.
+- Tests: 145 pass.
+
 ## 2026-09-19 (later) — human feedback loop, round 01
 
 - **Rounds:** `training/review_videos.py` produces rounds in `review-rounds/`; you fill in `feedback.json`,
