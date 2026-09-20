@@ -356,6 +356,51 @@ _NOT_EVIDENCE = tuple(_norm(p) for p in ("watch time", "زمان تماشا"))
 _PAGE_TITLE = ("insights", "اطلاعاتآماری")
 
 
+def _is_guardable(token: str, min_digits: int = 2) -> bool:
+    """Could this token be a metric count worth keeping a frame for?
+
+    Not a percentage (OCR reads small ones inconsistently), not a K/M axis tick
+    ("500K" on the views chart), and enough digits to identify anything.
+
+    Two digits is the bar for a value that sits beside a label the detector
+    recognised. With no label to anchor it, three is: round-01's bf96a4ca frame
+    033 is a loading screen whose only "numbers" are a garbled status bar
+    ("19 , ۳3"), and two digits let it through.
+    """
+    return (not token.endswith(("%", "k", "m"))
+            and len(re.sub(r"\D", "", token)) >= min_digits)
+
+
+def evidence_values(lines: Sequence[str]) -> Set[str]:
+    """Candidate metric values on a frame whose labels were NOT recognised.
+
+    The same scan as has_real_number, but returning the numbers rather than a
+    yes/no, so a frame with no recognised metric is kept only when it shows a
+    value no kept frame shows (round-02: 25 of the 29 frames the reviewer
+    rejected were kept by the old "a number and a word" rule — loading
+    skeletons whose icon-strip numbers were already on a sent frame, and rates
+    tabs whose only numbers are percentages).
+
+    Excludes what is never a metric count: the status bar and anything above
+    the page title, the clock and durations, dates, rates, chart axes and
+    filter rows, watch time.
+    """
+    norm = [_norm(l) for l in lines]
+    title = next((i for i, n in enumerate(norm[:6]) if any(t in n for t in _PAGE_TITLE)), None)
+    start = title + 1 if title is not None else 1
+    found: Set[str] = set()
+    for i in range(start, len(lines)):
+        n = norm[i]
+        if (_CLOCK.search(lines[i]) or any(x in n for x in _NOT_A_VALUE) or _is_filter_row(n)
+                or any(x in n for x in _NOT_EVIDENCE)):
+            continue
+        text = unicodedata.normalize("NFKC", lines[i]).translate(_PERSIAN_DIGITS).lower()
+        if any(_norm(w) in _MONTHS or _norm(w)[:3] in _MONTHS for w in _WORD.findall(text)):
+            continue                      # "July 29", "Jul 9 Jul 30": a date, not a value
+        found |= {_canonical(t) for t in _numbers(lines[i]) if _is_guardable(t, min_digits=3)}
+    return found
+
+
 def has_real_number(lines: Sequence[str]) -> bool:
     """Is there anything on screen the vision model could need, though no
     metric label was recognised? Decides whether an unrecognised frame is kept.
@@ -442,10 +487,10 @@ class Coverage:
     applied: bool = True
     values: Dict[Path, Set[str]] = field(default_factory=dict)   # labelled values read per frame
     reason: str = ""
-    # per frame: "cover" (needed for a metric), "unrecognised" (no metric read but a
-    # number on screen), "backstop" (shows a labelled value no other kept frame
-    # shows), "covered" (dropped: its metrics are in kept frames), "blank"
-    # (dropped: no metric and no number)
+    # per frame: "cover" (needed for a metric), "backstop" (shows a labelled
+    # value no other kept frame shows), "unrecognised" (no metric read, but a
+    # value no other kept frame shows), "covered" (dropped: its metrics are in
+    # kept frames), "blank" (dropped: nothing it shows is new)
     reasons: Dict[Path, str] = field(default_factory=dict)
 
 
@@ -465,22 +510,31 @@ def select_by_coverage(frames: Sequence[Path], job_id: Optional[str] = None,
             return Coverage(frames, [], applied=False, reason="tesseract unavailable")
         def detect(p):
             lines = read_lines(p)
-            return metrics_in_text(lines), values_in(lines), has_real_number(lines), metric_value_pairs(lines)
+            return (metrics_in_text(lines), values_in(lines),
+                    evidence_values(lines), metric_value_pairs(lines))
 
     metrics: Dict[Path, Set[str]] = {}
     values: Dict[Path, Set[str]] = {}
-    numeric: Dict[Path, bool] = {}
+    evidence: Dict[Path, Set[str]] = {}          # values found without a recognised label
     pairs: Dict[Path, Dict[str, Set[str]]] = {}
     for p in frames:
         try:
             got = detect(p)
             if not isinstance(got, tuple):
-                got = (got, set(), True)
-            metrics[p], values[p], numeric[p] = set(got[0]), set(got[1]), bool(got[2])
+                got = (got, set(), set())
+            third = got[2] if len(got) > 2 else set()
+            # A detector may still answer the old yes/no; True then means
+            # "something is on screen but I cannot say what", which must keep
+            # the frame rather than silently drop it.
+            if isinstance(third, bool):
+                third = {f"\x00unreadable:{p}"} if third else set()
+            metrics[p], values[p], evidence[p] = set(got[0]), set(got[1]), set(third)
             pairs[p] = got[3] if len(got) > 3 else {}
         except Exception as exc:  # noqa: BLE001 — one unreadable frame must not drop anything
             log.warning("Coverage OCR failed on %s (%s); keeping it", p.name, exc)
-            metrics[p], values[p], numeric[p], pairs[p] = set(), set(), True, {}
+            # A value unique to this frame: nothing else can cover it, so a
+            # frame we could not read is always kept.
+            metrics[p], values[p], evidence[p], pairs[p] = set(), set(), {f"\x00unreadable:{p}"}, {}
 
     # Cross-frame evidence: when one frame pairs a metric with a value of three or
     # more digits ("Likes 124"), another frame showing that same value in a
@@ -496,9 +550,6 @@ def select_by_coverage(frames: Sequence[Path], job_id: Optional[str] = None,
                     if b is not a and metric not in metrics[b] and v in values[b]:
                         metrics[b].add(metric)
 
-    # Nothing recognised but a number on screen: keep it, don't guess. Nothing
-    # recognised and no number (skeleton, blank panel): nothing to read, drop.
-    unknown = [p for p in frames if not metrics[p] and numeric[p]]
     todo = set().union(*metrics.values()) if metrics else set()
     chosen: List[Path] = []
     order = {p: i for i, p in enumerate(frames)}
@@ -512,20 +563,25 @@ def select_by_coverage(frames: Sequence[Path], job_id: Optional[str] = None,
         chosen.append(best)
         todo -= metrics[best]
 
-    # Backstop: a frame showing a number no kept frame shows is kept, whatever
-    # the label detection said — a missed label must not become a dropped value.
-    keep = set(chosen) | set(unknown)
+    # One rule for everything the set cover did not pick: keep a frame only if
+    # it shows a value no kept frame shows. A missed label must not become a
+    # dropped value — but "I recognised nothing here" is not by itself a reason
+    # to spend an OCR slot (round-02: loading skeletons whose numbers were
+    # already on a sent frame, and rates tabs with no counts at all).
+    #
+    # For a frame whose labels were read, the guarded values are the labelled
+    # ones; for a frame with no recognised metric, they are the evidence values
+    # (evidence_values above). Percentages and K/M ticks are excluded either
+    # way: OCR reads small percentages inconsistently ("1.1%" as "11%"), so
+    # guarding them kept a new frame per misread (round-01b: three copies of one
+    # sources list), and a single digit identifies nothing.
+    keep = set(chosen)
     reasons = {p: "cover" for p in chosen}
-    reasons.update({p: "unrecognised" for p in unknown})
-    # The backstop guards counts only. Percentages (followers split, gender, Top
-    # sources) have reliably detected labels, and OCR reads small ones
-    # inconsistently ("1.1%" as "11%", "0.1%" as "01%"), so guarding them kept a
-    # new frame for every misread (round-01b: 3 copies of one sources list).
-    # Single digits are too common to identify anything.
-    guarded = {p: {v for v in values[p] if not v.endswith("%") and len(re.sub(r"\D", "", v)) >= 2}
+    guarded = {p: ({v for v in values[p] if _is_guardable(v)} if metrics[p] else evidence[p])
                for p in frames}
+    shown = {p: values[p] | (evidence[p] if not metrics[p] else set()) for p in frames}
     while True:
-        seen = set().union(*(values[p] for p in keep)) if keep else set()
+        seen = set().union(*(shown[p] for p in keep)) if keep else set()
         orphans = [p for p in frames if p not in keep and guarded[p] - seen]
         if not orphans:
             break
@@ -533,12 +589,13 @@ def select_by_coverage(frames: Sequence[Path], job_id: Optional[str] = None,
         # a half-loaded frame was kept over the fully loaded frame_000060)
         extra = max(orphans, key=lambda p: (len(guarded[p] - seen), len(metrics[p]), len(values[p]), order[p]))
         keep.add(extra)
-        reasons[extra] = "backstop"
+        reasons[extra] = "backstop" if metrics[extra] else "unrecognised"
     for p in frames:
         reasons.setdefault(p, "covered" if metrics[p] else "blank")
 
     selected = [p for p in frames if p in keep]
     dropped = [p for p in frames if p not in keep]
+    unknown_kept = sum(1 for p in selected if reasons.get(p) == "unrecognised")
     log.info("Coverage: %d -> %d frames (%d unrecognised kept), %d metrics",
-             len(frames), len(selected), len(unknown), len(set().union(*metrics.values())) if metrics else 0)
+             len(frames), len(selected), unknown_kept, len(set().union(*metrics.values())) if metrics else 0)
     return Coverage(selected, dropped, metrics, values=values, reasons=reasons)

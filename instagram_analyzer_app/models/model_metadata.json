@@ -1,7 +1,7 @@
 {
-  "run_id": "2026-09-19b-sources",
-  "training_date": "2026-09-19T16:11:28+00:00",
-  "model_version": "sources-feedback-2026-09-19",
+  "run_id": "2026-09-20-loading",
+  "training_date": "2026-09-20T16:15:28+00:00",
+  "model_version": "loading-state-2026-09-20",
   "architecture": "MobileNetV2_transfer_learning",
   "input_shape": [
     224,
@@ -12,58 +12,58 @@
     "0": "bad_frame",
     "1": "good_frame"
   },
-  "validation_accuracy": 0.970027,
+  "validation_accuracy": 0.976,
   "epochs_requested": 20,
-  "epochs_ran": 15,
-  "best_epoch": 10,
+  "epochs_ran": 13,
+  "best_epoch": 8,
   "final_metrics": {
-    "accuracy": 0.970027,
-    "auc": 0.999052,
-    "loss": 0.062629
+    "accuracy": 0.976,
+    "auc": 0.99878,
+    "loss": 0.052525
   },
   "threshold_sweep": {
     "configured": {
       "threshold": 0.3,
-      "tp": 128,
-      "fp": 11,
-      "fn": 0,
-      "tn": 228,
-      "precision": 0.9209,
-      "recall": 1.0,
-      "f1": 0.9588,
+      "tp": 130,
+      "fp": 9,
+      "fn": 1,
+      "tn": 235,
+      "precision": 0.9353,
+      "recall": 0.9924,
+      "f1": 0.963,
       "kept": 139,
-      "accuracy": 0.97
+      "accuracy": 0.9733
     },
     "best_f1": {
-      "threshold": 0.9,
-      "tp": 127,
-      "fp": 3,
-      "fn": 1,
-      "tn": 236,
-      "precision": 0.9769,
-      "recall": 0.9922,
-      "f1": 0.9845,
-      "kept": 130,
-      "accuracy": 0.9891
+      "threshold": 0.65,
+      "tp": 129,
+      "fp": 4,
+      "fn": 2,
+      "tn": 240,
+      "precision": 0.9699,
+      "recall": 0.9847,
+      "f1": 0.9773,
+      "kept": 133,
+      "accuracy": 0.984
     },
     "cheapest_at_min_recall": {
-      "threshold": 0.95,
-      "tp": 125,
+      "threshold": 0.85,
+      "tp": 118,
       "fp": 2,
-      "fn": 3,
-      "tn": 237,
-      "precision": 0.9843,
-      "recall": 0.9766,
-      "f1": 0.9804,
-      "kept": 127,
-      "accuracy": 0.9864
+      "fn": 13,
+      "tn": 242,
+      "precision": 0.9833,
+      "recall": 0.9008,
+      "f1": 0.9402,
+      "kept": 120,
+      "accuracy": 0.96
     }
   },
   "dataset": {
-    "root": "train",
-    "frames_total": 2284,
-    "frames_train": 1917,
-    "frames_val": 367,
+    "root": "/Users/trendagency/Documents/project/ocr/train",
+    "frames_total": 2360,
+    "frames_train": 1985,
+    "frames_val": 375,
     "train_videos": [
       "10e0036d-4ff7-4d4b-8d12-88b1df397351",
       "1481e13e-101b-41ef-ad0c-540b3042fd3e",
@@ -82,44 +82,58 @@
       "4985b8cc-bddb-406b-9c6a-cea56c173969",
       "4fc5cd74-516d-4272-a20a-b492aace6dc9",
       "51762331-2b38-4ec6-b7e5-36626b310f0d",
+      "5198f946-0d84-462e-a284-cab2e2abee46",
       "5361dd11-6020-4e3d-ae13-0bf7ce1de42a",
       "55cf0d56-d0bb-421b-a482-dce8cc687205",
       "59576c43-230f-4ccd-b4c2-ac26e6983b86",
       "5d5559a6-bff6-49ed-9278-62d17e8fd569",
       "5dae63be-6c58-4c33-95f1-417378082e4a",
       "661ebb2d-36c5-4178-8043-4e3b122fb174",
+      "68a560d8-e404-4ccf-ba46-a673fa1571c3",
       "70cf83a8-8540-4d2f-949f-1f71d45d05ca",
       "73bc292d-a896-4a67-81e3-71c69195ea06",
       "747c7611-d38e-4086-a9ab-235ec5409d34",
       "74e11d7a-d099-4364-ae83-b5a92abd7580",
       "75a38223-da03-4d22-9380-98035c9e3dd9",
+      "78a59e11-36de-4879-b929-5d9ad829cdcc",
       "7cb649a2-7747-4500-8011-060524497030",
       "89e53922-c8b3-44c0-a035-5a7a0ffeb04f",
+      "8ba8ce38-6feb-4f9c-a003-1c961cd28e72",
       "9279fff1-baa2-47f4-bba2-15759b9bd660",
+      "99f72a3c-4a89-4b68-824c-0d041e9f9deb",
       "9aecfeb9-9a24-4d80-bbaf-0639136adcc0",
       "9d9a3853-02d7-4e27-8cfb-ab79b63ea3de",
       "9dfbe840-65d8-4d09-86c5-e4bedbdbd115",
       "9e23c081-27e6-4044-ad45-801494d816e4",
       "9faba1f7-efa0-4f91-8f00-a10662314b31",
+      "a54e4eda-4008-43d2-a574-4b4446f6052e",
       "a5b20a76-d95e-495f-a6c0-25c86e5a850f",
+      "a8bc26ff-64c4-48dc-9c4f-c08b4dd756ae",
       "abd38c90-3b4c-4906-ab71-2d0d73611748",
       "acb99bfd-89ff-4386-96e5-7e362d2dd477",
       "afed44b2-1958-44a3-b6d2-a889a03f5941",
       "b954c1fb-2b35-4cdb-be0f-fe21b10f8f28",
       "b9a79271-d14e-42b7-a36c-a40aceecfe7c",
       "c04e0842-51c0-480b-b61f-d6b09eb7446b",
+      "c20db917-484d-4e65-8d46-0190d2dd895c",
       "c35650c5-516d-48ab-8544-6a279e18d92a",
       "c5b35493-a31a-4b85-9f9c-1d09470fdeb5",
       "cda8eb1f-8b4e-483d-a698-81a2857dc704",
+      "d88b6c04-21a7-4f8f-989f-6e93a4365c0e",
       "e1340a91-c24a-429a-8959-f1ad91d19b2e",
       "e24f6507-3e23-4280-b1b9-23428033ffdd",
+      "e6740b3d-3125-4f28-8f4f-abc0826ebe98",
+      "e6c89684-97b7-4b2e-88ac-adb4253a79d6",
       "e83eabc0-9c0b-4b44-9e7c-a44c0c1d47d7",
+      "e9e03b77-6210-4a8d-abf6-4bdc42bde377",
       "edc93edd-8ed8-4373-bbb2-0af1a091797a",
+      "f9616d64-89c0-481f-b714-22786f078070",
       "f9936993-e7a0-4485-9109-c4dce3c53437",
       "fd90f1ae-e81c-4c38-8643-211407492e7a",
       "shot post siah tulani"
     ],
     "val_videos": [
+      "0256e5cc-9621-47da-8792-10da173bc260",
       "05530615-8a18-4bbd-b15e-a63cc2e53062",
       "08165dca-1f49-4011-a665-1cb51d96784b",
       "1caae563-d82e-447f-8441-dd14c32cfb81",
@@ -128,10 +142,17 @@
       "4eb4b131-f5b4-4ea5-a6b7-9dd061c21965",
       "57e39f36-8ef2-44b4-8b50-3c911dae13a8",
       "9de61dcd-eec2-44f8-b4e1-837dd8cbb00c",
+      "bc344c22-c8c3-43c3-8514-c81b8f53f2b0",
       "bf96a4ca-2e6a-49ef-be53-841d4e89ae3d",
+      "d7750aef-a731-42c5-b9f6-11cf6cce7d22",
       "e4c6723d-f3b7-4e8d-b3ed-09b817061c38"
     ],
     "per_video": {
+      "0256e5cc-9621-47da-8792-10da173bc260": {
+        "good": 2,
+        "bad": 2,
+        "dark_good": 0
+      },
       "05530615-8a18-4bbd-b15e-a63cc2e53062": {
         "good": 30,
         "bad": 77,
@@ -223,8 +244,8 @@
         "dark_good": 0
       },
       "453ccb37-a7db-43b6-9f51-cab270850f70": {
-        "good": 43,
-        "bad": 25,
+        "good": 46,
+        "bad": 28,
         "dark_good": 0
       },
       "4985b8cc-bddb-406b-9c6a-cea56c173969": {
@@ -239,12 +260,17 @@
       },
       "4fc5cd74-516d-4272-a20a-b492aace6dc9": {
         "good": 30,
-        "bad": 0,
+        "bad": 2,
         "dark_good": 30
       },
       "51762331-2b38-4ec6-b7e5-36626b310f0d": {
         "good": 57,
         "bad": 7,
+        "dark_good": 0
+      },
+      "5198f946-0d84-462e-a284-cab2e2abee46": {
+        "good": 5,
+        "bad": 0,
         "dark_good": 0
       },
       "5361dd11-6020-4e3d-ae13-0bf7ce1de42a": {
@@ -282,6 +308,11 @@
         "bad": 19,
         "dark_good": 0
       },
+      "68a560d8-e404-4ccf-ba46-a673fa1571c3": {
+        "good": 0,
+        "bad": 1,
+        "dark_good": 0
+      },
       "70cf83a8-8540-4d2f-949f-1f71d45d05ca": {
         "good": 8,
         "bad": 31,
@@ -307,6 +338,11 @@
         "bad": 12,
         "dark_good": 0
       },
+      "78a59e11-36de-4879-b929-5d9ad829cdcc": {
+        "good": 0,
+        "bad": 2,
+        "dark_good": 0
+      },
       "7cb649a2-7747-4500-8011-060524497030": {
         "good": 12,
         "bad": 19,
@@ -317,9 +353,19 @@
         "bad": 0,
         "dark_good": 0
       },
+      "8ba8ce38-6feb-4f9c-a003-1c961cd28e72": {
+        "good": 1,
+        "bad": 14,
+        "dark_good": 0
+      },
       "9279fff1-baa2-47f4-bba2-15759b9bd660": {
         "good": 7,
         "bad": 44,
+        "dark_good": 0
+      },
+      "99f72a3c-4a89-4b68-824c-0d041e9f9deb": {
+        "good": 1,
+        "bad": 2,
         "dark_good": 0
       },
       "9aecfeb9-9a24-4d80-bbaf-0639136adcc0": {
@@ -352,10 +398,20 @@
         "bad": 42,
         "dark_good": 17
       },
+      "a54e4eda-4008-43d2-a574-4b4446f6052e": {
+        "good": 5,
+        "bad": 1,
+        "dark_good": 5
+      },
       "a5b20a76-d95e-495f-a6c0-25c86e5a850f": {
         "good": 12,
         "bad": 15,
         "dark_good": 12
+      },
+      "a8bc26ff-64c4-48dc-9c4f-c08b4dd756ae": {
+        "good": 0,
+        "bad": 3,
+        "dark_good": 0
       },
       "abd38c90-3b4c-4906-ab71-2d0d73611748": {
         "good": 20,
@@ -382,6 +438,11 @@
         "bad": 8,
         "dark_good": 0
       },
+      "bc344c22-c8c3-43c3-8514-c81b8f53f2b0": {
+        "good": 0,
+        "bad": 2,
+        "dark_good": 0
+      },
       "bf96a4ca-2e6a-49ef-be53-841d4e89ae3d": {
         "good": 1,
         "bad": 2,
@@ -390,6 +451,11 @@
       "c04e0842-51c0-480b-b61f-d6b09eb7446b": {
         "good": 22,
         "bad": 15,
+        "dark_good": 0
+      },
+      "c20db917-484d-4e65-8d46-0190d2dd895c": {
+        "good": 3,
+        "bad": 0,
         "dark_good": 0
       },
       "c35650c5-516d-48ab-8544-6a279e18d92a": {
@@ -407,6 +473,16 @@
         "bad": 10,
         "dark_good": 0
       },
+      "d7750aef-a731-42c5-b9f6-11cf6cce7d22": {
+        "good": 1,
+        "bad": 1,
+        "dark_good": 0
+      },
+      "d88b6c04-21a7-4f8f-989f-6e93a4365c0e": {
+        "good": 0,
+        "bad": 4,
+        "dark_good": 0
+      },
       "e1340a91-c24a-429a-8959-f1ad91d19b2e": {
         "good": 4,
         "bad": 7,
@@ -422,15 +498,35 @@
         "bad": 23,
         "dark_good": 0
       },
+      "e6740b3d-3125-4f28-8f4f-abc0826ebe98": {
+        "good": 1,
+        "bad": 3,
+        "dark_good": 0
+      },
+      "e6c89684-97b7-4b2e-88ac-adb4253a79d6": {
+        "good": 0,
+        "bad": 9,
+        "dark_good": 0
+      },
       "e83eabc0-9c0b-4b44-9e7c-a44c0c1d47d7": {
         "good": 8,
         "bad": 15,
+        "dark_good": 0
+      },
+      "e9e03b77-6210-4a8d-abf6-4bdc42bde377": {
+        "good": 1,
+        "bad": 2,
         "dark_good": 0
       },
       "edc93edd-8ed8-4373-bbb2-0af1a091797a": {
         "good": 6,
         "bad": 0,
         "dark_good": 6
+      },
+      "f9616d64-89c0-481f-b714-22786f078070": {
+        "good": 1,
+        "bad": 1,
+        "dark_good": 0
       },
       "f9936993-e7a0-4485-9109-c4dce3c53437": {
         "good": 9,
@@ -450,9 +546,9 @@
     }
   },
   "args": {
-    "data_dir": "train",
-    "output_dir": "training/runs/2026-09-19b-sources",
-    "run_name": "sources-feedback-2026-09-19",
+    "data_dir": "/Users/trendagency/Documents/project/ocr/train",
+    "output_dir": null,
+    "run_name": "2026-09-20-loading",
     "deploy": false,
     "epochs": 20,
     "batch_size": 32,
@@ -472,7 +568,7 @@
     "patience": 5,
     "cache_file": ""
   },
-  "git_sha": "6663bf27c612fdcb9ecde55d5edf44f939435bc9",
+  "git_sha": "703a154386768978ccf7dadce3f6e2fb75706ebd",
   "inference_contract": {
     "preprocess": "BGR, optional dark boost, resize, /255.0",
     "decision": "sigmoid > 0.3 => GOOD",

@@ -1,0 +1,43 @@
+{
+ "round": "round-02",
+ "video": "78a59e11-36de-4879-b929-5d9ad829cdcc",
+ "status": "done",
+ "reviewer": "user",
+ "note": "339 irrelevant screen; 462 no loaded numbers",
+ "sent_frames": [
+  {
+   "frame": "frame_000339.jpg",
+   "needed": false,
+   "note": "339 irrelevant screen; 462 no loaded numbers"
+  },
+  {
+   "frame": "frame_000462.jpg",
+   "needed": false,
+   "note": "339 irrelevant screen; 462 no loaded numbers"
+  },
+  {
+   "frame": "frame_000477.jpg"
+  },
+  {
+   "frame": "frame_000492.jpg"
+  },
+  {
+   "frame": "frame_000498.jpg"
+  },
+  {
+   "frame": "frame_000501.jpg"
+  },
+  {
+   "frame": "frame_000510.jpg"
+  },
+  {
+   "frame": "frame_000516.jpg"
+  },
+  {
+   "frame": "frame_000558.jpg"
+  }
+ ],
+ "should_have_been_sent": [],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

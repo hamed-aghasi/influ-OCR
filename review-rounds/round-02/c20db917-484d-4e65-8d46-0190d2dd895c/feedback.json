@@ -1,0 +1,51 @@
+{
+ "round": "round-02",
+ "video": "c20db917-484d-4e65-8d46-0190d2dd895c",
+ "status": "done",
+ "reviewer": "user",
+ "note": "reviewer expected these",
+ "sent_frames": [
+  {
+   "frame": "frame_000432.jpg"
+  },
+  {
+   "frame": "frame_000468.jpg"
+  },
+  {
+   "frame": "frame_000498.jpg"
+  },
+  {
+   "frame": "frame_000504.jpg"
+  },
+  {
+   "frame": "frame_000507.jpg"
+  },
+  {
+   "frame": "frame_000516.jpg"
+  },
+  {
+   "frame": "frame_000558.jpg"
+  },
+  {
+   "frame": "frame_000570.jpg"
+  },
+  {
+   "frame": "frame_000600.jpg"
+  },
+  {
+   "frame": "frame_000627.jpg"
+  }
+ ],
+ "should_have_been_sent": [
+  {
+   "frame": "frame_000420.jpg",
+   "why": "reviewer expected these"
+  },
+  {
+   "frame": "frame_000423.jpg",
+   "why": "reviewer expected these"
+  }
+ ],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

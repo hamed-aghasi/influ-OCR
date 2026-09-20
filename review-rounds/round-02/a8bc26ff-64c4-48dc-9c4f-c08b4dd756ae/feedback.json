@@ -1,0 +1,66 @@
+{
+ "round": "round-02",
+ "video": "a8bc26ff-64c4-48dc-9c4f-c08b4dd756ae",
+ "status": "done",
+ "reviewer": "user",
+ "note": "numbers not loaded",
+ "sent_frames": [
+  {
+   "frame": "frame_000105.jpg",
+   "needed": false,
+   "note": "numbers not loaded"
+  },
+  {
+   "frame": "frame_000120.jpg",
+   "needed": false,
+   "note": "numbers not loaded"
+  },
+  {
+   "frame": "frame_000123.jpg",
+   "needed": false,
+   "note": "numbers not loaded"
+  },
+  {
+   "frame": "frame_000165.jpg"
+  },
+  {
+   "frame": "frame_000180.jpg"
+  },
+  {
+   "frame": "frame_000219.jpg"
+  },
+  {
+   "frame": "frame_000222.jpg"
+  },
+  {
+   "frame": "frame_000234.jpg"
+  },
+  {
+   "frame": "frame_000249.jpg"
+  },
+  {
+   "frame": "frame_000258.jpg"
+  },
+  {
+   "frame": "frame_000282.jpg"
+  },
+  {
+   "frame": "frame_000291.jpg"
+  },
+  {
+   "frame": "frame_000294.jpg"
+  },
+  {
+   "frame": "frame_000312.jpg"
+  },
+  {
+   "frame": "frame_000315.jpg"
+  },
+  {
+   "frame": "frame_000354.jpg"
+  }
+ ],
+ "should_have_been_sent": [],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

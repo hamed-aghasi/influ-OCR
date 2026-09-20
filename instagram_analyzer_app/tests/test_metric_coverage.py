@@ -335,3 +335,106 @@ def test_section_header_does_not_take_the_next_lines_number():
     assert "interactions" in metrics_in_text(["Interactions ©", "Interactions", "8"])
     assert "interactions" in metrics_in_text(["Interactions 8"])
     assert "profile_activity" in metrics_in_text(["Profile activity © 17"])   # header with its own value
+
+
+# ----- round-02: "no metric recognised" is not by itself a reason to send -----
+#
+# The old rule kept any frame with a number and a word on it, which is every
+# half-loaded Insights screen and every rates tab. 25 of the 29 frames the
+# round-02 reviewer rejected came through it. A frame with no recognised metric
+# is now kept only when it shows a value no kept frame shows.
+
+# 453ccb37 frame 117: the Overview panel is still grey placeholder bars. The
+# only real numbers are the Reel icon strip, which a sent frame also shows.
+LOADING_SKELETON = [
+    ">",
+    "پیر ‎Reel insights‏ <",
+    "این & پيامه برای تمام ‎pope‏ ایران 9 ۷",
+    "‎July 29 ۰ Duration 0‏",
+    "‎ea 7 i] ۳‏ ف‌",
+    "‎236 0 13 1 5",
+    "Overview ©",
+    "Views ©",
+    "Datantinn",
+]
+
+# 4fc5cd74 frame 102: the rates list. Every number on it is a percentage or a
+# chart axis tick.
+RATES_TAB = [
+    "۰ GD Sut al ۶ ۰۰۰ 4 ۶",
+    "+ __ Reelinsights aA:",
+    "Overview Engagement Audience",
+    "4s 1",
+    "Views over time ©",
+    "All Followers Non-followers",
+    "1M",
+    "500K as eed",
+    "Jul 9 Jul 30 Jul 1",
+    "What impacts your views ©",
+    "Rates are listed in order of importance to reach.",
+    "DD 55.9%",
+    "iS} Skip rate Higher",
+    "0 Share rate 0.0%",
+    "W Save rate 0.0%",
+]
+
+
+def test_rates_tab_offers_no_candidate_value():
+    """Percentages and K/M axis ticks are not metric counts, so a rates screen
+    has nothing that could justify sending it."""
+    from processing.metric_coverage import evidence_values, metrics_in_text
+
+    assert metrics_in_text(RATES_TAB) == set()
+    assert evidence_values(RATES_TAB) == set()
+
+
+def test_loading_skeleton_offers_only_the_icon_strip():
+    """Its date, duration and OCR noise are excluded; what remains is the icon
+    strip, which another frame carries."""
+    from processing.metric_coverage import evidence_values
+
+    assert evidence_values(LOADING_SKELETON) == {"236"}
+
+
+def test_unrecognised_frame_is_dropped_when_its_values_are_already_sent(tmp_path):
+    from processing.metric_coverage import select_by_coverage
+
+    loaded, skeleton = tmp_path / "frame_000318.jpg", tmp_path / "frame_000117.jpg"
+    for p in (loaded, skeleton):
+        p.write_bytes(b"x")
+
+    def detect(p):
+        if p == loaded:
+            return {"likes"}, {"236", "13"}, set(), {"likes": {"236"}}
+        return set(), set(), {"236"}, {}
+
+    cov = select_by_coverage([skeleton, loaded], detect=detect)
+    assert cov.selected == [loaded]
+    assert cov.reasons[skeleton] == "blank"
+
+
+def test_unrecognised_frame_is_kept_when_it_shows_a_new_value(tmp_path):
+    """The net still does its job: a garbled label whose number appears nowhere
+    else must not be dropped."""
+    from processing.metric_coverage import select_by_coverage
+
+    known, garbled = tmp_path / "frame_000001.jpg", tmp_path / "frame_000002.jpg"
+    for p in (known, garbled):
+        p.write_bytes(b"x")
+
+    def detect(p):
+        if p == known:
+            return {"likes"}, {"236"}, set(), {"likes": {"236"}}
+        return set(), set(), {"9134"}, {}
+
+    cov = select_by_coverage([known, garbled], detect=detect)
+    assert set(cov.selected) == {known, garbled}
+    assert cov.reasons[garbled] == "unrecognised"
+
+
+def test_status_bar_noise_is_not_a_candidate_value():
+    """bf96a4ca frame 033: a loading screen whose only "numbers" are a garbled
+    status bar. Two digits are enough beside a recognised label, not alone."""
+    from processing.metric_coverage import evidence_values
+
+    assert evidence_values(["0 x", "19 , ۳3 ©", "Overview ©", "Views"]) == set()

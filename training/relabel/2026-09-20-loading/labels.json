@@ -1,0 +1,21 @@
+{
+ "_note": "Round-02 labels. Reviewer verdicts, plus skeleton frames I confirmed by eye on a contact sheet. An automatic 'no metric, no value => bad' pass was built and DISCARDED: about half its candidates were fully loaded screens (Interactions donuts reading 255/395/2,517) that Tesseract merely failed to read.",
+ "0256e5cc-9621-47da-8792-10da173bc260": {"bad": [168, 192], "good": [249, 252]},
+ "453ccb37-a7db-43b6-9f51-cab270850f70 (1)": {"bad": [111, 117, 123], "good": [153, 159, 162]},
+ "4fc5cd74-516d-4272-a20a-b492aace6dc9 (1)": {"bad": [102, 162], "good": []},
+ "68a560d8-e404-4ccf-ba46-a673fa1571c3": {"bad": [138], "good": []},
+ "78a59e11-36de-4879-b929-5d9ad829cdcc": {"bad": [339, 462], "good": []},
+ "8ba8ce38-6feb-4f9c-a003-1c961cd28e72": {"bad": [36, 168, 12, 15, 18, 21, 27, 33, 126, 165, 171, 180, 183, 186], "good": [75]},
+ "99f72a3c-4a89-4b68-824c-0d041e9f9deb": {"bad": [51, 63], "good": [201]},
+ "a54e4eda-4008-43d2-a574-4b4446f6052e": {"bad": [561], "good": [558, 576, 579, 582, 585]},
+ "a8bc26ff-64c4-48dc-9c4f-c08b4dd756ae": {"bad": [105, 120, 123], "good": []},
+ "bc344c22-c8c3-43c3-8514-c81b8f53f2b0": {"bad": [138, 162], "good": []},
+ "c20db917-484d-4e65-8d46-0190d2dd895c": {"bad": [], "good": [399, 420, 423]},
+ "d7750aef-a731-42c5-b9f6-11cf6cce7d22": {"bad": [204], "good": [348]},
+ "d88b6c04-21a7-4f8f-989f-6e93a4365c0e": {"bad": [75, 237, 255, 261], "good": []},
+ "e6740b3d-3125-4f28-8f4f-abc0826ebe98": {"bad": [105, 141, 144], "good": [189]},
+ "e6c89684-97b7-4b2e-88ac-adb4253a79d6": {"bad": [87, 90, 93, 96, 99, 102, 105, 108, 111], "good": []},
+ "e9e03b77-6210-4a8d-abf6-4bdc42bde377": {"bad": [102, 111], "good": [120]},
+ "f9616d64-89c0-481f-b714-22786f078070": {"bad": [189], "good": [234]},
+ "5198f946-0d84-462e-a284-cab2e2abee46": {"bad": [], "good": [726, 738, 750, 762, 774]}
+}

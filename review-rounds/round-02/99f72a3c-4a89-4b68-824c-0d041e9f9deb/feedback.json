@@ -1,0 +1,57 @@
+{
+ "round": "round-02",
+ "video": "99f72a3c-4a89-4b68-824c-0d041e9f9deb",
+ "status": "done",
+ "reviewer": "user",
+ "note": "201 has the complete data",
+ "sent_frames": [
+  {
+   "frame": "frame_000051.jpg",
+   "needed": false,
+   "note": "201 has the complete data"
+  },
+  {
+   "frame": "frame_000063.jpg",
+   "needed": false,
+   "note": "201 has the complete data"
+  },
+  {
+   "frame": "frame_000078.jpg"
+  },
+  {
+   "frame": "frame_000087.jpg"
+  },
+  {
+   "frame": "frame_000090.jpg"
+  },
+  {
+   "frame": "frame_000096.jpg"
+  },
+  {
+   "frame": "frame_000126.jpg"
+  },
+  {
+   "frame": "frame_000132.jpg"
+  },
+  {
+   "frame": "frame_000147.jpg"
+  },
+  {
+   "frame": "frame_000150.jpg"
+  },
+  {
+   "frame": "frame_000165.jpg"
+  },
+  {
+   "frame": "frame_000189.jpg"
+  }
+ ],
+ "should_have_been_sent": [
+  {
+   "frame": "frame_000201.jpg",
+   "why": "201 has the complete data"
+  }
+ ],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

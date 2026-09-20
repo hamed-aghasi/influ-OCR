@@ -1,0 +1,55 @@
+{
+ "round": "round-02",
+ "video": "a54e4eda-4008-43d2-a574-4b4446f6052e",
+ "status": "done",
+ "reviewer": "user",
+ "note": "561 not loaded",
+ "sent_frames": [
+  {
+   "frame": "frame_000561.jpg",
+   "needed": false,
+   "note": "561 not loaded"
+  },
+  {
+   "frame": "frame_000600.jpg"
+  },
+  {
+   "frame": "frame_000636.jpg"
+  },
+  {
+   "frame": "frame_000675.jpg"
+  },
+  {
+   "frame": "frame_000684.jpg"
+  },
+  {
+   "frame": "frame_000690.jpg"
+  },
+  {
+   "frame": "frame_000699.jpg"
+  },
+  {
+   "frame": "frame_000738.jpg"
+  }
+ ],
+ "should_have_been_sent": [
+  {
+   "frame": "frame_000576.jpg",
+   "why": "561 not loaded"
+  },
+  {
+   "frame": "frame_000579.jpg",
+   "why": "561 not loaded"
+  },
+  {
+   "frame": "frame_000582.jpg",
+   "why": "561 not loaded"
+  },
+  {
+   "frame": "frame_000585.jpg",
+   "why": "561 not loaded"
+  }
+ ],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

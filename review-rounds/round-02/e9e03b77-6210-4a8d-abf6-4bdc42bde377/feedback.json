@@ -1,0 +1,36 @@
+{
+ "round": "round-02",
+ "video": "e9e03b77-6210-4a8d-abf6-4bdc42bde377",
+ "status": "done",
+ "reviewer": "user",
+ "note": "120 is the loaded frame",
+ "sent_frames": [
+  {
+   "frame": "frame_000102.jpg",
+   "needed": false,
+   "note": "120 is the loaded frame"
+  },
+  {
+   "frame": "frame_000111.jpg",
+   "needed": false,
+   "note": "120 is the loaded frame"
+  },
+  {
+   "frame": "frame_000120.jpg",
+   "needed": true,
+   "note": "120 is the loaded frame"
+  },
+  {
+   "frame": "frame_000126.jpg"
+  },
+  {
+   "frame": "frame_000150.jpg"
+  },
+  {
+   "frame": "frame_000171.jpg"
+  }
+ ],
+ "should_have_been_sent": [],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}
