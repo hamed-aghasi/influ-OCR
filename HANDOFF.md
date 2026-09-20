@@ -24,6 +24,25 @@
   and documented, not changed.
 - Tests: 145 pass.
 
+## 2026-09-20 (later) — the top three §8 risks fixed
+
+- **Unreadable video is now an error** (`VideoUnreadable` in `frame_extractor.py`), not
+  0 frames reported as success. A ZIP member that fails is recorded as an error and counted
+  into `videos_failed`; the job then fails as incomplete.
+- **`sweep_orphans`**, hourly on beat: deletes job directories and uploads untouched for 6h
+  whose job is not queued/processing. Covers the case `finalize_job`'s cleanup misses
+  (hard time limit, OOM, lost chord message). `KEEP_JOB_FRAMES` disables it.
+- **The reaper keys off `jobs.last_progress_at`** (**migration 0003** — run
+  `alembic upgrade head`). Processing jobs fail after `JOB_STALE_SECONDS` without progress;
+  queued jobs only after `QUEUE_STALE_SECONDS` (24h), so a backlog is no longer failed.
+- Tests **165** pass, locally and in the container. Migration verified against a throwaway
+  Postgres (upgrade, downgrade, re-upgrade; reaper scenarios). `run_job` on the two test
+  videos sends the same frames as before. `PIPELINE.md` §8.1 has the detail; its line
+  numbers were re-verified after the changes.
+- **Still open from §8**, highest first: pin Tesseract/ffmpeg versions; fail loudly when
+  Tesseract is missing instead of silently skipping coverage; give the MinIO poller a
+  per-tick budget and the web route's ZIP validation; act on `create_job` returning False.
+
 ## 2026-09-19 (later) — human feedback loop, round 01
 
 - **Rounds:** `training/review_videos.py` produces rounds in `review-rounds/`; you fill in `feedback.json`,
