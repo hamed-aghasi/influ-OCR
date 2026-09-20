@@ -151,6 +151,16 @@ def review_video(video, out, eff, model, minimal=False):
     scores = {Path(f["path"]): f["confidence"] for f in cls["good_frames"]}
     choice = choose_ocr_frames([frames], good, scores, job_id=video.stem)
     sel, cov, final = choice.selection, choice.coverage, choice.final
+    if not good:
+        # A real outcome, not a crash: this video has no frame the classifier
+        # calls an Insights screen, so nothing would be sent. In production the
+        # job fails as "No Instagram Insights screens detected". Record it and
+        # let the round continue — one such video must not abort the other 19.
+        print("    NO frames passed the classifier: nothing would be sent to OCR")
+        return {"video": _rel(video), "final_frames": [], "metrics_read_in_final_set": [],
+                "counts": {"extracted": len(frames), "classifier_good": 0,
+                           "scroll_selected": 0, "final_sent": 0,
+                           "openrouter_requests_that_would_be_made": 0}}
     if cov is None or not cov.applied:
         sys.exit(f"coverage step did not run: {cov.reason if cov else 'no frames'}")
     cov.dropped = [p for p in sel.selected if p not in set(final)]
