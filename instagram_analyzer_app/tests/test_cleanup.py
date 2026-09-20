@@ -1,6 +1,7 @@
-"""Job working-directory cleanup, and classifier failure reported as its own
-error rather than as an upload with no Insights screens."""
+"""Job working-directory cleanup, the orphan sweeper, and classifier failure
+reported as its own error rather than as an upload with no Insights screens."""
 
+import time
 from pathlib import Path
 
 import pytest
@@ -127,3 +128,155 @@ def test_healthy_classification_does_not_set_an_error(tmp_path, monkeypatch):
     assert "error" not in result
     assert result["good_paths"] == []
     assert len(result["bad_frames"]) == 1
+
+
+# ----- the sweeper: files left by jobs that died without settling -----
+#
+# finalize_job's `finally` is the only cleanup on the normal path, and a hard
+# Celery time limit, an OOM kill or a lost chord message all skip it. These
+# pin that the sweeper collects what is left without ever touching live work.
+
+def _age(path: Path, seconds: float) -> None:
+    """Backdate everything in a tree, so it looks untouched."""
+    import os
+
+    stamp = time.time() - seconds
+    for p in [path, *path.rglob("*")]:
+        os.utime(p, (stamp, stamp))
+
+
+def _sweeper_env(tmp_path, monkeypatch, active=()):
+    from processing.config import settings
+    import tasks
+
+    processing = tmp_path / "processing"
+    uploads = tmp_path / "uploads"
+    processing.mkdir()
+    uploads.mkdir()
+    monkeypatch.setattr(settings, "processing_dir", processing)
+    monkeypatch.setattr(settings, "upload_dir", uploads)
+    monkeypatch.setattr(settings, "keep_job_frames", False)
+    monkeypatch.setattr(settings, "orphan_max_age_seconds", 3600)
+    monkeypatch.setattr(tasks, "active_job_ids", lambda: set(active))
+    return processing, uploads
+
+
+def test_sweeper_removes_an_orphaned_job_directory(tmp_path, monkeypatch):
+    import tasks
+
+    processing, _ = _sweeper_env(tmp_path, monkeypatch)
+    orphan = _make_job_dir(processing, "dead-job")
+    _age(orphan, 7200)
+
+    result = tasks.sweep_orphans()
+
+    assert not orphan.exists()
+    assert result["dirs"] == 1
+    assert processing.exists()  # the root survives
+
+
+def test_sweeper_keeps_a_directory_belonging_to_a_live_job(tmp_path, monkeypatch):
+    """A job can be mid-OCR with its frames untouched for hours; deleting them
+    would destroy work in flight."""
+    import tasks
+
+    processing, _ = _sweeper_env(tmp_path, monkeypatch, active={"running-job"})
+    live = _make_job_dir(processing, "running-job")
+    _age(live, 7200)
+
+    result = tasks.sweep_orphans()
+
+    assert live.exists()
+    assert result["dirs"] == 0
+
+
+def test_sweeper_keeps_recently_touched_directories(tmp_path, monkeypatch):
+    import tasks
+
+    processing, _ = _sweeper_env(tmp_path, monkeypatch)
+    recent = _make_job_dir(processing, "just-started")
+
+    assert tasks.sweep_orphans()["dirs"] == 0
+    assert recent.exists()
+
+
+def test_sweeper_notices_new_frames_inside_an_old_directory(tmp_path, monkeypatch):
+    """Writing frames into <job>/frames/ leaves <job>/ itself untouched, so a
+    directory mtime alone would call a busy job an orphan."""
+    import os
+    import tasks
+
+    processing, _ = _sweeper_env(tmp_path, monkeypatch)
+    job = _make_job_dir(processing, "busy-job")
+    _age(job, 7200)
+    fresh = job / "frames" / "frame_000003.jpg"
+    fresh.write_bytes(b"just written")
+    os.utime(fresh, None)
+
+    assert tasks.sweep_orphans()["dirs"] == 0
+    assert job.exists()
+
+
+def test_sweeper_removes_orphaned_uploads(tmp_path, monkeypatch):
+    import tasks
+
+    _, uploads = _sweeper_env(tmp_path, monkeypatch, active={"live-job"})
+    dead = uploads / "dead-job.mp4"
+    dead.write_bytes(b"x" * 1024)
+    live = uploads / "live-job.mp4"
+    live.write_bytes(b"x" * 1024)
+    _age(uploads, 7200)
+
+    result = tasks.sweep_orphans()
+
+    assert not dead.exists()
+    assert live.exists()          # its job is still queued or processing
+    assert result["uploads"] == 1
+    assert result["bytes"] >= 1024
+
+
+def test_sweeper_is_a_noop_when_keep_job_frames_is_set(tmp_path, monkeypatch):
+    from processing.config import settings
+    import tasks
+
+    processing, _ = _sweeper_env(tmp_path, monkeypatch)
+    monkeypatch.setattr(settings, "keep_job_frames", True)
+    kept = _make_job_dir(processing, "evaluation-job")
+    _age(kept, 7200)
+
+    assert tasks.sweep_orphans()["status"] == "disabled"
+    assert kept.exists()
+
+
+def test_sweeper_keeps_everything_when_it_cannot_read_active_jobs(tmp_path, monkeypatch):
+    """Without the active list it cannot tell a live job from a dead one, and
+    deleting a live one is unrecoverable."""
+    import tasks
+
+    processing, _ = _sweeper_env(tmp_path, monkeypatch)
+
+    def _boom():
+        raise RuntimeError("database down")
+
+    monkeypatch.setattr(tasks, "active_job_ids", _boom)
+    orphan = _make_job_dir(processing, "dead-job")
+    _age(orphan, 7200)
+
+    assert tasks.sweep_orphans()["status"] == "error"
+    assert orphan.exists()
+
+
+def test_sweeper_never_follows_a_symlink_out_of_the_processing_dir(tmp_path, monkeypatch):
+    import tasks
+
+    processing, _ = _sweeper_env(tmp_path, monkeypatch)
+    outside = tmp_path / "precious"
+    outside.mkdir()
+    (outside / "keep.txt").write_text("do not delete")
+    link = processing / "sneaky-job"
+    link.symlink_to(outside, target_is_directory=True)
+    _age(outside, 7200)
+
+    tasks.sweep_orphans()
+
+    assert (outside / "keep.txt").exists()

@@ -7,11 +7,14 @@ batches are done, aggregates, persists, and sets the final status. Batches
 run in parallel across whatever worker capacity exists — parallelism is a
 deploy knob (worker concurrency / replicas), not code.
 
-`reap_stale_jobs` runs on beat and fails jobs stuck in queued/processing,
-so lost broker messages can't leave immortal spinners.
+Two beat tasks keep the system honest when a job dies without settling:
+`reap_stale_jobs` fails jobs that have genuinely stopped (measured by their
+last progress, not by age), and `sweep_orphans` deletes the frames and uploads
+they left behind, which `finalize_job`'s cleanup never gets to.
 """
 
 import shutil
+import time
 from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -22,6 +25,7 @@ from celery_app import celery
 from processing import ingest
 from processing.config import settings
 from processing.db_client import (
+    active_job_ids,
     create_job,
     fail_stale_jobs,
     save_job_metrics,
@@ -89,6 +93,7 @@ def run_job(self, job_id: str, file_path: str, file_type: str, object_key: str =
 
         # `sequences` keeps each source video's frames in time order: scroll-aware
         # selection aligns consecutive frames, which only makes sense per video.
+        extract: dict = {}
         if file_type == "zip":
             extract = process_campaign_zip(file_p, settings.processing_dir, job_id)
             frame_paths: List[Path] = [Path(p) for p in extract.get("frame_paths", [])]
@@ -142,6 +147,8 @@ def run_job(self, job_id: str, file_path: str, file_type: str, object_key: str =
             "unique_frames": len(unique_paths),
             "duplicate_frames": len(duplicate_paths),
             "batches_total": len(batches),
+            "videos_total": extract.get("videos_total", 1),
+            "videos_failed": extract.get("videos_failed", 0),
         }
 
         if not batches:
@@ -230,6 +237,17 @@ def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -
             log.error("Job finished with dropped OCR batches: %s", message)
             return {"status": "failed", "error": message, "elapsed_seconds": elapsed}
 
+        if context.get("videos_failed"):
+            # Same rule as a dropped OCR batch: some of the upload was lost, so
+            # the metrics are incomplete and a green status would hide it.
+            message = (
+                f"{context['videos_failed']}/{context['videos_total']} videos in the "
+                "upload could not be read; extracted metrics are incomplete"
+            )
+            update_job_status(job_id, "failed", message)
+            log.error("Job finished with unreadable videos: %s", message)
+            return {"status": "failed", "error": message, "elapsed_seconds": elapsed}
+
         if context["ocr_input_frames"] == 0:
             # Zero frames classified as Insights screens: nothing was extracted,
             # so a green status would misreport an empty result as success.
@@ -256,10 +274,102 @@ def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -
 
 @celery.task(name="reap_stale_jobs")
 def reap_stale_jobs() -> int:
-    count = fail_stale_jobs(settings.job_stale_seconds)
+    count = fail_stale_jobs(settings.job_stale_seconds, settings.queue_stale_seconds)
     if count:
         job_logger("tasks").warning("Reaper failed %d stale job(s)", count)
     return count
+
+
+def _newer_than(path: Path, cutoff: float) -> bool:
+    """Has anything in this tree been touched since `cutoff`?
+
+    Stops at the first thing that has, so a live job costs one stat, not a walk
+    of its thousands of frames. The directory's own mtime is not enough: writing
+    frames into `<job>/frames/` leaves `<job>/` untouched.
+    """
+    try:
+        if path.stat().st_mtime > cutoff:
+            return True
+        for child in path.rglob("*"):
+            try:
+                if child.stat().st_mtime > cutoff:
+                    return True
+            except OSError:
+                continue
+    except OSError:
+        return True  # can't tell -> treat as live, never delete on a guess
+    return False
+
+
+@celery.task(name="sweep_orphans")
+def sweep_orphans() -> dict:
+    """Delete working files left by jobs that died without settling.
+
+    `finalize_job`'s `finally` is the only cleanup on the normal path, and a
+    hard Celery time limit (1h), an OOM kill or a lost chord message all skip
+    it. One long video leaves thousands of JPEGs, so on a run of thousands of
+    videos the processing volume fills and then *every* later job fails at
+    extraction. This is the backstop.
+
+    Three conditions must all hold before anything is deleted:
+      1. the path is directly inside settings.processing_dir / upload_dir;
+      2. nothing in it has been touched for settings.orphan_max_age_seconds;
+      3. its job is not queued or processing.
+    On any doubt — an unreadable mtime, a database it cannot reach — it keeps
+    the files. Deleting a live job's frames would be unrecoverable; leaving an
+    orphan for another hour costs disk.
+    """
+    log = job_logger("tasks")
+    if settings.keep_job_frames:
+        log.info("KEEP_JOB_FRAMES set — sweeper is a no-op")
+        return {"status": "disabled"}
+
+    try:
+        active = active_job_ids()
+    except Exception as exc:  # noqa: BLE001
+        log.error("Sweeper skipped: cannot read active jobs (%s)", exc)
+        return {"status": "error", "error": str(exc)}
+
+    cutoff = time.time() - settings.orphan_max_age_seconds
+    removed_dirs, removed_files, freed = 0, 0, 0
+
+    for root, is_dir in ((settings.processing_dir, True), (settings.upload_dir, False)):
+        try:
+            entries = list(root.iterdir())
+        except OSError as exc:
+            log.warning("Sweeper cannot list %s: %s", root, exc)
+            continue
+        for entry in entries:
+            # The job id is the directory name, or the upload's stem.
+            job_id = entry.name if is_dir else entry.stem
+            if job_id in active or entry.is_dir() != is_dir:
+                continue
+            if _newer_than(entry, cutoff):
+                continue
+            try:
+                size = sum(f.stat().st_size for f in entry.rglob("*") if f.is_file()) \
+                    if is_dir else entry.stat().st_size
+            except OSError:
+                size = 0
+            if is_dir:
+                _cleanup_job_dir(str(entry))
+                if entry.exists():
+                    continue
+                removed_dirs += 1
+            else:
+                try:
+                    entry.unlink()
+                except OSError as exc:
+                    log.warning("Sweeper could not remove %s: %s", entry.name, exc)
+                    continue
+                removed_files += 1
+            freed += size
+            log.warning("Sweeper removed orphan %s (job %s never settled)", entry.name, job_id)
+
+    if removed_dirs or removed_files:
+        log.warning("Sweeper removed %d job dir(s) and %d upload(s), freeing %.1f MB",
+                    removed_dirs, removed_files, freed / 1_048_576)
+    return {"status": "ok", "dirs": removed_dirs, "uploads": removed_files, "bytes": freed}
 
 
 @celery.task(name="poll_minio", bind=True, max_retries=0)

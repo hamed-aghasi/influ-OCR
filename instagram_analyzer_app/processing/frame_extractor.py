@@ -15,6 +15,17 @@ from .config import settings
 from .logger import job_logger
 
 
+class VideoUnreadable(Exception):
+    """OpenCV could not open the file, or opened it and decoded nothing.
+
+    Raised rather than returning 0 frames: a file that cannot be decoded is a
+    failure, and a job that reports success with no frames hides the whole
+    upload being lost. Zero saved frames always means failure here, because
+    frame 0 is always sampled (`frame_count % interval == 0`), so any decoded
+    video yields at least one frame unless every write failed.
+    """
+
+
 def _sanitize_filename(name: str) -> str:
     name = name.strip(" .")
     for char in '<>:"|?*':
@@ -41,8 +52,15 @@ def _convert_to_720p(input_path: Path, output_path: Path, log) -> bool:
         return False
 
     cap = cv2.VideoCapture(str(input_path))
+    opened = cap.isOpened()
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     cap.release()
+
+    if not opened:
+        # Don't spend 10 minutes of ffmpeg on a file OpenCV cannot open; the
+        # extraction below raises VideoUnreadable on the same file.
+        log.warning("OpenCV could not open %s; skipping 720p conversion", input_path.name)
+        return False
 
     if height <= 720:
         log.info("Source is %dp; skipping conversion", height)
@@ -105,6 +123,17 @@ def extract_frames_from_video(
             temp_video = None
 
     cap = cv2.VideoCapture(str(video_to_process))
+    if not cap.isOpened():
+        cap.release()
+        if temp_video and temp_video.exists():
+            try:
+                temp_video.unlink()
+            except OSError:
+                pass
+        raise VideoUnreadable(
+            f"{video_path.name}: not a decodable video "
+            "(empty, truncated, or an unsupported codec)"
+        )
     fps = cap.get(cv2.CAP_PROP_FPS)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
@@ -135,6 +164,12 @@ def extract_frames_from_video(
             temp_video.unlink()
         except OSError:
             pass
+
+    if saved_count == 0:
+        raise VideoUnreadable(
+            f"{video_path.name}: opened but no frames could be extracted "
+            f"({frame_count} frame(s) decoded)"
+        )
 
     metadata = {
         "total_frames": total_frames,
@@ -176,7 +211,7 @@ def _process_video_from_zip(
                 "frame_paths": [str(p) for p in paths],
                 "output": str(output_folder),
             }
-    except (zipfile.BadZipFile, OSError) as exc:
+    except (zipfile.BadZipFile, OSError, VideoUnreadable) as exc:
         log.error("Error processing %s: %s", video_name, exc)
         return {
             "type": "video",
@@ -209,6 +244,11 @@ def process_campaign_zip(
         ]
 
     log.info("ZIP contains %d videos", len(videos))
+    if not videos:
+        raise VideoUnreadable(
+            f"{zip_path.name}: the archive contains no video files "
+            "(.mp4, .avi, .mov, .mkv)"
+        )
 
     results = []
     all_paths: List[str] = []
@@ -239,8 +279,22 @@ def process_campaign_zip(
     except OSError as exc:
         log.warning("Could not write campaign summary: %s", exc)
 
+    failed = [r for r in results if r["status"] != "success"]
+    if failed:
+        # The summary below is written into the job directory, which is deleted
+        # when the job settles, so this log line is the only lasting record.
+        log.error("%d/%d videos in the ZIP could not be read: %s", len(failed), len(videos),
+                  "; ".join(f"{r['name']}: {r.get('error')}" for r in failed))
+    if len(failed) == len(videos):
+        raise VideoUnreadable(
+            f"{zip_path.name}: none of its {len(videos)} video(s) could be read "
+            f"({failed[0].get('error')})"
+        )
+
     return {
         "results": results,
+        "videos_total": len(videos),
+        "videos_failed": len(failed),
         "frame_paths": all_paths,
         "summary_path": str(summary_path),
         "total_frames": sum(r.get("frames", 0) for r in results if r["status"] == "success"),

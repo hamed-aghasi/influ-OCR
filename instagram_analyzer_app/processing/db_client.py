@@ -13,7 +13,7 @@ import threading
 from contextlib import contextmanager
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Set
 
 import bcrypt
 
@@ -99,6 +99,7 @@ def create_job(
                 "celery_task_id": None,
                 "progress": None,
                 "created_at": datetime.now(),
+                "last_progress_at": None,
                 "completed_at": None,
                 "error_message": None,
             }
@@ -138,40 +139,77 @@ def set_job_task_id(job_id: str, task_id: str) -> bool:
 
 
 def update_job_progress(job_id: str, progress: str) -> bool:
+    """Record a step, and stamp the job as alive.
+
+    `last_progress_at` is what the reaper measures; see fail_stale_jobs.
+    """
     if not is_database_available():
         with _memory_lock:
             job = _memory_jobs.get(job_id)
             if job is None:
                 return False
             job["progress"] = progress
+            job["last_progress_at"] = datetime.now()
             return True
     try:
         with _conn() as c, c.cursor() as cur:
-            cur.execute("UPDATE jobs SET progress=%s WHERE id=%s", (progress, job_id))
+            cur.execute(
+                "UPDATE jobs SET progress=%s, last_progress_at=NOW() WHERE id=%s",
+                (progress, job_id),
+            )
             return True
     except Exception as exc:  # noqa: BLE001
         logger.error("update_job_progress failed: %s", exc)
         return False
 
 
-def fail_stale_jobs(max_age_seconds: int) -> int:
-    """Mark queued/processing jobs older than `max_age_seconds` as failed.
+def fail_stale_jobs(max_age_seconds: int, queued_max_age_seconds: Optional[int] = None) -> int:
+    """Fail jobs that have genuinely stopped, measured by activity not by age.
 
-    Safety net for lost broker messages and crash-looping workers; without
-    it those jobs would show 'processing' forever. Returns rows affected.
+    Two different things are being caught, so they get two different clocks:
+
+    - **processing**: no progress for `max_age_seconds`. Measured from
+      `last_progress_at` (COALESCEd to `created_at` for rows written before
+      migration 0003), which `update_job_progress` and `update_job_status`
+      stamp. A long job that keeps reporting steps is never reaped.
+    - **queued**: still waiting after `queued_max_age_seconds`, which should be
+      far longer. Waiting is not a symptom — with a small worker pool and a
+      backlog of thousands it is the normal state — so this only catches a
+      broker message that was genuinely lost. Keying this on `created_at` is
+      correct: a queued job has no activity to measure.
+
+    The old rule failed both after the same 2 hours, keyed on `created_at`, so
+    a healthy queued job was marked failed and then completed anyway.
+
+    Returns rows affected.
     """
-    message = f"Job timed out (no completion after {max_age_seconds // 60} minutes)"
+    if queued_max_age_seconds is None:
+        queued_max_age_seconds = max_age_seconds
+    stalled = f"Job stalled (no progress for {max_age_seconds // 60} minutes)"
+    never_started = (
+        f"Job never started (queued for {queued_max_age_seconds // 60} minutes; "
+        "its worker message was most likely lost)"
+    )
 
     if not is_database_available():
         from datetime import timedelta
 
-        cutoff = datetime.now() - timedelta(seconds=max_age_seconds)
+        now = datetime.now()
+        processing_cutoff = now - timedelta(seconds=max_age_seconds)
+        queued_cutoff = now - timedelta(seconds=queued_max_age_seconds)
         count = 0
         with _memory_lock:
             for job in _memory_jobs.values():
-                if job["status"] in {"queued", "processing"} and job["created_at"] < cutoff:
+                if job["status"] == "processing":
+                    last = job.get("last_progress_at") or job["created_at"]
+                    stale, message = last < processing_cutoff, stalled
+                elif job["status"] == "queued":
+                    stale, message = job["created_at"] < queued_cutoff, never_started
+                else:
+                    continue
+                if stale:
                     job["status"] = "failed"
-                    job["completed_at"] = datetime.now()
+                    job["completed_at"] = now
                     job["error_message"] = message
                     count += 1
         return count
@@ -181,15 +219,42 @@ def fail_stale_jobs(max_age_seconds: int) -> int:
             cur.execute(
                 """
                 UPDATE jobs SET status='failed', completed_at=NOW(), error_message=%s
-                WHERE status IN ('queued', 'processing')
+                WHERE status = 'processing'
+                  AND COALESCE(last_progress_at, created_at)
+                      < NOW() - (%s * INTERVAL '1 second')
+                """,
+                (stalled, max_age_seconds),
+            )
+            count = cur.rowcount
+            cur.execute(
+                """
+                UPDATE jobs SET status='failed', completed_at=NOW(), error_message=%s
+                WHERE status = 'queued'
                   AND created_at < NOW() - (%s * INTERVAL '1 second')
                 """,
-                (message, max_age_seconds),
+                (never_started, queued_max_age_seconds),
             )
-            return cur.rowcount
+            return count + cur.rowcount
     except Exception as exc:  # noqa: BLE001
         logger.error("fail_stale_jobs failed: %s", exc)
         return 0
+
+
+def active_job_ids() -> Set[str]:
+    """Ids of jobs that are still queued or processing.
+
+    The sweeper uses this as its do-not-touch list; see tasks.sweep_orphans.
+    An empty set on a database error would let the sweeper delete a live job's
+    frames, so the error is re-raised rather than swallowed like the writes.
+    """
+    if not is_database_available():
+        with _memory_lock:
+            return {j["id"] for j in _memory_jobs.values()
+                    if j["status"] in {"queued", "processing"}}
+
+    with _conn() as c, c.cursor() as cur:
+        cur.execute("SELECT id FROM jobs WHERE status IN ('queued', 'processing')")
+        return {row[0] for row in cur.fetchall()}
 
 
 def update_job_status(job_id: str, status: str, error_message: Optional[str] = None) -> bool:
@@ -199,6 +264,7 @@ def update_job_status(job_id: str, status: str, error_message: Optional[str] = N
             if job is None:
                 return False
             job["status"] = status
+            job["last_progress_at"] = datetime.now()
             if status in {"completed", "failed"}:
                 job["completed_at"] = datetime.now()
             if error_message:
@@ -209,11 +275,17 @@ def update_job_status(job_id: str, status: str, error_message: Optional[str] = N
         with _conn() as c, c.cursor() as cur:
             if status in {"completed", "failed"}:
                 cur.execute(
-                    "UPDATE jobs SET status=%s, completed_at=NOW(), error_message=%s WHERE id=%s",
+                    "UPDATE jobs SET status=%s, completed_at=NOW(), error_message=%s, "
+                    "last_progress_at=NOW() WHERE id=%s",
                     (status, error_message, job_id),
                 )
             else:
-                cur.execute("UPDATE jobs SET status=%s WHERE id=%s", (status, job_id))
+                # A status change is activity: it keeps the reaper off a job
+                # that has just started and not yet reported a step.
+                cur.execute(
+                    "UPDATE jobs SET status=%s, last_progress_at=NOW() WHERE id=%s",
+                    (status, job_id),
+                )
             return True
     except Exception as exc:  # noqa: BLE001
         logger.error("update_job_status failed: %s", exc)

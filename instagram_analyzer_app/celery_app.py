@@ -29,6 +29,12 @@ celery.conf.update(
             "task": "reap_stale_jobs",
             "schedule": settings.reaper_interval_seconds,
         },
+        # Deletes frames and uploads left by jobs killed before finalize_job's
+        # cleanup could run (hard time limit, OOM, lost chord message).
+        "sweep-orphans": {
+            "task": "sweep_orphans",
+            "schedule": settings.sweeper_interval_seconds,
+        },
         **(
             {
                 "poll-minio": {

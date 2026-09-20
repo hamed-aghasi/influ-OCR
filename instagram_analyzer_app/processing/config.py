@@ -39,8 +39,21 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
     celery_broker_url: Optional[str] = None
     celery_result_backend: Optional[str] = None
-    job_stale_seconds: int = 2 * 60 * 60  # reaper fails queued/processing jobs older than this
+    # The reaper fails a *processing* job with no progress for this long
+    # (measured from jobs.last_progress_at, migration 0003 — not from
+    # created_at, which failed healthy jobs for merely waiting in the queue).
+    job_stale_seconds: int = 2 * 60 * 60
+    # A *queued* job is only failed after this much longer wait: a backlog of
+    # thousands against two worker slots means waiting is normal, so this
+    # catches a genuinely lost broker message, nothing else.
+    queue_stale_seconds: int = 24 * 60 * 60
     reaper_interval_seconds: int = 15 * 60
+    # The sweeper deletes job directories and uploads untouched for this long
+    # whose job is no longer queued or processing. Without it, a job killed by
+    # the Celery hard time limit (1h) leaves its frames behind for good:
+    # finalize_job's cleanup never runs. Comfortably clear of that limit.
+    orphan_max_age_seconds: int = 6 * 60 * 60
+    sweeper_interval_seconds: int = 60 * 60
 
     # ----- OCR -----
     openrouter_api_key: Optional[str] = None

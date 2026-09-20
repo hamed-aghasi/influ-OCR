@@ -2,8 +2,9 @@
 
 What happens to a video between upload and a row of metrics, stage by stage:
 what each stage decides, on what setting, and how it breaks. Written
-2026-09-20 against the round-01c state (commit `04e4254` on
-`feat/scroll-coverage-selection`), for a run of thousands of videos.
+2026-09-20 against the round-01c state on `feat/scroll-coverage-selection`,
+for a run of thousands of videos. Updated the same day with the three fixes in
+§8.1; line numbers were re-verified against the code after them.
 
 Every claim carries a `file:line` so it can be re-checked rather than trusted.
 Line numbers are accurate as of that commit and will drift; the function names
@@ -32,12 +33,12 @@ The three switches that change the shape of this, all in
 
 | setting | default | effect |
 |---|---|---|
-| `classifier_threshold` | `0.30` (`config.py:64`) | tied to the deployed model; see §3 |
-| `frame_selection` | `"scroll"` (`config.py:100`) | `"phash"` restores the old whole-frame dedup |
-| `coverage_selection` | `True` (`config.py:107`) | off ⇒ every scroll-selected frame goes to OCR |
+| `classifier_threshold` | `0.30` (`config.py:77`) | tied to the deployed model; see §3 |
+| `frame_selection` | `"scroll"` (`config.py:113`) | `"phash"` restores the old whole-frame dedup |
+| `coverage_selection` | `True` (`config.py:120`) | off ⇒ every scroll-selected frame goes to OCR |
 
 Stages 4 and 5 run through one function, `selection_pipeline.choose_ocr_frames`
-(`selection_pipeline.py:31`), which production (`tasks.py:124`) and every
+(`selection_pipeline.py:31`), which production (`tasks.py:129`) and every
 evaluation tool call. They cannot diverge.
 
 ---
@@ -50,7 +51,7 @@ In order: session auth (`main.py:144`) → extension allow-list
 (`.mp4 .avi .mov .mkv .jpg .jpeg .png .zip`, `filetypes.py:6`) → date parse →
 **magic-byte sniff of the first 64 bytes** (`main.py:155`) → job id → streamed
 write in 1 MiB chunks with a running size check against `max_upload_bytes`
-(500 MB, `config.py:111`) → ZIP validation → `jobs` row → `celery.send_task`.
+(500 MB, `config.py:124`) → ZIP validation → `jobs` row → `celery.send_task`.
 
 ZIP validation (`main._validate_zip:223`) reads the central directory and
 rejects more than `max_zip_entries` (2 000) or more than
@@ -59,9 +60,9 @@ rejects more than `max_zip_entries` (2 000) or more than
 Job id (`naming.py:12`) is `slug(company)_slug(campaign)_YYYYMMDDHHMMSS_xxxx`
 with 4 hex characters of randomness.
 
-### MinIO auto-ingest — `tasks.poll_minio` (`tasks.py:265`)
+### MinIO auto-ingest — `tasks.poll_minio` (`tasks.py:375`)
 
-Runs on beat every `minio_poll_interval_seconds` (60 s, `config.py:139`) when
+Runs on beat every `minio_poll_interval_seconds` (60 s, `config.py:152`) when
 all four MinIO settings are present. It lists `incoming/`, requires the key to
 be exactly `company/campaign/product/file.ext` (`ingest.parse_object_key:56`),
 claims each object by copying it to `ingesting/` and deleting the original,
@@ -70,8 +71,8 @@ downloads it, creates the job row and enqueues `run_job`.
 **The poller is not the web route.** It performs **no magic-byte sniff and no
 ZIP validation at all** — `max_zip_entries` and `max_zip_uncompressed_bytes`
 are enforced only in `main._validate_zip`. It also **discards the return value
-of `create_job`** (`tasks.py:308`), and `db_client.create_job` returns `False`
-on any failure rather than raising (`db_client.py:118`).
+of `create_job`** (`tasks.py:418`), and `db_client.create_job` returns `False`
+on any failure rather than raising (`db_client.py:120`).
 
 ### What breaks
 
@@ -85,13 +86,13 @@ on any failure rather than raising (`db_client.py:118`).
 - **Job-id collision on the poller path is silent and destructive.** The insert
   fails, the return is ignored, and both jobs then use the same
   `processing_dir/{job_id}` — where extraction deletes existing frames on
-  startup (`frame_extractor.py:88`).
+  startup (`frame_extractor.py:106`).
 - **A failed `create_job` still pays for the whole job.** Every later status and
   metric write no-ops against a row that does not exist, `/status/{job_id}`
   returns 404, and the OCR spend produces nothing persisted.
 - **A ZIP containing no video passes every guard** and fails with the wrong
   message, "No Instagram Insights screens detected in this upload"
-  (`tasks.py:236`).
+  (`tasks.py:254`).
 - `handle_upload` is `async`, but `_validate_zip`, the DB calls and
   `celery.send_task` are blocking calls made on the event loop.
 - The 500 MB limit is enforced *after* streaming; there is no `Content-Length`
@@ -101,35 +102,36 @@ on any failure rather than raising (`db_client.py:118`).
 
 ## 2. Frame extraction — `processing/frame_extractor.py`
 
-`extract_frames_from_video` (`:76`), called at `tasks.py:99`.
+`extract_frames_from_video` (`:94`), called at `tasks.py:104`.
 
 1. Delete any existing `frame_*.jpg` in the output folder (`:88`).
-2. **Transcode to 720p** if `convert_to_720p` (default `True`, `config.py:70`)
-   and OpenCV reports a height above 720 (`:47`):
+2. **Transcode to 720p** if `convert_to_720p` (default `True`, `config.py:83`)
+   and OpenCV reports a height above 720 (`:84`):
    `ffmpeg -y -i IN -vf scale=-2:720 -c:v libx264 -preset fast -crf 23 -c:a copy OUT`
-   (`:51-56`), with `ffmpeg_timeout_seconds` = 600 (`config.py:71`).
+   (`:70-75`), with `ffmpeg_timeout_seconds` = 600 (`config.py:84`).
 3. Decode **every** frame, save **every third** (`frame_interval` = 3,
-   `config.py:69`) as `frame_NNNNNN.jpg` at OpenCV's default JPEG quality
-   (`:119-129`).
+   `config.py:82`) as `frame_NNNNNN.jpg` at OpenCV's default JPEG quality
+   (`:148-158`).
 4. Write `extraction_metadata.json` (never read downstream).
 
-The ZIP path (`process_campaign_zip:191`) loops videos **serially**, extracting
+Raises `VideoUnreadable` if the file cannot be opened or yields no frames; the
+ZIP path catches it per video and records that member as an error.
+
+The ZIP path (`process_campaign_zip:226`) loops videos **serially**, extracting
 each to a `TemporaryDirectory` and re-opening the ZIP once per video.
 
 ### What breaks
 
-- **`cap.isOpened()` is never checked** (`:43`, `:107`). A 0-byte, truncated,
-  DRM'd or unsupported file yields 0 frames with **no exception and no error
-  log** — and in the ZIP path it is recorded as `"status": "success",
-  "frames": 0` (`:174`). This is the most important silent-loss path in the
-  front half.
+- ~~`cap.isOpened()` is never checked.~~ **Fixed 2026-09-20.** A file OpenCV
+  cannot open, or that decodes to nothing, now raises `VideoUnreadable`
+  (`:133`, `:169`) instead of returning 0 frames silently. See §8.1.
 - **`scale=-2:720` pins the *long* edge for portrait video.** Instagram
   recordings are portrait, so 1080×1920 becomes ~**406×720**; the frames in this
   repo measure 324–334 × 720. That is a ~2.7× downscale of exactly the small
   numeric text everything downstream must read. It is the current operating
   point, not a regression — every measured result was produced at this size —
   but it is the single biggest lever on legibility.
-- **Sampling is by frame index, not timestamp** (`:119`). Screen recorders
+- **Sampling is by frame index, not timestamp** (`:148`). Screen recorders
   routinely produce variable frame rate, so the real time between sampled frames
   varies. Stage 4 assumes consecutive samples are consecutive in time.
 - **`FRAME_INTERVAL=0` is a `ZeroDivisionError`.** No numeric setting in
@@ -137,14 +139,14 @@ each to a `TemporaryDirectory` and re-opening the ZIP once per video.
 - **No cap on frames or duration.** A 10-minute 60 fps video at interval 3 is
   ~12 000 JPEGs, 2–3 GB for one job.
 - ffmpeg timeout or non-zero exit is logged and **the original file is used
-  instead** (`:65`, `:69`) — up to 10 minutes of CPU spent, then silently
+  instead** (`:84`, `:88`) — up to 10 minutes of CPU spent, then silently
   ignored.
 - `cv2.imencode` returning false drops the frame with **no log line at all**
-  (`:121`); a write `OSError` logs and continues (`:128`), so a full disk
+  (`:150`); a write `OSError` logs and continues (`:158`), so a full disk
   produces a partially extracted video rather than a failure.
-- One bad video in a ZIP is skipped and the job completes green; the per-video
-  error list lives in `campaign_summary.json` inside the job directory, which is
-  then deleted.
+- ~~One bad video in a ZIP is skipped and the job completes green.~~ **Fixed
+  2026-09-20**: it is recorded as `"status": "error"`, counted into
+  `videos_failed`, logged, and the job is failed as incomplete. See §8.1.
 
 ---
 
@@ -155,12 +157,12 @@ MobileNetV2 transfer-learning SavedModel, loaded once per process as a Keras
 global behind a `threading.Lock`.
 
 Per frame (`_preprocess:47`): BGR read → if mean grey < `dark_frame_threshold`
-(80, `config.py:66`) apply `convertScaleAbs(alpha=1.5, beta=40)` → resize to
+(80, `config.py:79`) apply `convertScaleAbs(alpha=1.5, beta=40)` → resize to
 224×224, aspect ratio deliberately discarded → `/255.0`. This matches training
 exactly (`training/train_frame_classifier.py:105`).
 
 Decision (`:87`): `GOOD if confidence > classifier_threshold else BAD`, with the
-threshold at **0.30** (`config.py:64`).
+threshold at **0.30** (`config.py:77`).
 
 **What `good` means matters more than the number.** The label was narrowed this
 month to *"at least one schema metric is readable, with its label and its
@@ -365,7 +367,7 @@ Guards, each added after a real misread:
   and the frame is **kept** (`:481`). The safe path and the silent path differ
   by which failure mode the corrupt file triggers.
 - **No timeout on `image_to_string`** (`:430`). A pathological image wedges a
-  worker slot until the 2-hour reaper.
+  worker slot until the reaper's 2-hour no-progress limit.
 - **`_is_filter_row` is a literal prefix test.** It requires the line to start
   with "all" or "همه". Tesseract misreads "All" often — I found `الم Followers
   Non-followers` on a real frame during this verification — and the guard then
@@ -400,14 +402,14 @@ Guards, each added after a real misread:
 
 ## 6. OCR — `processing/ocr_processor.py`
 
-One request per batch of `ocr_batch_size` = 12 frames (`config.py:49`), each
+One request per batch of `ocr_batch_size` = 12 frames (`config.py:62`), each
 frame inlined as base64 in a single user message (`:277`), with a strict
 JSON schema derived from the pydantic model (`_strict_schema:125`) and
-`temperature = 0.1` (`:285`). Model: `qwen/qwen3.8-max` (`config.py:48`).
+`temperature = 0.1` (`:285`). Model: `qwen/qwen3.8-max` (`config.py:61`).
 Timeout 120 s, `max_tokens` 8000.
 
 In production the batches are dispatched as a Celery **chord**
-(`tasks.py:153`), all at once, with no inter-batch delay; parallelism is the
+(`tasks.py:160`), all at once, with no inter-batch delay; parallelism is the
 worker concurrency of 2. `ocr_batch` never raises — a raised exception in a
 chord header would abort the callback — so failures come back as data.
 
@@ -456,7 +458,7 @@ It also records `reads`, `min`, `max` and `disputed` (spread above 5 %) per
 metric in `summary_quality` — which **is persisted but never acted on**: not in
 the job status, not in the Excel export.
 
-**The schema is 28 metrics** (`ocr_processor.py:31`, `db_client.py:338`), of
+**The schema is 28 metrics** (`ocr_processor.py:31`, `db_client.py:410`), of
 which 11 are percentages (`_PERCENT_FIELDS:43`): `followers`, `non_followers`,
 `gender_men`, `gender_women`, and the seven `source_*` fields (feed, reels_tab,
 profile, explore, stories, search, other). The other 17 are counts: `views`,
@@ -480,9 +482,9 @@ profile, explore, stories, search, other). The other 17 are counts: `views`,
 - **No `DATABASE_URL` silently means an in-memory store** (`db_client.py:27`).
   Compose always sets it; a bare `docker run` does not.
 - **A failed job still has a metrics row.** `finalize_job` persists before it
-  decides the job failed (`tasks.py:209`), so any consumer reading `job_metrics`
+  decides the job failed (`tasks.py:216`), so any consumer reading `job_metrics`
   without joining `jobs.status` ingests partial data.
-- The Excel export (`db_client.py:370`) caps at 10 000 jobs and writes only
+- The Excel export (`db_client.py:442`) caps at 10 000 jobs and writes only
   `summary`; `disputed`, `reads` and `ocr_batches_failed` are not exported, so a
   value from one shaky read looks exactly like one confirmed five times.
 
@@ -495,13 +497,13 @@ checks a number by hand. **Costs frames** = visible on the OpenRouter bill.
 
 | # | Failure | Stage | Likely at 1,000+ | Effect |
 |---|---|---|---|---|
-| 1 | Corrupt/unreadable video → 0 frames, recorded as success | 2 | **high** | loses everything, silently |
+| ~~1~~ | ~~Corrupt/unreadable video → 0 frames, recorded as success~~ | 2 | — | **FIXED 2026-09-20**, see §8.1 |
 | 2 | Tesseract missing or a language pack absent | 5 | medium | costs 3–8× frames |
 | 3 | Tesseract version drift changes which frames are sent | 5 | **certain** | costs frames; §9 |
 | 4 | `create_job` fails, poller ignores it | 1 | medium | full OCR spend, nothing persisted |
 | 5 | DB write fails, job still reports completed | 7 | medium | loses metrics |
-| 6 | Reaper marks a queued job failed, it then completes | 0 | **certain with a backlog** | false alarms, non-monotonic status |
-| 7 | Frames never swept after a hard kill | 0/2 | **high** | fills the volume, then every job fails |
+| ~~6~~ | ~~Reaper marks a queued job failed, it then completes~~ | 0 | — | **FIXED 2026-09-20**, see §8.1 |
+| ~~7~~ | ~~Frames never swept after a hard kill~~ | 0/2 | — | **FIXED 2026-09-20**, see §8.1 |
 | 8 | One bad field discards a 12-frame batch → job failed | 6 | medium | loses a whole job's metrics |
 | 9 | Partial horizontal motion drops the moving rows | 4 | medium | loses a metric |
 | 10 | `_fixed_bands` declares up to 90 % of the screen pinned | 4 | medium | loses a metric |
@@ -513,20 +515,77 @@ checks a number by hand. **Costs frames** = visible on the OpenRouter bill.
 | 16 | Horizontal scroll / carousel | 4 | medium | costs frames + minutes of CPU |
 | 17 | `_link_to_earlier` quadratic blow-up | 4 | medium | tens of minutes per video |
 | 18 | Worker RSS creep, OOM kill, poison-message loop | 3 | medium | job never finishes, retries forever |
-| 19 | Chord message lost → `finalize_job` never fires | 0 | low | job stuck, files orphaned |
+| 19 | Chord message lost → `finalize_job` never fires | 0 | low | job stuck (files now swept, see §8.1) |
 | 20 | Redis redelivery of a ≥1 h task → double execution | 0 | low | double OCR spend, racing cleanup |
 | 21 | 429 lockstep retries across parallel workers | 6 | medium | batches lost |
 | 22 | Poller backlog downloads everything in one task | 1 | **high** | fills the uploads volume, hard kill |
 | 23 | Non-ASCII names slug to empty → id collisions | 1 | medium | two jobs share a directory |
-| 24 | ZIP: one bad video skipped, job completes green | 2 | medium | loses that video, silently |
+| ~~24~~ | ~~ZIP: one bad video skipped, job completes green~~ | 2 | — | **FIXED 2026-09-20**, see §8.1 |
 | 25 | Brightness change / dark-mode toggle mid-recording | 4 | low | costs frames |
 
 **Everything that swallows an exception**, since at scale these are invisible:
-`frame_extractor.py` (`:33, :65, :69, :89, :101, :121, :128, :145, :179, :239`),
+`frame_extractor.py` (`:45, :83, :87, :110, :150, :158, :184, :214, :280`),
 `frame_classifier.py` (`:42, :58, :69, :78, :131, :152`), `metric_coverage.py`
 (`:415, :425, :481`), `ocr_processor.py` (`:88, :221, :233, :310, :438`),
 `s3_storage.py` (`:62`), `db_client.py` (twelve sites), `tasks.py`
-(`:47, :162, :180, :246, :279, :303, :308`), `ingest.py` (`:110, :121, :134`).
+(`:54, :169, :187, :264, :329, :390, :414, :418`), `ingest.py` (`:110, :121, :134`).
+
+### 8.1 Fixed on 2026-09-20
+
+Three of the rows above are resolved. Each has regression tests built from the
+failure it describes, and the suite is at **165 passing** (was 145).
+
+**Failures 1 and 24 — an unreadable video is an error now, never a silent zero.**
+`processing/frame_extractor.py` gained `VideoUnreadable`. It is raised when
+OpenCV cannot open the file, and when a file opens but yields no frames (frame 0
+is always sampled, so zero saved frames means every write failed). The ZIP path
+catches it per member and records `"status": "error"`, so a bad video among good
+ones is counted into `videos_failed` rather than reported as a success; the job
+then fails as incomplete, the same rule already used for a dropped OCR batch.
+A ZIP with no video members, and one whose members all fail, each fail with a
+message that says so instead of the misleading "No Instagram Insights screens
+detected". The 720p probe also checks `isOpened()` first, so an undecodable file
+no longer burns up to ten minutes of ffmpeg timeout.
+*Tests:* `tests/test_frame_extractor.py` — empty, junk and truncated files, a
+missing file, a readable video that must still succeed, every frame failing to
+write, the ffmpeg skip, and the three ZIP cases. Two older tests that asserted
+the silent-zero behaviour were rewritten; they had pinned the bug.
+
+**Failure 7 — orphaned frames and uploads are swept.**
+New beat task `tasks.sweep_orphans`, hourly (`sweeper_interval_seconds`).
+It deletes a job directory or an upload only when all three hold: the path sits
+directly inside `processing_dir` / `upload_dir`; nothing in it has been touched
+for `orphan_max_age_seconds` (6 h, comfortably past the 1 h Celery hard limit);
+and its job is not queued or processing. It walks the tree rather than trusting
+a directory mtime, because writing frames into `<job>/frames/` leaves `<job>/`
+untouched, and it stops at the first recent file so a live job costs one stat.
+Anything it cannot determine — an unreadable mtime, a database it cannot reach —
+it keeps: deleting a live job's frames is unrecoverable, keeping an orphan for
+another hour costs disk. `KEEP_JOB_FRAMES` disables it entirely.
+*Tests:* `tests/test_cleanup.py` — an orphan removed, a live job's directory
+kept, a recent directory kept, fresh frames inside an old directory kept, an
+orphaned upload removed while a live job's upload survives, the
+`KEEP_JOB_FRAMES` no-op, everything kept when the active-job list is
+unavailable, and a symlink that must not lead it out of `processing_dir`.
+
+**Failure 6 — the reaper measures activity, not age.**
+`jobs` gained `last_progress_at` (**migration 0003**, nullable, backfilled from
+`created_at`, indexed with `status`), stamped by `update_job_progress` and
+`update_job_status`. `fail_stale_jobs` now uses two clocks: a **processing** job
+fails after `job_stale_seconds` (2 h) with no progress, measured from
+`COALESCE(last_progress_at, created_at)`; a **queued** job fails only after
+`queue_stale_seconds` (24 h), because with two worker slots and a backlog of
+thousands, waiting is the normal state and not a symptom. The safety net for a
+genuinely lost broker message survives, with its own message.
+*Tests:* `tests/test_tracking.py` — a stalled job failed, a nine-hour job still
+reporting progress spared, a five-hour queued job spared, a thirty-hour queued
+job failed, both update paths stamping liveness, and the NULL fallback for rows
+predating the migration.
+
+**Deployment note:** migration 0003 must run (`alembic upgrade head`, which
+compose already does) before the new reaper behaves as described. Until then
+`last_progress_at` does not exist; the COALESCE keeps the old
+created_at behaviour rather than erroring.
 
 ---
 
@@ -620,37 +679,38 @@ and 2–8 MB of JPEGs; coverage OCR runs on 15–81 frames per video at roughly
 2. **Fail loudly when Tesseract is unavailable** rather than skipping the stage
    — or at least record `Coverage.applied` on the job, so the bill has an
    explanation.
-3. **Check `cap.isOpened()`** and fail the video explicitly. Failure 1 is the
-   one that loses everything while reporting success.
-4. **Add a disk sweeper** for `processing_dir` and `upload_dir` keyed on age,
-   independent of job settlement. Failure 7 is the one that takes the whole run
-   down rather than one job.
-5. **Make the reaper key on last progress, not `created_at`** — otherwise a
-   backlog marks healthy queued jobs failed.
-6. **Give the poller a per-tick budget** (N objects or a time box) and an
+3. ~~Check `cap.isOpened()`.~~ ~~Add a disk sweeper.~~ ~~Make the reaper key on
+   last progress.~~ **All three done 2026-09-20 — see §8.1.** The remaining
+   deployment step is `alembic upgrade head` for migration 0003.
+4. **Give the poller a per-tick budget** (N objects or a time box) and an
    overlap lock, and apply the web route's ZIP validation to it.
-7. **Act on `create_job` returning `False`** in the poller: do not enqueue.
-8. **Set `worker_max_tasks_per_child`** so a leaking child is recycled, and
+5. **Act on `create_job` returning `False`** in the poller: do not enqueue.
+6. **Set `worker_max_tasks_per_child`** so a leaking child is recycled, and
    `task_reject_on_worker_lost=False` so an OOM does not loop forever.
-9. **Consider raising `frame_interval` or capping frames per video.** A cap is
+7. **Consider raising `frame_interval` or capping frames per video.** A cap is
    the cheapest protection against both the quadratic selection path and the
    disk path.
-10. **Reconsider `scale=-2:720` for portrait**, or at least measure OCR accuracy
-    at 720 wide against 720 tall on a sample. It is the largest single lever on
-    every downstream stage.
+8. **Reconsider `scale=-2:720` for portrait**, or at least measure OCR accuracy
+   at 720 wide against 720 tall on a sample. It is the largest single lever on
+   every downstream stage.
 
 ### While it runs
 
 Watch, in order of how much they cost if missed:
 
-- jobs `completed` with **zero metrics**, or with `total_frames = 0` — failure 1;
-- free space on the `processing` and `uploads` volumes — failure 7;
+- jobs failing with "not a decodable video" or "could not be read" — these are
+  now reported rather than silent (§8.1), so the count is a real signal about
+  the uploads themselves;
+- free space on the `processing` and `uploads` volumes, plus the sweeper's
+  hourly line `Sweeper removed N job dir(s)…`: a rising count means jobs are
+  dying without settling (§8.1);
 - the log line `Coverage: N -> M frames`; if `M ≈ N` across many videos,
   coverage is not working — failure 2;
 - worker RSS over time — failure 18;
 - OpenRouter 429 rate and `batches_failed` — failures 21 and 8;
 - objects sitting in `ingesting/` — a job died without settling;
-- jobs whose status went `failed` then `completed` — failure 6.
+- jobs stuck `queued` far longer than the backlog explains — the reaper no
+  longer masks this by failing them at 2 h (§8.1), so it is visible now.
 
 ### Keep the feedback loop running
 

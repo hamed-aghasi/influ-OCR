@@ -27,6 +27,82 @@ def _write_video(path: Path, frames: int = 9, size=(64, 48)) -> Path:
     return path
 
 
+# ----- unreadable input is a failure, never a silent zero -----
+
+@pytest.mark.parametrize(
+    "name,content",
+    [
+        ("empty.mp4", b""),
+        ("junk.mp4", b"not really a video at all"),
+        ("truncated.avi", b"RIFF\x00\x00\x00\x00AVI LIST"),
+    ],
+)
+def test_undecodable_video_raises_instead_of_returning_zero_frames(tmp_path, name, content):
+    """The whole upload is lost here, so it must be an error. Previously
+    cap.isOpened() was never checked: this returned (0, []) with no exception
+    and no error log, and the job completed."""
+    from processing.frame_extractor import VideoUnreadable, extract_frames_from_video
+
+    video = tmp_path / name
+    video.write_bytes(content)
+
+    with pytest.raises(VideoUnreadable, match=name):
+        extract_frames_from_video(video, tmp_path / "frames", convert_to_720=False)
+
+
+def test_missing_file_raises(tmp_path):
+    from processing.frame_extractor import VideoUnreadable, extract_frames_from_video
+
+    with pytest.raises(VideoUnreadable):
+        extract_frames_from_video(tmp_path / "nope.mp4", tmp_path / "frames", convert_to_720=False)
+
+
+def test_opened_but_every_frame_unwritable_raises(tmp_path, monkeypatch):
+    """Decodes fine, but nothing reaches disk (a full volume). Silently
+    returning 0 frames would report an empty job as a success."""
+    from processing import frame_extractor
+    from processing.frame_extractor import VideoUnreadable, extract_frames_from_video
+
+    video = _write_video(tmp_path / "clip.avi", frames=6)
+    monkeypatch.setattr(frame_extractor.cv2, "imencode", lambda *a, **k: (False, None))
+
+    with pytest.raises(VideoUnreadable, match="no frames could be extracted"):
+        extract_frames_from_video(video, tmp_path / "frames", convert_to_720=False)
+
+
+def test_readable_video_still_returns_frames(tmp_path):
+    """The guard must not fire on a healthy video."""
+    from processing.frame_extractor import extract_frames_from_video
+
+    video = _write_video(tmp_path / "clip.avi", frames=6)
+    count, paths = extract_frames_from_video(
+        video, tmp_path / "frames", frame_interval=3, convert_to_720=False
+    )
+    assert count == 2 and len(paths) == 2
+
+
+def test_conversion_is_skipped_for_a_file_opencv_cannot_open(tmp_path, monkeypatch):
+    """No point spending the ffmpeg timeout on a file that cannot be decoded."""
+    from processing import frame_extractor
+
+    called = []
+    monkeypatch.setattr(frame_extractor, "_check_ffmpeg", lambda: True)
+    monkeypatch.setattr(frame_extractor.subprocess, "run",
+                        lambda *a, **k: called.append(a) or pytest.fail("ffmpeg should not run"))
+
+    video = tmp_path / "junk.mp4"
+    video.write_bytes(b"nope")
+
+    assert frame_extractor._convert_to_720p(video, tmp_path / "out.mp4", _log()) is False
+    assert called == []
+
+
+def _log():
+    import logging
+
+    return logging.getLogger("test")
+
+
 # ----- filename sanitising -----
 
 @pytest.mark.parametrize(
@@ -118,19 +194,6 @@ def test_stale_frames_are_cleared_before_extraction(tmp_path):
     assert keep.exists()  # only frame_*.jpg is cleared
 
 
-def test_unreadable_video_yields_no_frames(tmp_path):
-    from processing.frame_extractor import extract_frames_from_video
-
-    broken = tmp_path / "broken.avi"
-    broken.write_bytes(b"this is not a video")
-
-    count, paths = extract_frames_from_video(
-        broken, tmp_path / "frames", frame_interval=1, convert_to_720=False
-    )
-    assert count == 0
-    assert paths == []
-
-
 # ----- 720p conversion -----
 
 def test_conversion_skipped_when_ffmpeg_missing(tmp_path, monkeypatch):
@@ -196,8 +259,12 @@ def test_check_ffmpeg_handles_missing_binary(monkeypatch):
 class _FakeCap:
     """Minimal VideoCapture stand-in for the height probe."""
 
-    def __init__(self, height):
+    def __init__(self, height, opened=True):
         self._height = height
+        self._opened = opened
+
+    def isOpened(self):
+        return self._opened
 
     def get(self, prop):
         return float(self._height)
@@ -248,39 +315,56 @@ def test_process_campaign_zip_ignores_macosx_and_non_videos(tmp_path):
     assert [r["name"] for r in result["results"]] == ["real.avi"]
 
 
-def test_zip_of_screenshots_yields_no_frames(tmp_path):
-    """KNOWN GAP, pinned deliberately: README and the upload page both offer
-    'a ZIP of screenshots', but process_campaign_zip filters members to video
-    extensions only. Such a ZIP produces zero frames and no error, and the job
-    then fails as 'No Instagram Insights screens detected'. Change this test
-    when image members are supported.
+def test_zip_of_screenshots_is_rejected_with_a_clear_reason(tmp_path):
+    """KNOWN GAP: README and the upload page both offer 'a ZIP of screenshots',
+    but process_campaign_zip filters members to video extensions only. It now
+    says so instead of yielding zero frames silently and failing later as
+    'No Instagram Insights screens detected'. Change this test when image
+    members are supported.
     """
-    from processing.frame_extractor import process_campaign_zip
+    from processing.frame_extractor import VideoUnreadable, process_campaign_zip
 
     z = _zip_with(tmp_path, {"shot1.png": b"\x89PNG\r\n\x1a\n", "shot2.jpg": b"\xff\xd8\xff"})
-    result = process_campaign_zip(z, tmp_path / "out", job_id="job-3")
 
-    assert result["results"] == []
-    assert result["frame_paths"] == []
-    assert result["total_frames"] == 0
+    with pytest.raises(VideoUnreadable, match="no video files"):
+        process_campaign_zip(z, tmp_path / "out", job_id="job-3")
 
 
-def test_corrupt_member_is_reported_not_raised(tmp_path):
-    from processing.frame_extractor import process_campaign_zip
+def test_zip_of_only_unreadable_videos_raises(tmp_path):
+    """Total data loss must not be reported as success. Before, this returned
+    results=[{status: success, frames: 0}] and the job completed green."""
+    from processing.frame_extractor import VideoUnreadable, process_campaign_zip
 
     z = _zip_with(tmp_path, {"broken.avi": b"not really a video"})
-    result = process_campaign_zip(z, tmp_path / "out", job_id="job-4")
 
-    # A member that decodes to nothing still completes: zero frames, no crash.
-    assert len(result["results"]) == 1
-    assert result["total_frames"] == 0
+    with pytest.raises(VideoUnreadable, match="none of its 1 video"):
+        process_campaign_zip(z, tmp_path / "out", job_id="job-4")
+
+
+def test_unreadable_member_is_an_error_not_a_success(tmp_path):
+    """One bad video among good ones is recorded as an error and counted, so
+    finalize_job can report the upload as incomplete."""
+    from processing.frame_extractor import process_campaign_zip
+
+    video_bytes = _write_video(tmp_path / "src.avi", frames=3).read_bytes()
+    z = _zip_with(tmp_path, {"good.avi": video_bytes, "broken.avi": b"not really a video"})
+
+    result = process_campaign_zip(z, tmp_path / "out", job_id="job-4b")
+
+    by_name = {r["name"]: r for r in result["results"]}
+    assert by_name["good.avi"]["status"] == "success"
+    assert by_name["broken.avi"]["status"] == "error"
+    assert by_name["broken.avi"]["frames"] == 0
+    assert result["videos_total"] == 2
+    assert result["videos_failed"] == 1
+    assert result["total_frames"] > 0          # the readable one still counts
 
 
 def test_zip_slip_member_cannot_escape_the_temp_dir(tmp_path):
     """zipfile.extract() sanitises member paths; this pins that guarantee so a
     future switch to a manual open()/write() loop cannot silently reintroduce
     path traversal."""
-    from processing.frame_extractor import process_campaign_zip
+    from processing.frame_extractor import VideoUnreadable, process_campaign_zip
 
     video_bytes = _write_video(tmp_path / "src.avi", frames=2).read_bytes()
     z = _zip_with(tmp_path, {"../../escaped.avi": video_bytes})
@@ -288,7 +372,8 @@ def test_zip_slip_member_cannot_escape_the_temp_dir(tmp_path):
     marker = tmp_path.parent / "escaped.avi"
     existed_before = marker.exists()
 
-    process_campaign_zip(z, tmp_path / "out", job_id="job-5")
+    with pytest.raises(VideoUnreadable):   # the member decodes to nothing
+        process_campaign_zip(z, tmp_path / "out", job_id="job-5")
 
     assert marker.exists() == existed_before  # nothing written outside the sandbox
 
@@ -304,5 +389,5 @@ def test_campaign_summary_records_counts(tmp_path):
 
     assert summary["job_id"] == "job-6"
     assert summary["total_videos"] == 2
-    assert summary["successful"] == 2  # both "succeed"; the junk one yields 0 frames
+    assert summary["successful"] == 1  # the junk member is an error, not a success
     assert len(summary["results"]) == 2
