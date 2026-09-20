@@ -26,8 +26,12 @@ Per video, <out>/<video stem>/:
     feedback.json         YOUR review of this video (template; see the round README)
 and <out>/index.html + index.json for the whole round.
 
+With --minimal, only two folders are written per video, frames/ and final/,
+for reviewing in conversation instead of by filling in feedback.json.
+
 Usage:
     .venv-train/bin/python training/review_videos.py VIDEO_OR_DIR [...] --out review-rounds/<round>
+    .venv-train/bin/python training/review_videos.py VIDEOS --out review-rounds/<round> --minimal
 """
 
 import argparse
@@ -122,7 +126,7 @@ def copy(src, dst):
     shutil.copy2(src, dst)
 
 
-def review_video(video, out, eff, model):
+def review_video(video, out, eff, model, minimal=False):
     out.mkdir(parents=True)          # main() has checked it does not exist; never overwrite
     print(f"\n=== {_rel(video)}")
 
@@ -155,13 +159,28 @@ def review_video(video, out, eff, model):
     print(f"    coverage + duplicate pass kept {len(final)} -> these would be sent to OCR "
           f"({len(choice.dropped_as_duplicate)} dropped as duplicate content)")
 
-    # OCR lines again, for display only (the selection above already happened)
-    lines = {p.name: read_lines(p) for p in sel.selected}
-
     # 5. batch
     batches = chunk_batches(final)
     batch_of = {p.name: (bi, pos) for bi, b in enumerate(batches) for pos, p in enumerate(b)}
     print(f"    -> {len(batches)} OpenRouter request(s) would be made (none were)")
+
+    if minimal:
+        # Only what a human needs to browse: the frames, and the ones that
+        # would be sent. Named as in frames/ so feedback can cite one name.
+        for p in final:
+            copy(p, out / "final" / p.name)
+        print(f"    minimal output: frames/ ({len(frames)}) and final/ ({len(final)})")
+        return {
+            "video": _rel(video),
+            "counts": {"extracted": len(frames), "classifier_good": len(good),
+                       "scroll_selected": len(sel.selected), "final_sent": len(final),
+                       "openrouter_requests_that_would_be_made": len(batches)},
+            "final_frames": [p.name for p in final],
+            "metrics_read_in_final_set": sorted(set().union(*(cov.metrics[p] for p in final)) if final else set()),
+        }
+
+    # OCR lines again, for display only (the selection above already happened)
+    lines = {p.name: read_lines(p) for p in sel.selected}
 
     selected_names = {p.name for p in sel.selected}
     rows = []
@@ -362,6 +381,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("inputs", nargs="+", type=Path, help="video files, or folders (top level only)")
     ap.add_argument("--out", type=Path, required=True, help="round folder, e.g. review-rounds/round-01")
+    ap.add_argument("--minimal", action="store_true",
+                    help="write only frames/ and final/ per video: no review.html, "
+                         "scroll_selected/, dropped_by_coverage/, frames.csv, summary.json, "
+                         "feedback.json or round index. For reviewing in conversation "
+                         "rather than by filling in a feedback file.")
     args = ap.parse_args()
 
     videos = []
@@ -386,7 +410,18 @@ def main():
     print(f"settings: {eff}")
     print(f"model: {model['run_id']} (savedmodel md5 {model['savedmodel_md5']})")
     args.out.mkdir(parents=True, exist_ok=True)
-    summaries = [review_video(v, args.out / v.stem, eff, model) for v in videos]
+    summaries = [review_video(v, args.out / v.stem, eff, model, args.minimal) for v in videos]
+
+    if args.minimal:
+        print("\n" + "=" * 78)
+        for s in summaries:
+            c = s["counts"]
+            print(f"{Path(s['video']).stem:<40} {c['extracted']:>4} -> {c['classifier_good']:>3} -> "
+                  f"{c['scroll_selected']:>3} -> {c['final_sent']:>2} sent")
+            print(f"    {', '.join(s['final_frames'])}")
+        total = sum(s["counts"]["final_sent"] for s in summaries)
+        print(f"\n{total} frames across {len(summaries)} video(s); no OpenRouter call was made")
+        return
 
     index = args.out / "index.json"
     previous = json.loads(index.read_text()) if index.exists() else []
