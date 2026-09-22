@@ -1,5 +1,28 @@
 # HANDOFF — session state for the next context
 
+## 2026-09-22 — round 03, the player-UI bug, and a verified Docker deploy
+
+- **Deployed model: run `2026-09-22-round03`** (sha256 `f9516a57e609f2da…`), threshold 0.30.
+  Held-out recall **1.000**, precision 0.965, val accuracy 0.991. Previous model backed up to
+  `models/backup_20260922T131815Z/`, verified byte-identical to what it replaced before the swap.
+- **Two pipeline fixes**, each measured against the ground truth on its own:
+  - the `unrecognised` net now requires the page title or a panel section header, so the
+    Reel/Story player is no longer treated as an Insights screen (49 → 47 frames, 0 lost);
+  - scroll selection's tie-break takes the classifier score before stillness, so a placeholder
+    panel no longer beats the frame where the numbers have rendered. Costs 3 frames on
+    rounds 01-02 (152 → 155) and fixes the round-03 drops.
+- **Docker verified, not assumed.** Image rebuilt; the model inside it has the *same* sha256 as
+  the host, loads through the app's own path, 172 tests pass in the image, and the ground truth
+  inside the container is **47 frames / 0 lost — identical to the host**. Earlier rounds differed
+  here (71 vs 68), so this is new. Previous image kept as `influ-ocr:pre-round03`.
+  `training/verify_model.py` is the check; run it on both sides of any deploy.
+- **Feedback corpus**: rounds 01-02 are 67 checks (65 pass), round 03 adds **51 more across 49
+  videos**. `eval_feedback.py` now scores 73 videos and takes hours — budget for it.
+- **Open**: (1) `0dabe58a` frame 051 was reported good but is the Stories archive with a spinner;
+  351 labelled good instead, awaiting the reviewer's word. (2) Tesseract cannot read the Persian
+  gender donut, so coverage cannot target gender on that layout. (3) The two remaining rounds-01/02
+  failures are `78a59e11` 462 and `a54e4eda` 561, both dark-mode fade-ins.
+
 ## 2026-09-20 — Docker rebuilt at round-01c; PIPELINE.md written
 
 - **Image rebuilt** at commit `04e4254`. The previous image is kept as
