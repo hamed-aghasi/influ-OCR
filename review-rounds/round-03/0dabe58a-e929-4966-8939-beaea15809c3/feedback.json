@@ -1,0 +1,58 @@
+{
+ "round": "round-03",
+ "video": "0dabe58a-e929-4966-8939-beaea15809c3",
+ "status": "done",
+ "reviewer": "user",
+ "note": "different layout; gender split missing from final",
+ "sent_frames": [
+  {
+   "frame": "frame_000276.jpg"
+  },
+  {
+   "frame": "frame_000312.jpg"
+  },
+  {
+   "frame": "frame_000321.jpg"
+  }
+ ],
+ "should_have_been_sent": [
+  {
+   "frame": "frame_000051.jpg",
+   "why": "different layout; gender split missing from final"
+  },
+  {
+   "frame": "frame_000327.jpg",
+   "why": "different layout; gender split missing from final"
+  },
+  {
+   "frame": "frame_000330.jpg",
+   "why": "different layout; gender split missing from final"
+  },
+  {
+   "frame": "frame_000333.jpg",
+   "why": "different layout; gender split missing from final"
+  },
+  {
+   "frame": "frame_000336.jpg",
+   "why": "different layout; gender split missing from final"
+  },
+  {
+   "frame": "frame_000339.jpg",
+   "why": "different layout; gender split missing from final"
+  },
+  {
+   "frame": "frame_000342.jpg",
+   "why": "different layout; gender split missing from final"
+  },
+  {
+   "frame": "frame_000345.jpg",
+   "why": "different layout; gender split missing from final"
+  },
+  {
+   "frame": "frame_000348.jpg",
+   "why": "different layout; gender split missing from final"
+  }
+ ],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

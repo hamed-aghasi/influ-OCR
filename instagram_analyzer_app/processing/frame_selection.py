@@ -289,7 +289,14 @@ def _cover_page(page: List[_Frame], h: int) -> Dict[int, List[_Frame]]:
                 break
             best = min(picks_needed(c[0][1]) for c in cands)
             pool = [c for c in cands if picks_needed(c[0][1]) == best]
-            pick = min(pool, key=lambda c: (c[1].stillness, -c[1].score, c[1].order))
+            # Classifier score first, stillness second. Stillness alone picked
+            # the wrong frame whenever a page was still loading: a placeholder
+            # panel is perfectly still, while the frame where the numbers have
+            # just rendered differs from its predecessor and so looks "moving".
+            # Round-03: ten frames of 634d6f63 scored 0.996+ and none was sent.
+            # With equal scores this is the old behaviour, so a genuine hold
+            # still wins its tie.
+            pick = min(pool, key=lambda c: (-round(c[1].score, 2), c[1].stillness, c[1].order))
             chosen.append(pick)
             reach = pick[0][1]
 

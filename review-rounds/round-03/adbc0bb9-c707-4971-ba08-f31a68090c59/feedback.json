@@ -1,0 +1,48 @@
+{
+ "round": "round-03",
+ "video": "adbc0bb9-c707-4971-ba08-f31a68090c59",
+ "status": "done",
+ "reviewer": "user",
+ "note": "597 scrolled, a number cut off; 30 bad",
+ "sent_frames": [
+  {
+   "frame": "frame_000030.jpg",
+   "needed": false,
+   "note": "597 scrolled, a number cut off; 30 bad"
+  },
+  {
+   "frame": "frame_000597.jpg",
+   "needed": false,
+   "note": "597 scrolled, a number cut off; 30 bad"
+  },
+  {
+   "frame": "frame_000606.jpg"
+  },
+  {
+   "frame": "frame_000720.jpg"
+  },
+  {
+   "frame": "frame_000795.jpg"
+  }
+ ],
+ "should_have_been_sent": [
+  {
+   "frame": "frame_000585.jpg",
+   "why": "597 scrolled, a number cut off; 30 bad"
+  },
+  {
+   "frame": "frame_000588.jpg",
+   "why": "597 scrolled, a number cut off; 30 bad"
+  },
+  {
+   "frame": "frame_000591.jpg",
+   "why": "597 scrolled, a number cut off; 30 bad"
+  },
+  {
+   "frame": "frame_000594.jpg",
+   "why": "597 scrolled, a number cut off; 30 bad"
+  }
+ ],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

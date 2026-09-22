@@ -354,6 +354,11 @@ _MONTHS = tuple(_norm(m) for m in (
     "ژانویه", "فوریه", "مارس", "آوریل", "مه", "ژوئن", "ژوئیه", "اوت", "سپتامبر", "اکتبر", "نوامبر", "دسامبر"))
 _NOT_EVIDENCE = tuple(_norm(p) for p in ("watch time", "زمان تماشا"))
 _PAGE_TITLE = ("insights", "اطلاعاتآماری")
+# Section headers of the metrics panel: the first one marks where the panel
+# begins, and the thumbnail carousel above it ends. See _panel_start.
+_PANEL_HEADERS = tuple(_norm(p) for p in (
+    "overview", "summary", "interactions", "profile activity", "audience", "navigation",
+    "مرور کلی", "خلاصه", "تعاملات", "فعالیت نمایه", "مخاطب", "پیمایش"))
 
 
 def _is_guardable(token: str, min_digits: int = 2) -> bool:
@@ -371,6 +376,21 @@ def _is_guardable(token: str, min_digits: int = 2) -> bool:
             and len(re.sub(r"\D", "", token)) >= min_digits)
 
 
+def _panel_start(norm: Sequence[str]) -> Optional[int]:
+    """Index of the first metric section header ("Overview", "Views ⓘ", …).
+
+    Everything above it is chrome: the status bar, the back arrow, and — on
+    Story and Reel screens — the thumbnail carousel, whose per-thumbnail viewer
+    badges are 3-5 digit numbers sitting right above the panel. Round-02b: on a
+    loading screen those badges were the only numbers on the frame, so they
+    alone kept it ("6777", "2430", "3408", "5325").
+    """
+    for i, n in enumerate(norm):
+        if any(n.startswith(h) for h in _PANEL_HEADERS):
+            return i
+    return None
+
+
 def evidence_values(lines: Sequence[str]) -> Set[str]:
     """Candidate metric values on a frame whose labels were NOT recognised.
 
@@ -381,13 +401,26 @@ def evidence_values(lines: Sequence[str]) -> Set[str]:
     skeletons whose icon-strip numbers were already on a sent frame, and rates
     tabs whose only numbers are percentages).
 
-    Excludes what is never a metric count: the status bar and anything above
-    the page title, the clock and durations, dates, rates, chart axes and
-    filter rows, watch time.
+    Counted only inside the metrics panel, below its first section header when
+    one is readable: a number above it belongs to the carousel, not to a
+    metric. Also excludes what is never a metric count: the status bar and
+    anything above the page title, the clock and durations, dates, rates, chart
+    axes and filter rows, watch time.
     """
     norm = [_norm(l) for l in lines]
     title = next((i for i, n in enumerate(norm[:6]) if any(t in n for t in _PAGE_TITLE)), None)
+    panel = _panel_start(norm)
+    if title is None and panel is None:
+        # Neither the page title nor a section header is readable, so this is
+        # not an Insights screen at all — it is the Reel/Story player, the
+        # feed, a profile grid or a settings page. The net exists for a garbled
+        # read of a screen that matters, not for every screen with a number on
+        # it (round-03: 12 of the 21 rejected frames were the player itself,
+        # kept on its like/comment counts).
+        return set()
     start = title + 1 if title is not None else 1
+    if panel is not None:
+        start = max(start, panel + 1)
     found: Set[str] = set()
     for i in range(start, len(lines)):
         n = norm[i]

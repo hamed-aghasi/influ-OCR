@@ -1,0 +1,39 @@
+{
+ "round": "round-03",
+ "video": "785905bb-e0d0-4aea-8898-be84c6cdd70b",
+ "status": "done",
+ "reviewer": "user",
+ "note": "two bad in final; 216 missing",
+ "sent_frames": [
+  {
+   "frame": "frame_000090.jpg",
+   "needed": false,
+   "note": "two bad in final; 216 missing"
+  },
+  {
+   "frame": "frame_000219.jpg"
+  },
+  {
+   "frame": "frame_000318.jpg"
+  },
+  {
+   "frame": "frame_000330.jpg"
+  },
+  {
+   "frame": "frame_000333.jpg"
+  },
+  {
+   "frame": "frame_000384.jpg",
+   "needed": false,
+   "note": "two bad in final; 216 missing"
+  }
+ ],
+ "should_have_been_sent": [
+  {
+   "frame": "frame_000216.jpg",
+   "why": "two bad in final; 216 missing"
+  }
+ ],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

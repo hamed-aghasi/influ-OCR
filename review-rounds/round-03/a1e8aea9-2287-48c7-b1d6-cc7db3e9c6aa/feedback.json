@@ -1,0 +1,39 @@
+{
+ "round": "round-03",
+ "video": "a1e8aea9-2287-48c7-b1d6-cc7db3e9c6aa",
+ "status": "done",
+ "reviewer": "user",
+ "note": "in final, should be bad labels",
+ "sent_frames": [
+  {
+   "frame": "frame_000021.jpg",
+   "needed": false,
+   "note": "in final, should be bad labels"
+  },
+  {
+   "frame": "frame_000033.jpg",
+   "needed": false,
+   "note": "in final, should be bad labels"
+  },
+  {
+   "frame": "frame_000039.jpg",
+   "needed": false,
+   "note": "in final, should be bad labels"
+  },
+  {
+   "frame": "frame_000228.jpg"
+  },
+  {
+   "frame": "frame_000267.jpg"
+  },
+  {
+   "frame": "frame_000318.jpg"
+  },
+  {
+   "frame": "frame_000396.jpg"
+  }
+ ],
+ "should_have_been_sent": [],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

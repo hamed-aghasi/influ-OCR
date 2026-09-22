@@ -1,0 +1,32 @@
+{
+ "round": "round-03",
+ "video": "b5577c8c-046f-465c-9d31-5fb0a12d921c",
+ "status": "done",
+ "reviewer": "user",
+ "note": "recurring: an early non-Insights frame in final",
+ "sent_frames": [
+  {
+   "frame": "frame_000030.jpg",
+   "needed": false,
+   "note": "recurring: an early non-Insights frame in final"
+  },
+  {
+   "frame": "frame_000165.jpg"
+  },
+  {
+   "frame": "frame_000192.jpg"
+  },
+  {
+   "frame": "frame_000198.jpg"
+  },
+  {
+   "frame": "frame_000210.jpg"
+  },
+  {
+   "frame": "frame_000222.jpg"
+  }
+ ],
+ "should_have_been_sent": [],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

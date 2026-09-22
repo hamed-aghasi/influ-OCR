@@ -1,0 +1,21 @@
+{
+ "round": "round-03",
+ "video": "7a21fe09-163d-4fba-8b1e-98f7806c7abb",
+ "status": "done",
+ "reviewer": "user",
+ "note": "no issues reported",
+ "sent_frames": [
+  {
+   "frame": "frame_000339.jpg"
+  },
+  {
+   "frame": "frame_000363.jpg"
+  },
+  {
+   "frame": "frame_000450.jpg"
+  }
+ ],
+ "should_have_been_sent": [],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

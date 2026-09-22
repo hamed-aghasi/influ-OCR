@@ -1,0 +1,62 @@
+{
+ "round": "round-03",
+ "video": "634d6f63-ed0f-4c37-81a2-9a2775148520",
+ "status": "done",
+ "reviewer": "user",
+ "note": "none of these similar frames reached final",
+ "sent_frames": [
+  {
+   "frame": "frame_000105.jpg"
+  },
+  {
+   "frame": "frame_000117.jpg"
+  },
+  {
+   "frame": "frame_000141.jpg"
+  }
+ ],
+ "should_have_been_sent": [
+  {
+   "frame": "frame_000063.jpg",
+   "why": "none of these similar frames reached final"
+  },
+  {
+   "frame": "frame_000066.jpg",
+   "why": "none of these similar frames reached final"
+  },
+  {
+   "frame": "frame_000069.jpg",
+   "why": "none of these similar frames reached final"
+  },
+  {
+   "frame": "frame_000072.jpg",
+   "why": "none of these similar frames reached final"
+  },
+  {
+   "frame": "frame_000075.jpg",
+   "why": "none of these similar frames reached final"
+  },
+  {
+   "frame": "frame_000078.jpg",
+   "why": "none of these similar frames reached final"
+  },
+  {
+   "frame": "frame_000081.jpg",
+   "why": "none of these similar frames reached final"
+  },
+  {
+   "frame": "frame_000084.jpg",
+   "why": "none of these similar frames reached final"
+  },
+  {
+   "frame": "frame_000087.jpg",
+   "why": "none of these similar frames reached final"
+  },
+  {
+   "frame": "frame_000090.jpg",
+   "why": "none of these similar frames reached final"
+  }
+ ],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

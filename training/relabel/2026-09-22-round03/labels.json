@@ -1,0 +1,184 @@
+{
+ "_rule": "bad = not an Insights screen (Reel/Story player, feed, profile grid, archive, settings), or an Insights screen whose visible sections show placeholder bars / values still fading in, or a metric cut off at the window edge. good = an Insights screen whose visible sections all show rendered numbers. Every frame below was checked by eye on a contact sheet.",
+ "a1e8aea9-2287-48c7-b1d6-cc7db3e9c6aa": {
+  "bad": [
+   0,
+   3,
+   6,
+   9,
+   12,
+   15,
+   18,
+   21,
+   24,
+   27,
+   30,
+   33,
+   36,
+   39,
+   42,
+   45,
+   48,
+   51,
+   54,
+   57,
+   60,
+   63,
+   66,
+   69
+  ],
+  "good": []
+ },
+ "8aa58697-b948-450a-9dbc-eb11325dc098": {
+  "bad": [
+   0,
+   3,
+   6,
+   9,
+   12,
+   15,
+   18,
+   21,
+   24,
+   27,
+   30,
+   33,
+   36,
+   39,
+   42,
+   45,
+   48,
+   51,
+   54,
+   57,
+   60,
+   63,
+   66,
+   69
+  ],
+  "good": []
+ },
+ "7e50b0ea-6c54-4d7c-87af-1f819590e4fe": {
+  "bad": [
+   87
+  ],
+  "good": []
+ },
+ "193395eb-1022-422d-b519-72737493282c": {
+  "bad": [
+   3,
+   30
+  ],
+  "good": []
+ },
+ "258485b7-8f4b-4928-9176-5a50e67753e0": {
+  "bad": [
+   255
+  ],
+  "good": []
+ },
+ "785905bb-e0d0-4aea-8898-be84c6cdd70b": {
+  "bad": [
+   90,
+   384
+  ],
+  "good": [
+   216
+  ]
+ },
+ "ae3a972e-32d7-4e09-80ff-4ae13bd87e07": {
+  "bad": [
+   234
+  ],
+  "good": [
+   318,
+   321,
+   324,
+   327
+  ]
+ },
+ "b5577c8c-046f-465c-9d31-5fb0a12d921c": {
+  "bad": [
+   30
+  ],
+  "good": []
+ },
+ "301e5e62-2277-4704-ae5d-bebc893c01db": {
+  "bad": [
+   153
+  ],
+  "good": []
+ },
+ "a02b2422-5855-4fa2-9621-788a9bd39670": {
+  "bad": [
+   117
+  ],
+  "good": []
+ },
+ "ff359ee0-6e11-4533-a7f6-52c64b44126e": {
+  "bad": [
+   90,
+   114
+  ],
+  "good": []
+ },
+ "adbc0bb9-c707-4971-ba08-f31a68090c59": {
+  "bad": [
+   30,
+   597
+  ],
+  "good": [
+   585,
+   588,
+   591,
+   594
+  ]
+ },
+ "634d6f63-ed0f-4c37-81a2-9a2775148520": {
+  "bad": [],
+  "good": [
+   63,
+   66,
+   69,
+   72,
+   75,
+   78,
+   81,
+   84,
+   87,
+   90
+  ]
+ },
+ "9b4dfad5-7083-48d5-82cf-ed68ecd4bb13": {
+  "bad": [],
+  "good": [
+   66
+  ]
+ },
+ "2371e1ad-76dc-4eaa-a492-2924af667597": {
+  "bad": [],
+  "good": [
+   186
+  ]
+ },
+ "0dabe58a-e929-4966-8939-beaea15809c3": {
+  "bad": [],
+  "good": [
+   327,
+   330,
+   333,
+   336,
+   339,
+   342,
+   345,
+   348,
+   351
+  ]
+ },
+ "a54e4eda-4008-43d2-a574-4b4446f6052e (1)": {
+  "bad": [
+   561
+  ],
+  "good": []
+ }
+}

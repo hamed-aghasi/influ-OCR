@@ -67,13 +67,13 @@ class Settings(BaseSettings):
 
     # ----- Classifier -----
     model_dir: Path = APP_DIR / "models"
-    # Tied to the deployed model, run 2026-09-20-loading (good = a schema metric
+    # Tied to the deployed model, run 2026-09-22-round03 (good = a schema metric
     # is readable, Top sources included; plus the round-01 and round-02 review
     # verdicts, the latter teaching the half-loaded state —
-    # training/relabel/2026-09-20-loading/). Held-out recall at 0.30 is 0.992.
-    # End to end: ground truth 49 frames, no metric lost; review feedback 54/67
-    # checks across 24 videos, against 47/67 for the previous model.
-    # Rolling back: backup_* in models/ (previous: run 2026-09-19b-sources,
+    # training/relabel/2026-09-22-round03/). Held-out recall at 0.30 is 1.000.
+    # End to end: ground truth 47 frames, no metric lost; review feedback 65/67
+    # checks across 24 videos; round-03 verdicts are checks too (review-rounds/).
+    # Rolling back: backup_* in models/ (previous: run 2026-09-22-loading-2,
     # also at 0.30).
     classifier_threshold: float = 0.30
     classifier_image_size: int = 224

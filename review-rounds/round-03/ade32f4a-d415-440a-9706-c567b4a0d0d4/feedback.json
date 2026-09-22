@@ -1,0 +1,33 @@
+{
+ "round": "round-03",
+ "video": "ade32f4a-d415-440a-9706-c567b4a0d0d4",
+ "status": "done",
+ "reviewer": "user",
+ "note": "no issues reported",
+ "sent_frames": [
+  {
+   "frame": "frame_000150.jpg"
+  },
+  {
+   "frame": "frame_000162.jpg"
+  },
+  {
+   "frame": "frame_000210.jpg"
+  },
+  {
+   "frame": "frame_000213.jpg"
+  },
+  {
+   "frame": "frame_000222.jpg"
+  },
+  {
+   "frame": "frame_000225.jpg"
+  },
+  {
+   "frame": "frame_000237.jpg"
+  }
+ ],
+ "should_have_been_sent": [],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

@@ -1,0 +1,17 @@
+{
+ "_rule": "bad = any metric section visible on screen shows placeholder bars or values still fading in, even when another section is loaded; good = every visible section shows its rendered number. Verified frame by frame on cropped contact sheets (the metrics panel only, at a size where placeholder bars are legible).",
+ "0256e5cc-9621-47da-8792-10da173bc260": {"bad": [156,159,162,165,168,171,174,177,180,183,186,189,192,195,198], "good": [465]},
+ "68a560d8-e404-4ccf-ba46-a673fa1571c3": {"bad": [126,129,132,135,138,141,144,147,150,153], "good": [474]},
+ "a8bc26ff-64c4-48dc-9c4f-c08b4dd756ae": {"bad": [96,99,102,105,108,111,114,117,120,123,126], "good": []},
+ "bc344c22-c8c3-43c3-8514-c81b8f53f2b0": {"bad": [129,132,135,138,141,144,147,150,153,156,159,162,165,168,171,174,177,180], "good": [390]},
+ "e6740b3d-3125-4f28-8f4f-abc0826ebe98": {"bad": [99,102,105,108,111,114,117,120,123,126,129,132,135,138,144,147,150,153,156,159], "good": [291]},
+ "d88b6c04-21a7-4f8f-989f-6e93a4365c0e": {"bad": [264,267], "good": [270,273,276,279,282]},
+ "a54e4eda-4008-43d2-a574-4b4446f6052e": {"bad": [558,561,564], "good": [567,570,573,576,579]},
+ "453ccb37-a7db-43b6-9f51-cab270850f70 (1)": {"bad": [129], "good": [219,222,225,264,267,270,273]},
+ "c20db917-484d-4e65-8d46-0190d2dd895c": {"bad": [468,471], "good": [417,438,462,465,522,525]},
+ "8ba8ce38-6feb-4f9c-a003-1c961cd28e72": {"bad": [42,189,192,195,198], "good": [45,60,201,222,240,243]},
+ "d7750aef-a731-42c5-b9f6-11cf6cce7d22": {"bad": [204], "good": [231,234,258,261,270]},
+ "99f72a3c-4a89-4b68-824c-0d041e9f9deb": {"bad": [12], "good": []},
+ "4fc5cd74-516d-4272-a20a-b492aace6dc9 (1)": {"bad": [], "good": [0,3,6,9,12,15,18,21]},
+ "5198f946-0d84-462e-a284-cab2e2abee46": {"bad": [], "good": [1317,1320,1341,1365,1383]}
+}

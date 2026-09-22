@@ -1,0 +1,31 @@
+{
+ "round": "round-03",
+ "video": "2371e1ad-76dc-4eaa-a492-2924af667597",
+ "status": "done",
+ "reviewer": "user",
+ "note": "186 should have been sent instead of 192",
+ "sent_frames": [
+  {
+   "frame": "frame_000192.jpg",
+   "needed": false,
+   "note": "186 should have been sent instead of 192"
+  },
+  {
+   "frame": "frame_000198.jpg"
+  },
+  {
+   "frame": "frame_000246.jpg"
+  },
+  {
+   "frame": "frame_000282.jpg"
+  }
+ ],
+ "should_have_been_sent": [
+  {
+   "frame": "frame_000186.jpg",
+   "why": "186 should have been sent instead of 192"
+  }
+ ],
+ "duplicate_groups": [],
+ "metrics_missing_from_final_set": []
+}

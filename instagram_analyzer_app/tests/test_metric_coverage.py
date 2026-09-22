@@ -388,12 +388,27 @@ def test_rates_tab_offers_no_candidate_value():
     assert evidence_values(RATES_TAB) == set()
 
 
-def test_loading_skeleton_offers_only_the_icon_strip():
-    """Its date, duration and OCR noise are excluded; what remains is the icon
-    strip, which another frame carries."""
+def test_loading_skeleton_offers_no_candidate_value():
+    """Its date, duration and OCR noise are excluded, and the icon strip sits
+    above the panel's first section header ("Overview ©"), so it is chrome
+    rather than a metric value. Nothing is left to justify sending it."""
     from processing.metric_coverage import evidence_values
 
-    assert evidence_values(LOADING_SKELETON) == {"236"}
+    assert evidence_values(LOADING_SKELETON) == set()
+
+
+def test_carousel_badges_above_the_panel_are_not_values():
+    """round-02b: on Story loading screens the only numbers were the viewer
+    badges on the thumbnail carousel ("6777", "2430", "3408"), which sit above
+    "Overview". They kept every one of those frames."""
+    from processing.metric_coverage import evidence_values
+
+    skeleton = ["0 x", "= a 77| ۵", "35407۳ 0", "db & 2430 wi",
+                "Overview ©", "Views", "Interactions", "Profile activity ©", "Audience"]
+    assert evidence_values(skeleton) == set()
+    # the same badge with a real value under the header still counts
+    loaded = skeleton[:4] + ["Overview ©", "Views", "3,089", "Interactions"]
+    assert evidence_values(loaded) == {"3089"}
 
 
 def test_unrecognised_frame_is_dropped_when_its_values_are_already_sent(tmp_path):
@@ -438,3 +453,18 @@ def test_status_bar_noise_is_not_a_candidate_value():
     from processing.metric_coverage import evidence_values
 
     assert evidence_values(["0 x", "19 , ۳3 ©", "Overview ©", "Views"]) == set()
+
+
+def test_player_ui_is_not_an_insights_screen():
+    """round-03: 12 of the 21 rejected frames were the Reel/Story player, with
+    the video playing. They carry like/comment/share counts, so the old rule
+    kept them on "a number I cannot explain". With neither the page title nor a
+    panel section header readable, the frame is not Insights at all."""
+    from processing.metric_coverage import evidence_values
+
+    player = ["4:21", "bazigaran_iraani", "سفر اعماق کیشه", "1,204", "37", "12", "Send"]
+    assert evidence_values(player) == set()
+    # the same numbers under a readable panel header still count
+    assert evidence_values(["< Reel insights", "Overview ©", "1,204"]) == {"1204"}
+    # a page title alone is enough context, even with the panel scrolled off
+    assert evidence_values(["< Reel insights", "Viewz 1,234"]) == {"1234"}
