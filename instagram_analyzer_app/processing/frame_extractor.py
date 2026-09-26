@@ -33,6 +33,15 @@ def _sanitize_filename(name: str) -> str:
     return "".join(c for c in name if ord(c) >= 32)
 
 
+def _remove_quietly(path: Optional[Path]) -> None:
+    """Delete the transcoded temp file if it exists; failing to delete it is not an error."""
+    if path and path.exists():
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
 def _check_ffmpeg() -> bool:
     try:
         result = subprocess.run(
@@ -116,20 +125,13 @@ def extract_frames_from_video(
         if _convert_to_720p(video_path, temp_video, log):
             video_to_process = temp_video
         elif temp_video.exists():
-            try:
-                temp_video.unlink()
-            except OSError:
-                pass
+            _remove_quietly(temp_video)
             temp_video = None
 
     cap = cv2.VideoCapture(str(video_to_process))
     if not cap.isOpened():
         cap.release()
-        if temp_video and temp_video.exists():
-            try:
-                temp_video.unlink()
-            except OSError:
-                pass
+        _remove_quietly(temp_video)
         raise VideoUnreadable(
             f"{video_path.name}: not a decodable video "
             "(empty, truncated, or an unsupported codec)"
@@ -159,11 +161,7 @@ def extract_frames_from_video(
         frame_count += 1
     cap.release()
 
-    if temp_video and temp_video.exists():
-        try:
-            temp_video.unlink()
-        except OSError:
-            pass
+    _remove_quietly(temp_video)
 
     if saved_count == 0:
         raise VideoUnreadable(
