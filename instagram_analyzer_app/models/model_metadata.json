@@ -1,7 +1,7 @@
 {
-  "run_id": "2026-09-22-round03",
-  "training_date": "2026-09-22T12:43:42+00:00",
-  "model_version": "round03-2026-09-22",
+  "run_id": "2026-09-26-final-test",
+  "training_date": "2026-09-26T11:31:45+00:00",
+  "model_version": "final-test-2026-09-26",
   "architecture": "MobileNetV2_transfer_learning",
   "input_shape": [
     224,
@@ -12,14 +12,14 @@
     "0": "bad_frame",
     "1": "good_frame"
   },
-  "validation_accuracy": 0.990847,
+  "validation_accuracy": 0.993151,
   "epochs_requested": 20,
   "epochs_ran": 20,
-  "best_epoch": 17,
+  "best_epoch": 15,
   "final_metrics": {
-    "accuracy": 0.990847,
-    "auc": 0.999285,
-    "loss": 0.035877
+    "accuracy": 0.993151,
+    "auc": 0.997754,
+    "loss": 0.049558
   },
   "threshold_sweep": {
     "configured": {
@@ -27,7 +27,7 @@
       "tp": 138,
       "fp": 5,
       "fn": 0,
-      "tn": 294,
+      "tn": 295,
       "precision": 0.965,
       "recall": 1.0,
       "f1": 0.9822,
@@ -35,36 +35,37 @@
       "accuracy": 0.9886
     },
     "best_f1": {
-      "threshold": 0.35,
+      "threshold": 0.4,
       "tp": 138,
       "fp": 3,
       "fn": 0,
-      "tn": 296,
+      "tn": 297,
       "precision": 0.9787,
       "recall": 1.0,
       "f1": 0.9892,
       "kept": 141,
-      "accuracy": 0.9931
+      "accuracy": 0.9932
     },
     "cheapest_at_min_recall": {
-      "threshold": 0.9,
-      "tp": 132,
-      "fp": 2,
-      "fn": 6,
+      "threshold": 0.85,
+      "tp": 127,
+      "fp": 3,
+      "fn": 11,
       "tn": 297,
-      "precision": 0.9851,
-      "recall": 0.9565,
-      "f1": 0.9706,
-      "kept": 134,
-      "accuracy": 0.9817
+      "precision": 0.9769,
+      "recall": 0.9203,
+      "f1": 0.9478,
+      "kept": 130,
+      "accuracy": 0.968
     }
   },
   "dataset": {
-    "root": "/Users/trendagency/Documents/project/ocr/train",
-    "frames_total": 2569,
-    "frames_train": 2132,
-    "frames_val": 437,
+    "root": "train",
+    "frames_total": 2578,
+    "frames_train": 2140,
+    "frames_val": 438,
     "train_videos": [
+      "02d4f7e5-efc6-46e7-8665-50befdc4028f",
       "0dabe58a-e929-4966-8939-beaea15809c3",
       "10e0036d-4ff7-4d4b-8d12-88b1df397351",
       "1481e13e-101b-41ef-ad0c-540b3042fd3e",
@@ -75,6 +76,7 @@
       "1eed0fb5-a57b-4e01-bafa-4e916a057a9e",
       "1f2bdcac-d03d-47b6-a9ee-77b96ebfb055",
       "20c18db5-92cb-4082-ac5a-4030c2e12242",
+      "2298108b-80c4-49bf-b726-f3779de6876d",
       "2371e1ad-76dc-4eaa-a492-2924af667597",
       "258485b7-8f4b-4928-9176-5a50e67753e0",
       "26f8b87a-0323-46cf-bc48-8b6ff0eab7a2",
@@ -169,6 +171,11 @@
         "bad": 15,
         "dark_good": 0
       },
+      "02d4f7e5-efc6-46e7-8665-50befdc4028f": {
+        "good": 1,
+        "bad": 4,
+        "dark_good": 0
+      },
       "05530615-8a18-4bbd-b15e-a63cc2e53062": {
         "good": 30,
         "bad": 77,
@@ -233,6 +240,11 @@
         "good": 14,
         "bad": 21,
         "dark_good": 14
+      },
+      "2298108b-80c4-49bf-b726-f3779de6876d": {
+        "good": 2,
+        "bad": 1,
+        "dark_good": 2
       },
       "2371e1ad-76dc-4eaa-a492-2924af667597": {
         "good": 1,
@@ -326,7 +338,7 @@
       },
       "57e39f36-8ef2-44b4-8b50-3c911dae13a8": {
         "good": 19,
-        "bad": 31,
+        "bad": 32,
         "dark_good": 0
       },
       "59576c43-230f-4ccd-b4c2-ac26e6983b86": {
@@ -642,9 +654,9 @@
     }
   },
   "args": {
-    "data_dir": "/Users/trendagency/Documents/project/ocr/train",
-    "output_dir": null,
-    "run_name": "2026-09-22-round03",
+    "data_dir": "train",
+    "output_dir": "training/runs/2026-09-26-final-test",
+    "run_name": "final-test-2026-09-26",
     "deploy": false,
     "epochs": 20,
     "batch_size": 32,
@@ -664,7 +676,7 @@
     "patience": 5,
     "cache_file": ""
   },
-  "git_sha": "5c6bec591772753d504a3efece613bad0f686339",
+  "git_sha": "e38735b0d7f8201f736bd8a9792a3641281ee185",
   "inference_contract": {
     "preprocess": "BGR, optional dark boost, resize, /255.0",
     "decision": "sigmoid > 0.3 => GOOD",

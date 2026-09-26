@@ -1,5 +1,32 @@
 # HANDOFF — session state for the next context
 
+## 2026-09-26 (later) — mid-load relabel round and a new deployed model
+
+- **Deployed model: run `2026-09-26-final-test`** (sha256 `1566bb27…`), threshold 0.30.
+  Previous model (`2026-09-22-round03`, `f9516a57…`) backed up to
+  `models/backup_20260926T130216Z/`, verified byte-identical before the swap. Deployed with the
+  trainer's own `deploy()` on the *evaluated* run — not by re-running training with `--deploy`,
+  which would have trained a fresh, non-identical model.
+- **Why:** the Final_Test run sent `02d4f7e5` frame 123 to OpenRouter with Overview / Views /
+  Interactions still placeholder bars (Profile activity had rendered, which got it past the
+  classifier). `training/relabel/2026-09-26-final-test/`: 6 bad (placeholder / fading-in) + 3 good
+  (loaded twins), every one confirmed by the reviewer on the image; candidates were laid out between
+  their time neighbours in `Final_Test_output/_mid_load_review/`. No OCR-based auto-labelling.
+- **Before → after** (same 16 held-out videos): recall 1.000 → 1.000, precision 0.965 → 0.965,
+  val acc 0.9908 → 0.9932, AUC 0.9993 → 0.9978; the five held-out FPs changed composition —
+  `bf96a4ca` 054 (a known mid-load frame) fixed, `57e39f36` 306 (values fading in) new. Ground truth
+  47 → **46** frames, 0 lost. Feedback replay (73 videos, 118 checks) 109 → **110**, 398 → 396
+  frames, no check regressed. `02d4f7e5` no longer sends 123; other sent sets unchanged or re-cut by
+  one adjacent frame. Trigger frame score 0.398 → 0.042.
+- **Known limit:** "values fading in" (`2298108b` 186, `57e39f36` 306) is not learned from six
+  examples on the frozen backbone; it needs more examples of that pattern, not more epochs.
+- **Docker:** previous image kept as `influ-ocr:pre-final-test`; rebuilt image verified
+  (`verify_model --expect 1566bb27…`, 172 tests). No service was running, so nothing was restarted.
+- **Left alone, flagged:** two Finder duplicate symlinks in `train/` (`7cb649a2…/good/frame_000087 2.jpg`,
+  `3c50a8ce…/good/frame_000288 2.jpg`) each count a good frame twice; kept so the before/after
+  compared like with like. Remove in a separate pass. `Final_Test_output/` (frames, sent frames,
+  review sheets) is untracked.
+
 ## 2026-09-26 — behaviour-preserving modularisation (branch `feat/scroll-coverage-selection`)
 
 - **Layout changed, behaviour did not.** The four 500–650-line modules are packages now:

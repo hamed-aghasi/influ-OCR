@@ -1,0 +1,11 @@
+[
+ "train/02d4f7e5-efc6-46e7-8665-50befdc4028f/good/frame_000165.jpg",
+ "train/02d4f7e5-efc6-46e7-8665-50befdc4028f/bad/frame_000120.jpg",
+ "train/02d4f7e5-efc6-46e7-8665-50befdc4028f/bad/frame_000123.jpg",
+ "train/02d4f7e5-efc6-46e7-8665-50befdc4028f/bad/frame_000126.jpg",
+ "train/02d4f7e5-efc6-46e7-8665-50befdc4028f/bad/frame_000129.jpg",
+ "train/2298108b-80c4-49bf-b726-f3779de6876d/good/frame_000189.jpg",
+ "train/2298108b-80c4-49bf-b726-f3779de6876d/good/frame_000192.jpg",
+ "train/2298108b-80c4-49bf-b726-f3779de6876d/bad/frame_000186.jpg",
+ "train/57e39f36-8ef2-44b4-8b50-3c911dae13a8/bad/frame_000306.jpg"
+]

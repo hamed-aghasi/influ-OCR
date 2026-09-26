@@ -1,0 +1,31 @@
+{
+ "_rule": "bad = an Insights screen still mid-load: a visible metric section shows placeholder bars or a donut/value still fading in, even when another section has already rendered. good = the loaded twin of a bad frame, every visible section settled. Same rule as 2026-09-20-loading and 2026-09-22-loading-2. Each frame below was confirmed by the reviewer on the actual image (Final_Test_output/_mid_load_review/CANDIDATES.jpg), not inferred from OCR output.",
+ "_source": "Final_Test_output/<video>/frames (the exact frames the 2026-09-26 Final_Test run extracted; videos in Final_Test/). 57e39f36 is a ground-truth video already in train/, so its frame comes from train/<video>/frames.",
+ "_reviewed": "2026-09-26: reviewer confirmed C1-C4, C7 bad; C5 (2298108b 189) good; rejected C6 (05ea28da 663, carousel transition) and C8 (c70ca2f3 069, chart placeholder only).",
+ "02d4f7e5-efc6-46e7-8665-50befdc4028f": {
+  "bad": [
+   120,
+   123,
+   126,
+   129
+  ],
+  "good": [
+   165
+  ]
+ },
+ "2298108b-80c4-49bf-b726-f3779de6876d": {
+  "bad": [
+   186
+  ],
+  "good": [
+   189,
+   192
+  ]
+ },
+ "57e39f36-8ef2-44b4-8b50-3c911dae13a8": {
+  "bad": [
+   306
+  ],
+  "good": []
+ }
+}
