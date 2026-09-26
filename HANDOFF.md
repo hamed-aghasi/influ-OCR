@@ -1,5 +1,36 @@
 # HANDOFF — session state for the next context
 
+## 2026-09-26 — behaviour-preserving modularisation (branch `feat/scroll-coverage-selection`)
+
+- **Layout changed, behaviour did not.** The four 500–650-line modules are packages now:
+  `processing/frame_selection/` (structs, align, pages, cover, verify, select),
+  `processing/metric_coverage/` (text, labels, detect, tesseract, select),
+  `processing/ocr_processor/` (schema, prompt, client, aggregate, batch),
+  `processing/db_client/` (memory, pool, jobs, users, export). Each package `__init__`
+  re-exports the full surface, so every previous import path still works. The upload sniff and
+  ZIP guards moved from `main.py` to `processing/upload_guards.py`. The six live training scripts
+  share `training/_bootstrap.py`. Function bodies were copied by exact line range, not retyped.
+- **Proof, not assertion.** A scratch checker captured fingerprints at the pre-refactor commit
+  `1066e89` and after every commit: `EXTRACTION_PROMPT` and `RESPONSE_FORMAT` hashes (4,150
+  bytes), the exact OpenRouter request body for a 3-frame batch, detector outputs / coverage
+  selections / scroll selections / final frame sets on 17 replayed videos (ground truth,
+  test-frame, Final_Test), re-aggregation of every stored result, the lazy `processing.__all__`
+  map, and Celery task registration — **all byte-identical**. Ground truth 47 frames / 0 lost
+  before and after. 172 tests pass on the host and inside the rebuilt image.
+- **Test edits: 5 lines**, all patch-target aliases (`test_ocr_transport.py` ×4 → `ocr_processor.client`,
+  `test_metric_coverage.py` ×1 → `metric_coverage.select`). No assertions changed.
+- **Postgres path smoked live** (it has no test coverage): alembic 0001→0003 and every SQL branch
+  against a throwaway `postgres:16` with this tree — all pass.
+- **Docker:** previous image kept as `influ-ocr:pre-refactor`; rebuilt image verified
+  (model digest `f9516a57…`, 172 tests). Gotcha found on the way: `.dockerignore`'s `.DS_Store`
+  rule only matches the context root, so a Finder file inside `models/frame_classifier_savedmodel/`
+  was copied into the image and changed `verify_model`'s digest. Deleted; consider `**/.DS_Store`.
+- **Deliberately left:** the frozen review recipes (`test-frame-output*/_generate_review.py`) and
+  the relabel `apply.py` scripts; the `db_client` in-memory branches (not behaviourally parallel to
+  SQL, so not collapsible); dead code `s3_storage.upload_file` / `delete_job_files` and the
+  `ocr_processor.process_frames` / `extract_metrics_from_paths` chain (only reachable via
+  `processing._EXPORTS`) — a separate decision. `PIPELINE.md` references are now `file:name`.
+
 ## 2026-09-22 — round 03, the player-UI bug, and a verified Docker deploy
 
 - **Deployed model: run `2026-09-22-round03`** (sha256 `f9516a57e609f2da…`), threshold 0.30.

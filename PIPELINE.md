@@ -4,11 +4,15 @@ What happens to a video between upload and a row of metrics, stage by stage:
 what each stage decides, on what setting, and how it breaks. Written
 2026-09-20 against the round-01c state on `feat/scroll-coverage-selection`,
 for a run of thousands of videos. Updated the same day with the three fixes in
-§8.1; line numbers were re-verified against the code after them.
+§8.1.
 
-Every claim carries a `file:line` so it can be re-checked rather than trusted.
-Line numbers are accurate as of that commit and will drift; the function names
-will not.
+Every claim carries a `file:name` reference so it can be re-checked rather than
+trusted. **2026-09-26:** the references were `file:line` until the code was
+modularised (see `HANDOFF.md`); each line number was resolved against the commit
+it was verified at and replaced with the enclosing function, class or setting,
+and moved names now point at their package submodule (e.g.
+`processing/metric_coverage/select.py:select_by_coverage`). Behaviour did not
+change in that refactor, so the descriptions below still hold.
 
 > **Read §8 before the large run.** It is the collected failure modes. §10 says
 > what to do about them.
@@ -33,66 +37,66 @@ The three switches that change the shape of this, all in
 
 | setting | default | effect |
 |---|---|---|
-| `classifier_threshold` | `0.30` (`config.py:77`) | tied to the deployed model; see §3 |
-| `frame_selection` | `"scroll"` (`config.py:113`) | `"phash"` restores the old whole-frame dedup |
-| `coverage_selection` | `True` (`config.py:120`) | off ⇒ every scroll-selected frame goes to OCR |
+| `classifier_threshold` | `0.30` (`config.py:Settings.classifier_threshold`) | tied to the deployed model; see §3 |
+| `frame_selection` | `"scroll"` (`config.py:Settings.frame_selection`) | `"phash"` restores the old whole-frame dedup |
+| `coverage_selection` | `True` (`config.py:Settings.coverage_selection`) | off ⇒ every scroll-selected frame goes to OCR |
 
 Stages 4 and 5 run through one function, `selection_pipeline.choose_ocr_frames`
-(`selection_pipeline.py:31`), which production (`tasks.py:129`) and every
+(`selection_pipeline.py:choose_ocr_frames`), which production (`tasks.py:run_job`) and every
 evaluation tool call. They cannot diverge.
 
 ---
 
 ## 1. Ingest
 
-### Web upload — `main.handle_upload` (`main.py:136`)
+### Web upload — `main.handle_upload` (`main.py:handle_upload`)
 
-In order: session auth (`main.py:144`) → extension allow-list
-(`.mp4 .avi .mov .mkv .jpg .jpeg .png .zip`, `filetypes.py:6`) → date parse →
-**magic-byte sniff of the first 64 bytes** (`main.py:155`) → job id → streamed
+In order: session auth (`main.py:handle_upload`) → extension allow-list
+(`.mp4 .avi .mov .mkv .jpg .jpeg .png .zip`, `filetypes.py:VIDEO_EXTS`) → date parse →
+**magic-byte sniff of the first 64 bytes** (`main.py:handle_upload`) → job id → streamed
 write in 1 MiB chunks with a running size check against `max_upload_bytes`
-(500 MB, `config.py:124`) → ZIP validation → `jobs` row → `celery.send_task`.
+(500 MB, `config.py:Settings.max_upload_bytes`) → ZIP validation → `jobs` row → `celery.send_task`.
 
-ZIP validation (`main._validate_zip:223`) reads the central directory and
+ZIP validation (`processing/upload_guards.py:_validate_zip`) reads the central directory and
 rejects more than `max_zip_entries` (2 000) or more than
 `max_zip_uncompressed_bytes` (2 GiB).
 
-Job id (`naming.py:12`) is `slug(company)_slug(campaign)_YYYYMMDDHHMMSS_xxxx`
+Job id (`naming.py:generate_job_id`) is `slug(company)_slug(campaign)_YYYYMMDDHHMMSS_xxxx`
 with 4 hex characters of randomness.
 
-### MinIO auto-ingest — `tasks.poll_minio` (`tasks.py:375`)
+### MinIO auto-ingest — `tasks.poll_minio` (`tasks.py:poll_minio`)
 
-Runs on beat every `minio_poll_interval_seconds` (60 s, `config.py:152`) when
+Runs on beat every `minio_poll_interval_seconds` (60 s, `config.py:Settings.minio_poll_interval_seconds`) when
 all four MinIO settings are present. It lists `incoming/`, requires the key to
-be exactly `company/campaign/product/file.ext` (`ingest.parse_object_key:56`),
+be exactly `company/campaign/product/file.ext` (`ingest.parse_object_key`),
 claims each object by copying it to `ingesting/` and deleting the original,
 downloads it, creates the job row and enqueues `run_job`.
 
 **The poller is not the web route.** It performs **no magic-byte sniff and no
 ZIP validation at all** — `max_zip_entries` and `max_zip_uncompressed_bytes`
-are enforced only in `main._validate_zip`. It also **discards the return value
-of `create_job`** (`tasks.py:418`), and `db_client.create_job` returns `False`
-on any failure rather than raising (`db_client.py:120`).
+are enforced only in `upload_guards._validate_zip`. It also **discards the return value
+of `create_job`** (`tasks.py:poll_minio`), and `db_client.create_job` returns `False`
+on any failure rather than raising (`processing/db_client/jobs.py:create_job`).
 
 ### What breaks
 
-- **`.mkv`, `.avi` and `.mov` skip content sniffing entirely** (`main.py:60`:
+- **`.mkv`, `.avi` and `.mov` skip content sniffing entirely** (`processing/upload_guards.py:_sniff_ok`:
   `or ext in {".mkv", ".avi", ".mov"}`). Any blob with that extension is
   accepted and only discovered as garbage inside the worker.
-- **Non-ASCII names slug to the empty string** (`naming.py:9` strips everything
+- **Non-ASCII names slug to the empty string** (`naming.py:slug` strips everything
   outside `[a-z0-9]`). Persian company and campaign names — likely, given the
   `fas+eng` OCR — produce ids like `__20260920131500_a1b2`, so all collision
   resistance rests on the timestamp plus 4 hex characters.
 - **Job-id collision on the poller path is silent and destructive.** The insert
   fails, the return is ignored, and both jobs then use the same
   `processing_dir/{job_id}` — where extraction deletes existing frames on
-  startup (`frame_extractor.py:106`).
+  startup (`frame_extractor.py:extract_frames_from_video`).
 - **A failed `create_job` still pays for the whole job.** Every later status and
   metric write no-ops against a row that does not exist, `/status/{job_id}`
   returns 404, and the OCR spend produces nothing persisted.
 - **A ZIP containing no video passes every guard** and fails with the wrong
   message, "No Instagram Insights screens detected in this upload"
-  (`tasks.py:254`).
+  (`tasks.py:finalize_job`).
 - `handle_upload` is `async`, but `_validate_zip`, the DB calls and
   `celery.send_task` are blocking calls made on the event loop.
 - The 500 MB limit is enforced *after* streaming; there is no `Content-Length`
@@ -102,47 +106,47 @@ on any failure rather than raising (`db_client.py:120`).
 
 ## 2. Frame extraction — `processing/frame_extractor.py`
 
-`extract_frames_from_video` (`:94`), called at `tasks.py:104`.
+`extract_frames_from_video` (`processing/frame_extractor.py:extract_frames_from_video`), called at `tasks.py:run_job`.
 
-1. Delete any existing `frame_*.jpg` in the output folder (`:88`).
-2. **Transcode to 720p** if `convert_to_720p` (default `True`, `config.py:83`)
-   and OpenCV reports a height above 720 (`:84`):
+1. Delete any existing `frame_*.jpg` in the output folder (`processing/frame_extractor.py:extract_frames_from_video`).
+2. **Transcode to 720p** if `convert_to_720p` (default `True`, `config.py:Settings.convert_to_720p`)
+   and OpenCV reports a height above 720 (`processing/frame_extractor.py:_convert_to_720p`):
    `ffmpeg -y -i IN -vf scale=-2:720 -c:v libx264 -preset fast -crf 23 -c:a copy OUT`
-   (`:70-75`), with `ffmpeg_timeout_seconds` = 600 (`config.py:84`).
+   (`processing/frame_extractor.py:_convert_to_720p`), with `ffmpeg_timeout_seconds` = 600 (`config.py:Settings.ffmpeg_timeout_seconds`).
 3. Decode **every** frame, save **every third** (`frame_interval` = 3,
-   `config.py:82`) as `frame_NNNNNN.jpg` at OpenCV's default JPEG quality
-   (`:148-158`).
+   `config.py:Settings.frame_interval`) as `frame_NNNNNN.jpg` at OpenCV's default JPEG quality
+   (`processing/frame_extractor.py:extract_frames_from_video`).
 4. Write `extraction_metadata.json` (never read downstream).
 
 Raises `VideoUnreadable` if the file cannot be opened or yields no frames; the
 ZIP path catches it per video and records that member as an error.
 
-The ZIP path (`process_campaign_zip:226`) loops videos **serially**, extracting
+The ZIP path (`process_campaign_zip`) loops videos **serially**, extracting
 each to a `TemporaryDirectory` and re-opening the ZIP once per video.
 
 ### What breaks
 
 - ~~`cap.isOpened()` is never checked.~~ **Fixed 2026-09-20.** A file OpenCV
   cannot open, or that decodes to nothing, now raises `VideoUnreadable`
-  (`:133`, `:169`) instead of returning 0 frames silently. See §8.1.
+  (`processing/frame_extractor.py:extract_frames_from_video`) instead of returning 0 frames silently. See §8.1.
 - **`scale=-2:720` pins the *long* edge for portrait video.** Instagram
   recordings are portrait, so 1080×1920 becomes ~**406×720**; the frames in this
   repo measure 324–334 × 720. That is a ~2.7× downscale of exactly the small
   numeric text everything downstream must read. It is the current operating
   point, not a regression — every measured result was produced at this size —
   but it is the single biggest lever on legibility.
-- **Sampling is by frame index, not timestamp** (`:148`). Screen recorders
+- **Sampling is by frame index, not timestamp** (`processing/frame_extractor.py:extract_frames_from_video`). Screen recorders
   routinely produce variable frame rate, so the real time between sampled frames
   varies. Stage 4 assumes consecutive samples are consecutive in time.
 - **`FRAME_INTERVAL=0` is a `ZeroDivisionError`.** No numeric setting in
-  `config.py` has bounds; only `secret_key` has a validator (`config.py:28`).
+  `config.py` has bounds; only `secret_key` has a validator (`config.py:Settings.secret_key`).
 - **No cap on frames or duration.** A 10-minute 60 fps video at interval 3 is
   ~12 000 JPEGs, 2–3 GB for one job.
 - ffmpeg timeout or non-zero exit is logged and **the original file is used
-  instead** (`:84`, `:88`) — up to 10 minutes of CPU spent, then silently
+  instead** (`processing/frame_extractor.py:_convert_to_720p`) — up to 10 minutes of CPU spent, then silently
   ignored.
 - `cv2.imencode` returning false drops the frame with **no log line at all**
-  (`:150`); a write `OSError` logs and continues (`:158`), so a full disk
+  (`processing/frame_extractor.py:extract_frames_from_video`); a write `OSError` logs and continues (`processing/frame_extractor.py:extract_frames_from_video`), so a full disk
   produces a partially extracted video rather than a failure.
 - ~~One bad video in a ZIP is skipped and the job completes green.~~ **Fixed
   2026-09-20**: it is recorded as `"status": "error"`, counted into
@@ -153,16 +157,16 @@ each to a `TemporaryDirectory` and re-opening the ZIP once per video.
 ## 3. Classifier — `processing/frame_classifier.py`
 
 MobileNetV2 transfer-learning SavedModel, loaded once per process as a Keras
-`TFSMLayer` with `call_endpoint="serving_default"` (`:38`), cached in a module
+`TFSMLayer` with `call_endpoint="serving_default"` (`processing/frame_classifier.py:load_model`), cached in a module
 global behind a `threading.Lock`.
 
-Per frame (`_preprocess:47`): BGR read → if mean grey < `dark_frame_threshold`
-(80, `config.py:79`) apply `convertScaleAbs(alpha=1.5, beta=40)` → resize to
+Per frame (`_preprocess`): BGR read → if mean grey < `dark_frame_threshold`
+(80, `config.py:Settings.dark_frame_threshold`) apply `convertScaleAbs(alpha=1.5, beta=40)` → resize to
 224×224, aspect ratio deliberately discarded → `/255.0`. This matches training
-exactly (`training/train_frame_classifier.py:105`).
+exactly (`training/train_frame_classifier.py:preprocess_frame`).
 
-Decision (`:87`): `GOOD if confidence > classifier_threshold else BAD`, with the
-threshold at **0.30** (`config.py:77`).
+Decision (`processing/frame_classifier.py:_classify_one`): `GOOD if confidence > classifier_threshold else BAD`, with the
+threshold at **0.30** (`config.py:Settings.classifier_threshold`).
 
 **What `good` means matters more than the number.** The label was narrowed this
 month to *"at least one schema metric is readable, with its label and its
@@ -173,18 +177,18 @@ The deployed model is run `2026-09-19b-sources`; held-out recall is 1.000 from
 
 ### What breaks
 
-- **Inference runs one frame at a time** (`:119`), so 12 000 frames is 12 000
+- **Inference runs one frame at a time** (`processing/frame_classifier.py:classify_frames`), so 12 000 frames is 12 000
   eager `TFSMLayer` calls. There is no batching parameter.
-- **Only the first unclassifiable frame is ever logged** (`:131`), and the
-  all-failed guard only fires at 100 % (`:167`). A systematic 40 % decode
+- **Only the first unclassifiable frame is ever logged** (`processing/frame_classifier.py:classify_frames`), and the
+  all-failed guard only fires at 100 % (`processing/frame_classifier.py:classify_frames`). A systematic 40 % decode
   failure is invisible; `failed_frames` is written into the job directory, which
   is then deleted, and never reaches the database.
 - **Two Celery prefork children each hold their own TensorFlow runtime and
   model.** There is no `worker_max_tasks_per_child`, so per-call eager overhead
   accumulates for the container's lifetime. With `task_acks_late=True` and no
-  `task_reject_on_worker_lost` (`celery_app.py:19`), an OOM kill re-delivers the
+  `task_reject_on_worker_lost` (`celery_app.py:celery.conf.update`), an OOM kill re-delivers the
   same message to the next child — a poison-message loop.
-- The confidence unwrap (`:86`) assumes a single sigmoid output; a two-class
+- The confidence unwrap (`processing/frame_classifier.py:_classify_one`) assumes a single sigmoid output; a two-class
   softmax export would silently read the wrong class. Nothing checks the output
   shape against `models/model_metadata.json`.
 - `classifier_threshold` is unbounded: `1.5` classifies everything BAD and
@@ -201,43 +205,43 @@ only in one row of digits while splitting one screen photographed at two scroll
 positions.
 
 Everything works on frames downscaled to **160 px wide** (`ALIGN_WIDTH`,
-`:39`), so an "align row" is about 2 source rows at 720p.
+`processing/frame_selection/structs.py:ALIGN_WIDTH`), so an "align row" is about 2 source rows at 720p.
 
-### 4.1 The aligner — `vertical_shift` (`:112`)
+### 4.1 The aligner — `vertical_shift` (`processing/frame_selection/align.py:vertical_shift`)
 
-Rows are reduced to 20 column-block means (`BLOCK` = 8, `:90`). A row *matches*
+Rows are reduced to 20 column-block means (`BLOCK` = 8, `processing/frame_selection/structs.py:BLOCK`). A row *matches*
 when **every** block differs by less than `BLOCK_MATCH` = 20.0 grey levels
-(`:91`). Rows flatter than `TEXTURE_STD` = 4.0 (`:93`) carry no evidence.
+(`processing/frame_selection/structs.py:BLOCK_MATCH`). Rows flatter than `TEXTURE_STD` = 4.0 (`processing/frame_selection/structs.py:TEXTURE_STD`) carry no evidence.
 
-- **Stillness short-circuit** (`:132`): if at least `STILL_FRAC` = 0.85 (`:97`)
+- **Stillness short-circuit** (`processing/frame_selection/align.py:vertical_shift`): if at least `STILL_FRAC` = 0.85 (`processing/frame_selection/structs.py:STILL_FRAC`)
   of textured rows match in place, return 0 — "not scrolled", even if something
   local changed.
-- **Exhaustive search** (`:147`) over every integer offset in **±75 % of frame
+- **Exhaustive search** (`processing/frame_selection/align.py:vertical_shift`) over every integer offset in **±75 % of frame
   height** — 535 candidates at h = 356 — scoring matched textured rows.
-- **Acceptance** (`:161`): the winner needs `MIN_EVIDENCE // 2` = 12 matched
+- **Acceptance** (`processing/frame_selection/align.py:vertical_shift`): the winner needs `MIN_EVIDENCE // 2` = 12 matched
   rows *and* `MIN_MATCH_FRAC` = 0.6 of the textured rows in the overlap, and the
   best runner-up more than 3 px away must score below `PEAK_RATIO` = 0.8 of it
-  (`:163`). Otherwise `None` — "no offset clearly supported".
+  (`processing/frame_selection/align.py:vertical_shift`). Otherwise `None` — "no offset clearly supported".
 
-Frames are chained into pages by summing these offsets (`_build_pages:197`);
-when a link fails, `_link_to_earlier` (`:181`) tries up to `LINK_SAMPLES` = 8
+Frames are chained into pages by summing these offsets (`_build_pages`);
+when a link fails, `_link_to_earlier` (`processing/frame_selection/pages.py:_link_to_earlier`) tries up to `LINK_SAMPLES` = 8
 frames of each earlier page, newest first, before starting a new page.
 
 ### 4.2 Pinned bands, coverage, verification
 
-`_fixed_bands` (`:222`) compares the lowest and highest frame of a page and
+`_fixed_bands` (`processing/frame_selection/cover.py:_fixed_bands`) compares the lowest and highest frame of a page and
 declares rows that barely differ to be fixed UI (header, nav bar), capped at
-**45 % of the height each** (`:237`). Default when a page barely scrolled:
-10 % top, 8 % bottom (`:229`).
+**45 % of the height each** (`processing/frame_selection/cover.py:_fixed_bands`). Default when a page barely scrolled:
+10 % top, 8 % bottom (`processing/frame_selection/cover.py:_fixed_bands`).
 
-`_cover_page` (`:241`) is a greedy interval cover over page coordinates,
-requiring a full `ROW_HEIGHT` = 0.10 (`:42`) of overlap — the assumed tallest
+`_cover_page` (`processing/frame_selection/cover.py:_cover_page`) is a greedy interval cover over page coordinates,
+requiring a full `ROW_HEIGHT` = 0.10 (`processing/frame_selection/structs.py:ROW_HEIGHT`) of overlap — the assumed tallest
 label-plus-number row — and breaking ties by `(stillness, -score, order)`.
 
-`_verify` (`:391`) then checks **every** good frame row by row against the
-picks, and adds frames back until no frame has more than `ROW_SLACK` = 2 (`:43`)
+`_verify` (`processing/frame_selection/verify.py:_verify`) then checks **every** good frame row by row against the
+picks, and adds frames back until no frame has more than `ROW_SLACK` = 2 (`processing/frame_selection/structs.py:ROW_SLACK`)
 uncovered rows. Rows that change between neighbouring frames are excluded from
-what must be covered (`_stable_rows:350`).
+what must be covered (`_stable_rows`).
 
 ### What breaks
 
@@ -245,7 +249,7 @@ what must be covered (`_stable_rows:350`).
   every offset ⇒ every link fails ⇒ one page per frame, every frame kept, and
   the quadratic re-link path engages.
 - **Partial horizontal motion is worse than that.** If a strip moves sideways
-  while ≥ 85 % of textured rows hold still, `:134` returns 0, both frames sit at
+  while ≥ 85 % of textured rows hold still, `processing/frame_selection/align.py:vertical_shift` returns 0, both frames sit at
   the same offset, and the moving rows then match *neither* neighbour, so
   `_stable_rows` drops them from what must be covered. **Nothing is then
   required to show them.** The same reasoning applies whenever `STILL_FRAC`
@@ -272,19 +276,19 @@ what must be covered (`_stable_rows:350`).
   absolute grey level: auto-brightness, a notification shade, a fade, a
   dark-mode toggle mid-recording. Dark mode itself is fine; *changing* is not.
 - **`BLOCK_MATCH` = 20 may not see a single changed digit.** The unit of
-  comparison is the mean of ~16×2 source pixels; the comment at `:91` asserts a
+  comparison is the mean of ~16×2 source pixels; the comment at `processing/frame_selection/structs.py:BLOCK_MATCH` asserts a
   changed digit breaks it, and no test or measurement backs that. When it does
   not, `content_covered` declares two frames with different numbers identical
   and `drop_duplicate_content` deletes one. Digit changes that alter a number's
   *width* (999 → 1,004) are detected reliably.
 - **`MIN_EVIDENCE` does not mean what it says.** The comment documents 25
-  (`:94`); both uses are `MIN_EVIDENCE // 2` = 12 (`:153`, `:161`).
+  (`processing/frame_selection/structs.py:MIN_EVIDENCE`); both uses are `MIN_EVIDENCE // 2` = 12 (`processing/frame_selection/align.py:vertical_shift`).
 - **Cost.** `_link_to_earlier` is the quadratic term: every frame whose forward
   link fails is compared against 8 samples of *every* page so far, each a ~4 ms
   search. If alignment fails systematically, 200 frames is on the order of
   minutes and 500 frames tens of minutes. `_verify`'s add-back loop is cubic in
   the number of initially-uncovered frames. There is **no cap, no timeout and no
-  logging anywhere in this module** — the logger at `:37` is never used.
+  logging anywhere in this module** — the logger at `processing/frame_selection/__init__.py:logger` is never used.
 - **Memory.** Every readable frame's downscaled float32 array (~222 KB) is
   retained in `Selection.frame_info` and held through OCR dispatch. 224 frames
   ≈ 50 MB; a ZIP of ten 500-frame videos ≈ 1.1 GB resident.
@@ -298,19 +302,19 @@ shows, and keeps the fewest frames covering all of them.
 
 ### 5.1 Reading
 
-`read_lines` (`:420`): greyscale → **invert if mean < 100** (a different
+`read_lines` (`processing/metric_coverage/tesseract.py:read_lines`): greyscale → **invert if mean < 100** (a different
 threshold from the classifier's 80) → **2× bicubic upscale** →
-`image_to_string(lang="fas+eng", config="--psm 6")` (`:430`). At 324×720 input
+`image_to_string(lang="fas+eng", config="--psm 6")` (`processing/metric_coverage/tesseract.py:read_lines`). At 324×720 input
 that is a ~648×1440 OCR, and it is the dominant CPU cost of the stage.
 
-`_norm` (`:100`) applies NFKC, maps Persian **and** Arabic-Indic digits to ASCII,
+`_norm` (`processing/metric_coverage/text.py:_norm`) applies NFKC, maps Persian **and** Arabic-Indic digits to ASCII,
 lowercases, unifies Arabic ي/ك to Persian ی/ک, strips ZWNJ/RLM/LRM, and removes
 all whitespace and punctuation. Everything downstream is substring matching on
 that gap-free string.
 
-### 5.2 Deciding what a frame shows — `metrics_in_text` (`:226`)
+### 5.2 Deciding what a frame shows — `metrics_in_text` (`processing/metric_coverage/detect.py:metrics_in_text`)
 
-Labels are matched longest-first with consumption (`:216`), so "profile visits"
+Labels are matched longest-first with consumption (`processing/metric_coverage/labels.py:_labels`), so "profile visits"
 wins over "views". A label takes a number from its own line, or from the next
 line (or the one after, if the next is OCR noise), and only if the line has at
 least as many numbers as it has labels — "Average watch time / Follows" over a
@@ -320,28 +324,28 @@ Guards, each added after a real misread:
 
 | guard | what it stops |
 |---|---|
-| `_is_filter_row` (`:88`) | "All · Followers · Non-followers" over the chart, whose next line is an axis tick |
-| `_is_section_header` (`:185`) | "Interactions ⓘ" at a screen edge taking the donut's arc as its value |
-| `_NOT_A_VALUE` (`:82`) | chart headers and tab bars containing a metric word |
-| `_CLOCK` (`:135`) | the status-bar clock |
-| `_gender` (`:208`) | "men" inside "comments", Persian "زن" inside "بازنشر" |
-| `_split_kind` (`:169`) | the Followers/Non-followers split under *Interactions*, which is not the schema's split |
+| `_is_filter_row` (`processing/metric_coverage/labels.py:_is_filter_row`) | "All · Followers · Non-followers" over the chart, whose next line is an axis tick |
+| `_is_section_header` (`processing/metric_coverage/detect.py:_is_section_header`) | "Interactions ⓘ" at a screen edge taking the donut's arc as its value |
+| `_NOT_A_VALUE` (`processing/metric_coverage/labels.py:_NOT_A_VALUE`) | chart headers and tab bars containing a metric word |
+| `_CLOCK` (`processing/metric_coverage/detect.py:_CLOCK`) | the status-bar clock |
+| `_gender` (`processing/metric_coverage/labels.py:_gender`) | "men" inside "comments", Persian "زن" inside "بازنشر" |
+| `_split_kind` (`processing/metric_coverage/detect.py:_split_kind`) | the Followers/Non-followers split under *Interactions*, which is not the schema's split |
 
 ### 5.3 Choosing frames
 
-1. **Cross-frame value evidence** (`:490`): a value of 3+ digits paired with a
+1. **Cross-frame value evidence** (`processing/metric_coverage/select.py:select_by_coverage`): a value of 3+ digits paired with a
    label on one frame counts as that metric on any frame showing the same value.
    Added because "Likes 124" read as "'3 124" made two identical frames both
    look necessary.
-2. **Greedy set cover** (`:502`), tie-broken by new metrics → total metrics →
+2. **Greedy set cover** (`processing/metric_coverage/select.py:select_by_coverage`), tie-broken by new metrics → total metrics →
    values read → **latest frame**, because a page still loading reads fewer
    values and loads top to bottom.
-3. **Two safety nets.** `unrecognised` (`:501`) keeps a frame with no recognised
-   metric but a plausible metric number on it (`has_real_number:359`).
-   `backstop` (`:515`) keeps a frame showing a **count** no kept frame shows;
-   percentages are excluded (`:525`) because OCR reads small ones inconsistently
+3. **Two safety nets.** `unrecognised` (`processing/metric_coverage/select.py:select_by_coverage`) keeps a frame with no recognised
+   metric but a plausible metric number on it (`has_real_number`).
+   `backstop` (`processing/metric_coverage/select.py:select_by_coverage`) keeps a frame showing a **count** no kept frame shows;
+   percentages are excluded (`processing/metric_coverage/select.py:select_by_coverage`) because OCR reads small ones inconsistently
    and each misread was costing a frame.
-4. `drop_duplicate_content` (`selection_pipeline.py:48`) then drops any frame
+4. `drop_duplicate_content` (`selection_pipeline.py:choose_ocr_frames`) then drops any frame
    whose content is readable in another frame already being sent.
 
 `Coverage.reasons` records why each frame was kept or dropped: `cover`,
@@ -350,23 +354,23 @@ Guards, each added after a real misread:
 ### What breaks
 
 - **Tesseract missing ⇒ the whole stage is silently skipped.** `tesseract_available`
-  (`:405`) requires the binary, the package and *every* language in
+  (`processing/metric_coverage/tesseract.py:tesseract_available`) requires the binary, the package and *every* language in
   `coverage_ocr_lang`; on failure `select_by_coverage` returns its input
-  unchanged with one warning line (`:463`). Every scroll-selected frame then
+  unchanged with one warning line (`processing/metric_coverage/select.py:select_by_coverage`). Every scroll-selected frame then
   goes to OpenRouter: **3–8× the LLM spend**, with nothing in the database
   recording that it happened. The probe is cached for the life of the process,
   so a worker that starts before the filesystem is ready never recovers.
 - **Version sensitivity is real and measured.** See §9 — Debian's Tesseract
   5.5.0 and Homebrew's 5.5.3 disagree on noisy frames, which changes which
   frames are sent. Nothing pins the version: the Dockerfile installs whatever
-  bookworm serves that day (`Dockerfile:5`) and `requirements.txt` is entirely
+  bookworm serves that day (`Dockerfile`) and `requirements.txt` is entirely
   `>=`.
 - **`cv2.imread` returning `None` drops the frame with no log at all**
-  (`:425`): empty lines ⇒ no metrics ⇒ `has_real_number` false ⇒ reason `blank`
+  (`processing/metric_coverage/tesseract.py:read_lines`): empty lines ⇒ no metrics ⇒ `has_real_number` false ⇒ reason `blank`
   ⇒ never reaches the vision model. A raised exception, by contrast, is caught
-  and the frame is **kept** (`:481`). The safe path and the silent path differ
+  and the frame is **kept** (`processing/metric_coverage/select.py:select_by_coverage`). The safe path and the silent path differ
   by which failure mode the corrupt file triggers.
-- **No timeout on `image_to_string`** (`:430`). A pathological image wedges a
+- **No timeout on `image_to_string`** (`processing/metric_coverage/tesseract.py:read_lines`). A pathological image wedges a
   worker slot until the reaper's 2-hour no-progress limit.
 - **`_is_filter_row` is a literal prefix test.** It requires the line to start
   with "all" or "همه". Tesseract misreads "All" often — I found `الم Followers
@@ -374,16 +378,16 @@ Guards, each added after a real misread:
   does not fire, so the chart axis below is credited as the followers split.
   Confirmed live: it creates phantom `followers`/`non_followers` on `1f2bdcac`
   frame 171.
-- **The icon strip credits three metrics from no labels** (`:256`): any
+- **The icon strip credits three metrics from no labels** (`processing/metric_coverage/detect.py:metrics_in_text`): any
   "mostly numeric" line above a tab bar becomes likes/replies/shares, without
   checking that there are exactly three numbers or what they are.
-- **`_NOT_A_VALUE` contains the bare token `"rate"`** (`:83`), so *any* line
+- **`_NOT_A_VALUE` contains the bare token `"rate"`** (`processing/metric_coverage/labels.py:_NOT_A_VALUE`), so *any* line
   containing those four letters anywhere is discarded everywhere.
 - **Cross-frame value evidence can delete a real frame.** If two different
   metrics on different screens happen to share a 3+ digit value, a frame is
   credited with a metric it does not show, and the frame that really shows it
   can then be dropped as redundant. No test covers a value collision.
-- **`_canonical` corrupts some tokens** (`:148`): `1,234.5` becomes `34.5%`,
+- **`_canonical` corrupts some tokens** (`processing/metric_coverage/text.py:_canonical`): `1,234.5` becomes `34.5%`,
   because the loop stripping the bar-glyph digit keeps eating while the value
   exceeds 100. Any one-decimal non-percentage becomes `%`-suffixed and is
   therefore excluded from the backstop.
@@ -402,26 +406,26 @@ Guards, each added after a real misread:
 
 ## 6. OCR — `processing/ocr_processor.py`
 
-One request per batch of `ocr_batch_size` = 12 frames (`config.py:62`), each
-frame inlined as base64 in a single user message (`:277`), with a strict
-JSON schema derived from the pydantic model (`_strict_schema:125`) and
-`temperature = 0.1` (`:285`). Model: `qwen/qwen3.8-max` (`config.py:61`).
+One request per batch of `ocr_batch_size` = 12 frames (`config.py:Settings.ocr_batch_size`), each
+frame inlined as base64 in a single user message (`processing/ocr_processor/client.py:_call_api`), with a strict
+JSON schema derived from the pydantic model (`_strict_schema`) and
+`temperature = 0.1` (`processing/ocr_processor/client.py:_call_api`). Model: `qwen/qwen3.8-max` (`config.py:Settings.openrouter_model`).
 Timeout 120 s, `max_tokens` 8000.
 
 In production the batches are dispatched as a Celery **chord**
-(`tasks.py:160`), all at once, with no inter-batch delay; parallelism is the
+(`tasks.py:run_job`), all at once, with no inter-batch delay; parallelism is the
 worker concurrency of 2. `ocr_batch` never raises — a raised exception in a
 chord header would abort the callback — so failures come back as data.
 
-Retries (`_call_api:290`): **5 attempts shared across all failure kinds**, with
-`sleep(5)` between most, and `(attempt+1) * 10` seconds for HTTP 429 (`:329`).
+Retries (`_call_api`): **5 attempts shared across all failure kinds**, with
+`sleep(5)` between most, and `(attempt+1) * 10` seconds for HTTP 429 (`processing/ocr_processor/client.py:_call_api`).
 `Retry-After` is ignored and there is no jitter. A `finish_reason == "length"`
-triggers `_split_on_truncation` (`:237`), which halves the batch and gives each
+triggers `_split_on_truncation` (`processing/ocr_processor/client.py:_split_on_truncation`), which halves the batch and gives each
 half a **fresh** 5-attempt budget, recursively.
 
 ### What breaks
 
-- **One bad field discards twelve frames.** `_parse_content` (`:225`) is
+- **One bad field discards twelve frames.** `_parse_content` (`processing/ocr_processor/client.py:_parse_content`) is
   all-or-nothing: invalid JSON and a schema mismatch are the same `except`.
   A model that emits `"views": 8.6` instead of expanding `8.6K` loses the whole
   batch, retries 5× at temperature 0.1 — likely reproducing the same output, at
@@ -432,11 +436,11 @@ half a **fresh** 5-attempt budget, recursively.
 - **Truncation recursion is unbounded in cost**; a pathological job can issue
   dozens of multi-megabyte vision requests.
 - **Values that fail the plausibility bounds become `None` silently**
-  (`:82-89`): percentages outside 0–100, counts above 10 000 000 000 (a guard
+  (`processing/ocr_processor/schema.py:Metrics._drop_implausible`): percentages outside 0–100, counts above 10 000 000 000 (a guard
   against digit-repetition hallucinations). The aggregate is then computed over
   fewer reads with no signal that this happened.
 - `_encode` skips unreadable files with a warning but results are mapped by the
-  **unfiltered** batch index (`:405`), so one skipped file shifts every
+  **unfiltered** batch index (`processing/ocr_processor/client.py:ocr_single_batch`), so one skipped file shifts every
   subsequent `actual_frame` label. Provenance only; aggregation is
   frame-agnostic.
 - Nothing validates that the configured model exists or supports vision and
@@ -448,9 +452,9 @@ half a **fresh** 5-attempt budget, recursively.
 
 ## 7. Aggregation and persistence
 
-`_aggregate` (`:340`) collects every read of each metric across **all** frames
+`_aggregate` (`processing/ocr_processor/aggregate.py:_aggregate`) collects every read of each metric across **all** frames
 and batches of the job, then: **the modal value wins if any value repeats;
-otherwise `median_low`** (`:371`). `median_low` rather than the max, because
+otherwise `median_low`** (`processing/ocr_processor/aggregate.py:_aggregate`). `median_low` rather than the max, because
 misreads inflate far more often than they deflate — this replaced a `max()`
 after a production case where `follows` read as 3154 against a true 31.
 
@@ -458,8 +462,8 @@ It also records `reads`, `min`, `max` and `disputed` (spread above 5 %) per
 metric in `summary_quality` — which **is persisted but never acted on**: not in
 the job status, not in the Excel export.
 
-**The schema is 28 metrics** (`ocr_processor.py:31`, `db_client.py:410`), of
-which 11 are percentages (`_PERCENT_FIELDS:43`): `followers`, `non_followers`,
+**The schema is 28 metrics** (`processing/ocr_processor/schema.py:_METRIC_FIELDS`, `processing/db_client/export.py:_METRIC_KEYS`), of
+which 11 are percentages (`_PERCENT_FIELDS`): `followers`, `non_followers`,
 `gender_men`, `gender_women`, and the seven `source_*` fields (feed, reels_tab,
 profile, explore, stories, search, other). The other 17 are counts: `views`,
 `accounts_reached`, `interactions`, `likes`, `replies`, `shares`,
@@ -479,12 +483,12 @@ profile, explore, stories, search, other). The other 17 are counts: `views`,
   (`db_client.py:118, 135, 152, 190, 218, 261, 292, …`). `finalize_job` ignores
   the return of `save_job_metrics` and then marks the job completed: a DB hiccup
   loses the metrics while the job reports success.
-- **No `DATABASE_URL` silently means an in-memory store** (`db_client.py:27`).
+- **No `DATABASE_URL` silently means an in-memory store** (`processing/db_client/memory.py:_memory_lock`).
   Compose always sets it; a bare `docker run` does not.
 - **A failed job still has a metrics row.** `finalize_job` persists before it
-  decides the job failed (`tasks.py:216`), so any consumer reading `job_metrics`
+  decides the job failed (`tasks.py:finalize_job`), so any consumer reading `job_metrics`
   without joining `jobs.status` ingests partial data.
-- The Excel export (`db_client.py:442`) caps at 10 000 jobs and writes only
+- The Excel export (`processing/db_client/export.py:export_to_excel`) caps at 10 000 jobs and writes only
   `summary`; `disputed`, `reads` and `ocr_batches_failed` are not exported, so a
   value from one shaky read looks exactly like one confirmed five times.
 
@@ -524,11 +528,11 @@ checks a number by hand. **Costs frames** = visible on the OpenRouter bill.
 | 25 | Brightness change / dark-mode toggle mid-recording | 4 | low | costs frames |
 
 **Everything that swallows an exception**, since at scale these are invisible:
-`frame_extractor.py` (`:45, :83, :87, :110, :150, :158, :184, :214, :280`),
-`frame_classifier.py` (`:42, :58, :69, :78, :131, :152`), `metric_coverage.py`
-(`:415, :425, :481`), `ocr_processor.py` (`:88, :221, :233, :310, :438`),
-`s3_storage.py` (`:62`), `db_client.py` (twelve sites), `tasks.py`
-(`:54, :169, :187, :264, :329, :390, :414, :418`), `ingest.py` (`:110, :121, :134`).
+`frame_extractor.py` (`_check_ffmpeg`, `_convert_to_720p`, `extract_frames_from_video`, `_process_video_from_zip`, `process_campaign_zip`),
+`frame_classifier.py` (`load_model`, `_preprocess`, `_classify_one`, `classify_frames`), `processing/metric_coverage/`
+(`tesseract.py:tesseract_available`, `tesseract.py:read_lines`, `select.py:select_by_coverage`), `processing/ocr_processor/` (`schema.py:Metrics._drop_implausible`, `client.py:_encode`, `client.py:_parse_content`, `client.py:_call_api`, `batch.py:persist_metrics`),
+`s3_storage.py` (`upload_json`), `processing/db_client/` (twelve sites), `tasks.py`
+(`_cleanup_upload`, `run_job`, `ocr_batch`, `finalize_job`, `sweep_orphans`, `poll_minio`), `ingest.py` (`claim_object`, `reject_object`, `settle_object`).
 
 ### 8.1 Fixed on 2026-09-20
 

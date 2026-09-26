@@ -89,10 +89,11 @@ instagram_analyzer_app/
 │   ├── frame_extractor.py    ffmpeg + OpenCV frame sampling
 │   ├── frame_classifier.py   TF SavedModel classifier
 │   ├── dedup.py              Perceptual-hash deduplication (FRAME_SELECTION=phash)
-│   ├── frame_selection.py    Scroll-aware selection (default)
-│   ├── metric_coverage.py    Tesseract metric-coverage selection
-│   ├── ocr_processor.py   OCR via OpenRouter
-│   ├── db_client.py          Postgres pool + in-memory fallback
+│   ├── upload_guards.py      Content sniff + ZIP limits for the upload route
+│   ├── frame_selection/      Scroll-aware selection (default): align, pages, cover, verify, select
+│   ├── metric_coverage/      Tesseract metric-coverage selection: text, labels, detect, tesseract, select
+│   ├── ocr_processor/        OCR via OpenRouter: schema, prompt, client, aggregate, batch
+│   ├── db_client/            Postgres pool + in-memory fallback: memory, pool, jobs, users, export
 │   └── s3_storage.py         Liara S3 wrapper
 ├── templates/, static/       Jinja2 + plain CSS UI
 ├── models/                   TF SavedModel + metadata
