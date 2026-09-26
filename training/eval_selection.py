@@ -20,20 +20,15 @@ No OpenRouter call, no OCR.
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 GT_DIR = REPO / "training" / "ground_truth"
-os.environ.setdefault("SECRET_KEY", "training-only-not-a-real-secret")
-os.environ.setdefault("LOG_DIR", str(REPO / "training" / "logs"))
-# Settings are read at import time, so model/threshold overrides must be in the
-# environment before processing.* is imported.
-for flag, env in (("--model-dir", "MODEL_DIR"), ("--threshold", "CLASSIFIER_THRESHOLD")):
-    if flag in sys.argv:
-        os.environ[env] = sys.argv[sys.argv.index(flag) + 1]
-sys.path.insert(0, str(REPO / "instagram_analyzer_app"))
+from _bootstrap import bootstrap, scrape_model_overrides  # both must run before processing.* is imported
+
+scrape_model_overrides()   # --model-dir / --threshold into the environment Settings reads
+bootstrap(secret="training-only-not-a-real-secret", log_dir=REPO / "training" / "logs")
 
 from processing.config import settings  # noqa: E402
 from processing.frame_classifier import classify_frames  # noqa: E402

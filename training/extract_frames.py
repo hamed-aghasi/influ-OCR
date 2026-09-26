@@ -34,7 +34,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -43,13 +42,9 @@ from typing import Dict, List, Optional, Tuple
 REPO_ROOT = Path(__file__).resolve().parents[1]
 APP_DIR = REPO_ROOT / "instagram_analyzer_app"
 
-# processing.config declares secret_key as required, so importing any processing
-# module without it raises. Training never touches the web layer; a placeholder
-# keeps this script runnable with no .env. setdefault, so a real value wins.
-os.environ.setdefault("SECRET_KEY", "training-only-not-a-real-secret")
-os.environ.setdefault("LOG_DIR", str(REPO_ROOT / "training" / "logs"))
+from _bootstrap import bootstrap  # placeholder SECRET_KEY, LOG_DIR, app on sys.path — before processing.*
 
-sys.path.insert(0, str(APP_DIR))
+bootstrap(secret="training-only-not-a-real-secret", log_dir=REPO_ROOT / "training" / "logs")
 
 import cv2  # noqa: E402
 

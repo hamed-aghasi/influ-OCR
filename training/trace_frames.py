@@ -33,14 +33,10 @@ PROJECT = Path(__file__).resolve().parents[1]
 APP = PROJECT / "instagram_analyzer_app"
 RESULTS_ROOT = PROJECT / "test-frame"
 
-# processing.config declares secret_key as required, so importing any processing
-# module without it raises. Tracing never touches the web layer; a placeholder
-# keeps this runnable with no .env. setdefault, so a real value wins.
-os.environ.setdefault("SECRET_KEY", "training-only-not-a-real-secret")
-os.environ.setdefault("LOG_DIR", str(PROJECT / "training" / "logs"))
-os.environ.setdefault("PROCESSING_DIR", str(PROJECT / "training" / "_trace_work"))
+from _bootstrap import bootstrap  # placeholder SECRET_KEY, LOG_DIR, PROCESSING_DIR, app on sys.path — before processing.*
 
-sys.path.insert(0, str(APP))
+bootstrap(secret="training-only-not-a-real-secret", log_dir=PROJECT / "training" / "logs",
+          processing_dir=PROJECT / "training" / "_trace_work")
 
 from processing.config import settings                                  # noqa: E402
 from processing.selection_pipeline import choose_ocr_frames             # noqa: E402

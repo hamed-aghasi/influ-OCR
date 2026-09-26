@@ -50,10 +50,9 @@ APP = REPO / "instagram_analyzer_app"
 WORK = Path(os.environ.get("REVIEW_WORK_DIR", "/tmp/frame-review-work"))
 VIDEO_EXTS = {".mp4", ".mov", ".mkv", ".avi"}
 
-os.environ.setdefault("SECRET_KEY", "review-only-not-a-real-secret")
-os.environ.setdefault("LOG_DIR", str(WORK / "logs"))
-os.environ.setdefault("PROCESSING_DIR", str(WORK / "processing"))
-sys.path.insert(0, str(APP))
+from _bootstrap import bootstrap  # placeholder SECRET_KEY, LOG_DIR, PROCESSING_DIR, app on sys.path — before processing.*
+
+bootstrap(secret="review-only-not-a-real-secret", log_dir=WORK / "logs", processing_dir=WORK / "processing")
 
 import cv2  # noqa: E402
 

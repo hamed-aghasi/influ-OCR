@@ -7,13 +7,13 @@ the app loads is byte-for-byte the one that was trained.
     .venv-train/bin/python training/verify_model.py
     .venv-train/bin/python training/verify_model.py --expect <sha256>
 """
-import argparse, hashlib, json, os, sys
+import argparse, hashlib, json, sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-os.environ.setdefault("SECRET_KEY", "verify-only-not-a-real-secret")
-os.environ.setdefault("LOG_DIR", "/tmp/verify-logs")
-sys.path.insert(0, str(REPO / "instagram_analyzer_app"))
+from _bootstrap import bootstrap  # placeholder SECRET_KEY, LOG_DIR, app on sys.path — before processing.*
+
+bootstrap(secret="verify-only-not-a-real-secret", log_dir="/tmp/verify-logs")
 from processing.config import settings  # noqa: E402
 
 
