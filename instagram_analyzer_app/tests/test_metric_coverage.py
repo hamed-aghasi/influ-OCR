@@ -208,7 +208,7 @@ def test_a_failing_detector_drops_nothing():
 
 
 def test_missing_tesseract_leaves_the_selection_alone(monkeypatch):
-    from processing import metric_coverage as mc
+    from processing.metric_coverage import select as mc   # where select_by_coverage looks the name up
 
     monkeypatch.setattr(mc, "tesseract_available", lambda: False)
     f = _frames(3)
