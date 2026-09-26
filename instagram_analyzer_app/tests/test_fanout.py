@@ -90,6 +90,41 @@ def test_finalize_job_completes_when_all_batches_ok(tmp_path):
     assert job["metrics_json"]["ocr_batches_failed"] == 0
 
 
+def test_finalize_job_fails_when_frames_went_unanswered(tmp_path):
+    """A batch that lost frames after a truncation split is not a failed batch,
+    but the job is still incomplete and must say so."""
+    from processing.db_client import _memory_jobs, _memory_metrics, create_job, get_job_by_id
+    from tasks import finalize_job
+
+    _memory_jobs.clear(); _memory_metrics.clear()
+    create_job("job-missing", date(2026, 8, 31), "camp", "prod", "co", "f.mp4", "video")
+    context = _context(tmp_path)
+    outcomes = [{"batch_index": 0, "failed": False, "frames_missing": 1,
+                 "results": [{"frame_index": 0, "metrics": {"views": 100}, "actual_frame": "a.jpg"}]}]
+    out = finalize_job(outcomes, "job-missing", context)
+    job = get_job_by_id("job-missing")
+    assert out["status"] == "failed" and job["status"] == "failed"
+    assert "frames sent to OCR were not read" in job["error_message"]
+    assert job["metrics_json"]["summary"] == {"views": 100}        # partial data still persisted
+    assert job["metrics_json"]["ocr_frames_missing"] == 1
+
+
+def test_finalize_job_fails_when_ocr_returned_no_metrics(tmp_path):
+    """Final_Test 0d12e688: five frames answered, every metric null, job 'completed'."""
+    from processing.db_client import _memory_jobs, _memory_metrics, create_job, get_job_by_id
+    from tasks import finalize_job
+
+    _memory_jobs.clear(); _memory_metrics.clear()
+    create_job("job-empty", date(2026, 8, 31), "camp", "prod", "co", "f.mp4", "video")
+    context = _context(tmp_path)
+    outcomes = [{"batch_index": 0, "failed": False, "frames_missing": 0,
+                 "results": [{"frame_index": i, "metrics": None, "actual_frame": f"{i}.jpg"} for i in range(5)]}]
+    out = finalize_job(outcomes, "job-empty", context)
+    job = get_job_by_id("job-empty")
+    assert out["status"] == "failed" and job["status"] == "failed"
+    assert "returned no metrics" in job["error_message"]
+
+
 def test_finalize_job_fails_when_no_insights_frames(tmp_path):
     from processing.db_client import _memory_jobs, _memory_metrics, create_job, get_job_by_id
     from tasks import finalize_job

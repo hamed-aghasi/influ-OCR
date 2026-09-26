@@ -45,7 +45,8 @@ Default login: `admin` / whatever you set as `ADMIN_PASSWORD`.
 | `DATABASE_URL`       | yes      | Postgres DSN                                      |
 | `REDIS_URL`          | yes      | Defaults to `redis://redis:6379/0`                |
 | `OPENROUTER_API_KEY` | yes for OCR | Without it, classification still works         |
-| `OPENROUTER_MODEL`   | no       | Default `qwen/qwen3.8-max`                 |
+| `OPENROUTER_MODEL`   | no       | Default `qwen/qwen3.8-max-0902` — an explicit catalogue id; the `qwen/qwen3.8-max` alias drifted to this reasoning model |
+| `OPENROUTER_REASONING_EFFORT` | no | Default `low`; the model reasons before answering and cannot be told not to — unbudgeted it returned no content. Empty omits the parameter |
 | `CLASSIFIER_THRESHOLD` | no     | Default `0.30`; tied to the deployed model (see `processing/config.py`) |
 | `FRAME_SELECTION`    | no       | `scroll` (default) or `phash`                     |
 | `COVERAGE_SELECTION` | no       | `true` (default): Tesseract pass; skipped with a log line if tesseract/`fas`/`eng` are missing |

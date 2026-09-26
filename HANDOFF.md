@@ -1,5 +1,35 @@
 # HANDOFF — session state for the next context
 
+## 2026-09-26 (evening) — two Final_Test videos came back empty: cause and fix
+
+- **Cause.** `OPENROUTER_MODEL=qwen/qwen3.8-max` is an alias that is **not in OpenRouter's
+  catalogue**; it resolves to `qwen/qwen3.8-max-0902` (Alibaba), a *reasoning* model whose
+  reasoning cannot be disabled. Three consequences, all seen on the 2026-09-26 run:
+  1. `05ea28da`: the model spent the whole 8,000-token budget reasoning about **one frame** and
+     returned no content (`finish_reason=length`); `_split_on_truncation` could not split a single
+     frame and discarded the whole batch — including the half that had already parsed — so the
+     JSON had no `all_frames_data` at all.
+  2. `0d12e688`: the model answered with every key written as `": views"`; pydantic ignored the
+     unknown keys, every frame read as 28 nulls, and the job **completed** with an empty summary.
+  3. A single-frame answer came back as a bare array, not `{"frames": [...]}`. The provider does not
+     enforce the strict schema the pipeline sends; the pipeline had been trusting a guarantee it
+     never had.
+- **Fix** (`processing/ocr_processor/client.py`, `tasks.py`, `config.py`):
+  `openrouter_reasoning_effort="low"` sent as OpenRouter's `reasoning: {"effort"}` (the same
+  6-frame batch then answers in ~2,200 tokens, ~$0.017); model pinned to the explicit id it
+  already resolved to; `_parse_content` wraps a bare array and strips punctuation from keys; a
+  reply with no metric on any frame is retried, then failed; a truncation split keeps the half that
+  answered and reports the dropped frames; `finalize_job` fails the job when frames went unanswered
+  or the summary is empty instead of reporting "completed". Wire schema and prompt unchanged
+  (`589b5a32…` / `bc5416f5…`). `docker-compose.yml` and `.env.example` defaults updated — compose
+  would otherwise have re-imposed the old alias. Metrics JSON gains `ocr_frames_missing`.
+- **Verified:** both videos re-run through `ocr_single_batch` with the fix: `0d12e688` 19 metrics,
+  `05ea28da` 18 metrics, no failed batch, no missing frame (`Final_Test_output/<video>.fixed.json`;
+  the original failed outputs are kept). 180 tests. Diagnostic spend ≈ $0.35.
+- **Still open:** `non_followers` is flagged *disputed* on both videos — the model sometimes takes the
+  Followers/Non-followers split under *Interactions* despite the prompt; a prompt/aggregation
+  question, not part of this fix. The Final_Test run itself is still stopped at 5/25.
+
 ## 2026-09-26 (later) — mid-load relabel round and a new deployed model
 
 - **Deployed model: run `2026-09-26-final-test`** (sha256 `1566bb27…`), threshold 0.30.

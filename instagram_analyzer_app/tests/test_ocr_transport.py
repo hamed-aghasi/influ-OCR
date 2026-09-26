@@ -168,6 +168,78 @@ def test_truncation_splits_the_batch_instead_of_resending(monkeypatch):
     assert [r["frame_index"] for r in result] == [0, 1, 2, 3]
 
 
+def test_truncation_keeps_the_half_that_answered(monkeypatch):
+    """Final_Test 05ea28da: 6 frames truncated, 3+3, then one half truncated
+    again down to a single frame. The old code threw away the three frames that
+    had parsed fine along with the one that never would."""
+    from processing.ocr_processor import client as gp
+
+    monkeypatch.setattr(gp.settings, "openrouter_api_key", "k")
+    monkeypatch.setattr(gp.settings, "ocr_max_retries", 2)
+    monkeypatch.setattr(gp.time, "sleep", lambda s: None)
+    seen_sizes = []
+
+    class _Session:
+        def post(self, url, headers=None, json=None, timeout=None):
+            n = sum(1 for p in json["messages"][0]["content"] if p["type"] == "image_url")
+            seen_sizes.append(n)
+            names = [p["text"] for p in json["messages"][0]["content"] if p["type"] == "text"][1:]
+            if any("poison" in t for t in names):   # this frame always truncates, however small the batch
+                return _Resp({"choices": [{"finish_reason": "length", "message": {"content": ""}}]})
+            return _Resp(_completion([{"frame_index": i, "metrics": {"views": 10 + i}} for i in range(n)]))
+
+    monkeypatch.setattr(gp, "_session", lambda: _Session())
+    encoded = [("a.jpg", "b64"), ("b.jpg", "b64"), ("poison.jpg", "b64"), ("d.jpg", "b64")]
+    result = gp._call_api(encoded, gp.job_logger(__name__))
+
+    assert seen_sizes == [4, 2, 2, 1, 1]           # 4 -> 2+2; the poisoned half -> 1+1
+    assert [r["frame_index"] for r in result] == [0, 1, 3]   # a, b, d kept; poison dropped
+
+
+def test_reasoning_budget_is_sent_when_configured(monkeypatch):
+    """The resolved qwen endpoint reasons before answering and cannot be told not
+    to; unbudgeted it spent all 8,000 tokens thinking about one frame."""
+    from processing.ocr_processor import client as gp
+
+    monkeypatch.setattr(gp.settings, "openrouter_api_key", "k")
+    monkeypatch.setattr(gp.settings, "ocr_max_retries", 1)
+    monkeypatch.setattr(gp.time, "sleep", lambda s: None)
+    bodies = []
+
+    class _Session:
+        def post(self, url, headers=None, json=None, timeout=None):
+            bodies.append(json)
+            return _Resp(_completion([{"frame_index": 0, "metrics": {"views": 1}}]))
+
+    monkeypatch.setattr(gp, "_session", lambda: _Session())
+    monkeypatch.setattr(gp.settings, "openrouter_reasoning_effort", "low")
+    gp._call_api([("a.jpg", "b64")], gp.job_logger(__name__))
+    assert bodies[-1]["reasoning"] == {"effort": "low"}
+    monkeypatch.setattr(gp.settings, "openrouter_reasoning_effort", "")
+    gp._call_api([("a.jpg", "b64")], gp.job_logger(__name__))
+    assert "reasoning" not in bodies[-1]
+
+
+def test_all_null_answer_is_retried_then_failed(monkeypatch):
+    """Final_Test 0d12e688: a schema-valid reply with no metric on any frame was
+    accepted, and the job completed with an empty summary."""
+    from processing.ocr_processor import client as gp
+
+    monkeypatch.setattr(gp.settings, "openrouter_api_key", "k")
+    monkeypatch.setattr(gp.settings, "ocr_max_retries", 2)
+    monkeypatch.setattr(gp.time, "sleep", lambda s: None)
+    calls = []
+
+    class _Session:
+        def post(self, url, headers=None, json=None, timeout=None):
+            calls.append(1)
+            return _Resp(_completion([{"frame_index": 0, "metrics": {}}, {"frame_index": 1, "metrics": None}]))
+
+    monkeypatch.setattr(gp, "_session", lambda: _Session())
+    assert gp._call_api([("a.jpg", "b64"), ("b.jpg", "b64")], gp.job_logger(__name__)) is None
+    assert len(calls) == 2   # every attempt spent, then honestly failed
+
+
 def test_truncation_on_a_single_frame_gives_up(monkeypatch):
     from processing.ocr_processor import client as gp   # where _call_api looks _session up
 

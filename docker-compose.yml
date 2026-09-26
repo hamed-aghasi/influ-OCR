@@ -2,7 +2,11 @@ x-app-env: &app-env
   DATABASE_URL: postgresql://analyzer:analyzer@postgres:5432/instagram_analyzer
   REDIS_URL: redis://redis:6379/0
   OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-  OPENROUTER_MODEL: ${OPENROUTER_MODEL:-qwen/qwen3.8-max}
+  # The explicit id: the "qwen/qwen3.8-max" alias is not in OpenRouter's catalogue
+  # and drifted to this reasoning model — see processing/config.py.
+  OPENROUTER_MODEL: ${OPENROUTER_MODEL:-qwen/qwen3.8-max-0902}
+  # Reasoning budget for that endpoint (it cannot be disabled); empty omits it.
+  OPENROUTER_REASONING_EFFORT: ${OPENROUTER_REASONING_EFFORT:-low}
   # Tied to the deployed classifier — see processing/config.py before changing.
   CLASSIFIER_THRESHOLD: ${CLASSIFIER_THRESHOLD:-0.30}
   # Dedup resolution. 8/4 merged frames showing different numbers — see the

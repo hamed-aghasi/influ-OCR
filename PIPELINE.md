@@ -409,8 +409,20 @@ Guards, each added after a real misread:
 One request per batch of `ocr_batch_size` = 12 frames (`config.py:Settings.ocr_batch_size`), each
 frame inlined as base64 in a single user message (`processing/ocr_processor/client.py:_call_api`), with a strict
 JSON schema derived from the pydantic model (`_strict_schema`) and
-`temperature = 0.1` (`processing/ocr_processor/client.py:_call_api`). Model: `qwen/qwen3.8-max` (`config.py:Settings.openrouter_model`).
-Timeout 120 s, `max_tokens` 8000.
+`temperature = 0.1` (`processing/ocr_processor/client.py:_call_api`). Model: `qwen/qwen3.8-max-0902` (`config.py:Settings.openrouter_model`) —
+the explicit catalogue id, since 2026-09-26; the `qwen/qwen3.8-max` alias it replaces is
+not in OpenRouter's catalogue and resolved to this model silently. Timeout 120 s,
+`max_tokens` 8000, and a **reasoning budget** `reasoning: {"effort": "low"}`
+(`config.py:Settings.openrouter_reasoning_effort`): the endpoint reasons before it
+answers and cannot be told not to; unbudgeted, it spent the whole 8,000 tokens
+thinking about a single frame and returned no content.
+
+The strict schema is **sent but not enforced** by this provider. Observed replies
+(2026-09-26): keys written as `": views"`, and a bare array in place of the
+`{"frames": [...]}` envelope. `_parse_content` (`processing/ocr_processor/client.py:_parse_content`) now
+tolerates both — it strips punctuation from keys and wraps a bare array — and a
+reply with no metric on any frame is treated as a failed attempt and retried
+(`processing/ocr_processor/client.py:_all_null`), because coverage only sends frames it read a metric on.
 
 In production the batches are dispatched as a Celery **chord**
 (`tasks.py:run_job`), all at once, with no inter-batch delay; parallelism is the
@@ -430,7 +442,12 @@ half a **fresh** 5-attempt budget, recursively.
   A model that emits `"views": 8.6` instead of expanding `8.6K` loses the whole
   batch, retries 5× at temperature 0.1 — likely reproducing the same output, at
   1.5–4 MB uploaded per attempt — then fails the batch, which marks the **whole
-  job** failed.
+  job** failed. *Narrowed 2026-09-26:* the two corruptions actually observed
+  (noisy keys, missing envelope) are now repaired rather than rejected, a
+  truncation split keeps the half that answered and drops only the frames that
+  never will (`processing/ocr_processor/client.py:_split_on_truncation`), and `finalize_job` reports those as
+  "frames not read" — the job is failed as incomplete, with the partial metrics
+  persisted, instead of completing with nothing (`tasks.py:finalize_job`).
 - **429 handling is lockstep.** Linear back-off, no jitter, ~100 s of total
   budget, with every parallel worker retrying on the same schedule.
 - **Truncation recursion is unbounded in cost**; a pathological job can issue
@@ -443,8 +460,12 @@ half a **fresh** 5-attempt budget, recursively.
   **unfiltered** batch index (`processing/ocr_processor/client.py:ocr_single_batch`), so one skipped file shifts every
   subsequent `actual_frame` label. Provenance only; aggregation is
   frame-agnostic.
-- Nothing validates that the configured model exists or supports vision and
-  strict structured output. The module's own docstring notes the schema
+- **This happened.** Nothing validates that the configured model exists or supports
+  vision and strict structured output — and on 2026-09-26 the configured alias
+  turned out not to exist in the catalogue at all, resolving to a reasoning
+  model that ignores strict mode. Two of five Final_Test videos came back
+  empty. The id is pinned now; an existence/capability check at startup is
+  still missing. The module's own docstring notes the schema
   strictness "happens to pass with the current model and would fail on the
   next one".
 

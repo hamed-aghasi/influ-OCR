@@ -58,7 +58,16 @@ class Settings(BaseSettings):
     # ----- OCR -----
     openrouter_api_key: Optional[str] = None
     openrouter_url: str = "https://openrouter.ai/api/v1/chat/completions"
-    openrouter_model: str = "qwen/qwen3.8-max"
+    # The explicit id, not the "qwen/qwen3.8-max" alias: the alias is not in
+    # OpenRouter's catalogue and silently resolved to this reasoning model on
+    # 2026-09-26, which is what broke two Final_Test videos (see HANDOFF.md).
+    openrouter_model: str = "qwen/qwen3.8-max-0902"
+    # That endpoint reasons before it answers and reasoning cannot be turned
+    # off, only budgeted. Unbudgeted it spent the whole 8,000-token allowance
+    # thinking about ONE frame and returned no content; "low" answered the same
+    # six-frame batch in ~2,200 tokens. Sent as OpenRouter's
+    # `reasoning: {"effort": ...}`; an empty string omits the parameter.
+    openrouter_reasoning_effort: str = "low"
     ocr_batch_size: int = 12
     ocr_delay_seconds: float = 2.0
     ocr_max_retries: int = 5

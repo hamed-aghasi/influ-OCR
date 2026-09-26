@@ -40,6 +40,7 @@ from processing.frame_extractor import extract_frames_from_video, process_campai
 from processing.ocr_processor import (
     assemble_metrics,
     chunk_batches,
+    frames_missing,
     ocr_single_batch,
     persist_metrics,
 )
@@ -192,7 +193,11 @@ def ocr_batch(self, job_id: str, paths: List[str], batch_index: int, batches_tot
         job_id,
         f"OCR batch {batch_index + 1}/{batches_total} {'failed' if failed else 'done'}",
     )
-    return {"batch_index": batch_index, "failed": failed, "results": results or []}
+    # Frames the model never answered (dropped after a truncation split, or
+    # absent from its reply) count towards an incomplete job, not a failed batch.
+    missing = 0 if failed else frames_missing([Path(p) for p in paths], results)
+    return {"batch_index": batch_index, "failed": failed, "results": results or [],
+            "frames_missing": missing}
 
 
 @celery.task(name="finalize_job", bind=True, max_retries=0)
@@ -204,6 +209,7 @@ def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -
         outcomes = sorted(batch_outcomes, key=lambda o: o.get("batch_index", 0))
         all_results = [r for o in outcomes for r in o.get("results", [])]
         batches_failed = sum(1 for o in outcomes if o.get("failed"))
+        missing = sum(int(o.get("frames_missing", 0)) for o in outcomes if not o.get("failed"))
 
         final_metrics = assemble_metrics(
             all_results,
@@ -212,6 +218,7 @@ def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -
             duplicate_frames=context["duplicate_frames"],
             batches_total=context["batches_total"],
             batches_failed=batches_failed,
+            frames_missing=missing,
         )
         persist_metrics(final_metrics, Path(context["output_dir"]), job_id)
 
@@ -252,6 +259,26 @@ def finalize_job(self, batch_outcomes: List[Dict], job_id: str, context: Dict) -
             # Zero frames classified as Insights screens: nothing was extracted,
             # so a green status would misreport an empty result as success.
             message = "No Instagram Insights screens detected in this upload"
+            update_job_status(job_id, "failed", message)
+            log.error(message)
+            return {"status": "failed", "error": message, "elapsed_seconds": elapsed}
+
+        if missing:
+            message = (
+                f"{missing}/{context['unique_frames']} frames sent to OCR were not read; "
+                "extracted metrics are incomplete"
+            )
+            update_job_status(job_id, "failed", message)
+            log.error("Job finished with unanswered frames: %s", message)
+            return {"status": "failed", "error": message, "elapsed_seconds": elapsed}
+
+        if not final_metrics["summary"]:
+            # Frames were sent and answered, yet not one metric came back: the
+            # model's reply was empty of data (Final_Test 0d12e688: 28 nulls per
+            # frame, accepted as success). Persisted above; reported honestly here.
+            message = (
+                f"OCR returned no metrics for any of the {context['unique_frames']} frames sent"
+            )
             update_job_status(job_id, "failed", message)
             log.error(message)
             return {"status": "failed", "error": message, "elapsed_seconds": elapsed}

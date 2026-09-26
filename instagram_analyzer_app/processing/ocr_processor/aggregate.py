@@ -55,6 +55,7 @@ def assemble_metrics(
     duplicate_frames: int,
     batches_total: int,
     batches_failed: int,
+    frames_missing: int = 0,
 ) -> Dict:
     summary, summary_quality = _aggregate(all_results)
     return {
@@ -64,6 +65,7 @@ def assemble_metrics(
         "duplicate_frames": duplicate_frames,
         "ocr_batches_total": batches_total,
         "ocr_batches_failed": batches_failed,
+        "ocr_frames_missing": frames_missing,
         "all_frames_data": all_results,
         "summary": summary,
         "summary_quality": summary_quality,

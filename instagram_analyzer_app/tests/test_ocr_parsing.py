@@ -33,11 +33,45 @@ def test_parse_truncated_json_fails_whole_batch():
 def test_parse_rejects_wrong_shape():
     from processing.ocr_processor import _parse_content
 
-    # Old-style bare array (pre-structured-outputs shape) is no longer accepted.
-    assert _parse_content('[{"frame_index": 0}]') is None
-    # Schema violations fail the batch instead of being kept as raw dicts.
+    # A bare array IS accepted (see test_parse_accepts_a_bare_array_envelope):
+    # the provider drops the envelope even in strict mode. Real schema
+    # violations still fail the batch instead of being kept as raw dicts.
     assert _parse_content('{"frames": [{"frame_index": -1}]}') is None
     assert _parse_content("not json at all") is None
+
+
+def test_parse_accepts_a_bare_array_envelope():
+    """Final_Test 2026-09-26: qwen3.8-max-0902 answered a single frame with
+    `[{...}]` instead of `{"frames": [...]}` — strict mode is not enforced by
+    that provider. The old parser rejected it and the batch was lost."""
+    from processing.ocr_processor import _parse_content
+
+    results = _parse_content('[{"frame_index": 0, "metrics": {"views": 4616, "interactions": 19}}]')
+    assert results is not None and len(results) == 1
+    assert results[0]["metrics"]["views"] == 4616
+
+
+def test_parse_normalises_noisy_keys():
+    """Final_Test 0d12e688: every key came back as `": views"`. pydantic ignored
+    them all, the frame read as 28 nulls, and the job completed with nothing."""
+    from processing.ocr_processor import _parse_content
+
+    results = _parse_content(
+        '{"frames": [{": frame_index": 0, ": metrics": {": views": 21727, ": interactions": 30},'
+        ' " metadata ": {": language": "en"}}]}'
+    )
+    assert results is not None
+    assert results[0]["frame_index"] == 0
+    assert results[0]["metrics"]["views"] == 21727 and results[0]["metrics"]["interactions"] == 30
+    assert results[0]["metadata"]["language"] == "en"
+
+
+def test_all_null_batch_is_a_failed_answer():
+    from processing.ocr_processor import _all_null
+
+    assert _all_null([{"frame_index": 0, "metrics": None}, {"frame_index": 1, "metrics": {"views": None}}])
+    assert not _all_null([{"frame_index": 0, "metrics": {"views": None}}, {"frame_index": 1, "metrics": {"views": 3}}])
+    assert not _all_null([])   # nothing sent is not the same as nothing read
 
 
 def test_parse_empty_frames_is_valid():
