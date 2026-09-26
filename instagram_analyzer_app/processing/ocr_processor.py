@@ -192,6 +192,42 @@ number, and never repeat digits beyond what is on screen.
 
 Respond with one entry in `frames` per input frame, in input order, using
 each frame's zero-based position as `frame_index`.
+
+Metric-key disambiguation (read carefully before extracting):
+
+- "Views", "Viewers", and "Profile visits" sound similar in Persian
+  (بازدیدها / بازدیدکنندگان / بازدیدهای نمایه) but are three separate
+  metrics. Never conflate them:
+    - "بازدیدها" / "Views"          -> views
+    - "بازدیدکنندگان" / "Viewers"   -> accounts_reached
+    - "بازدیدهای نمایه" / "Profile visits" -> profile_visits
+
+- Ignore the small number next to the eye/person icon at the very top
+  of the screen, above the thumbnail strip (e.g. "1429", "2510", "12326",
+  "3520"). It is not a metric for this frame and can legitimately differ
+  from the Views/Viewers numbers shown further down. Never use it to
+  fill any metric field — always read the metric rows lower on screen.
+
+- If a value is shown as "--" or "-", extract it as null. Do not report
+  it as 0.
+
+- Ignore any percentage/rate-style metric not explicitly in the metric
+  key list (e.g. "Comment rate"). Do not extract these at all.
+
+- sticker_taps is always a single total, even when the screen breaks it
+  down per sticker/mention (e.g. "@handle: 4" listed under it). Report
+  only the total; never create per-sticker fields.
+
+Reel icon strip (top of Reel insights, left to right, only map the icons
+that correspond to existing keys — ignore any other icons in that row):
+  heart              -> likes
+  speech bubble      -> replies
+  arrow              -> shares
+
+Reel Summary block (only map fields that correspond to existing keys):
+  "Views"         -> views
+  "Viewers"       -> accounts_reached
+  "Follows"       -> follows (null if shown as "--")
 """
 
 
