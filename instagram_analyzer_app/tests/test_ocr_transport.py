@@ -100,7 +100,7 @@ def test_client_side_validation_survives_schema_relaxation():
     ids=["provider-error", "empty-choices", "no-choices", "not-json"],
 )
 def test_malformed_envelope_is_retried_not_raised(payload, monkeypatch):
-    from processing import ocr_processor as gp
+    from processing.ocr_processor import client as gp   # where _call_api looks _session up
 
     monkeypatch.setattr(gp.settings, "openrouter_api_key", "k")
     monkeypatch.setattr(gp.settings, "ocr_max_retries", 2)
@@ -122,7 +122,7 @@ def test_malformed_envelope_is_retried_not_raised(payload, monkeypatch):
 
 
 def test_valid_envelope_returns_frames(monkeypatch):
-    from processing import ocr_processor as gp
+    from processing.ocr_processor import client as gp   # where _call_api looks _session up
 
     monkeypatch.setattr(gp.settings, "openrouter_api_key", "k")
     monkeypatch.setattr(gp.time, "sleep", lambda *_: None)
@@ -141,7 +141,7 @@ def test_valid_envelope_returns_frames(monkeypatch):
 # ----- truncation splitting -----
 
 def test_truncation_splits_the_batch_instead_of_resending(monkeypatch):
-    from processing import ocr_processor as gp
+    from processing.ocr_processor import client as gp   # where _call_api looks _session up
 
     monkeypatch.setattr(gp.settings, "openrouter_api_key", "k")
     monkeypatch.setattr(gp.settings, "ocr_max_retries", 5)
@@ -169,7 +169,7 @@ def test_truncation_splits_the_batch_instead_of_resending(monkeypatch):
 
 
 def test_truncation_on_a_single_frame_gives_up(monkeypatch):
-    from processing import ocr_processor as gp
+    from processing.ocr_processor import client as gp   # where _call_api looks _session up
 
     monkeypatch.setattr(gp.settings, "openrouter_api_key", "k")
     monkeypatch.setattr(gp.time, "sleep", lambda *_: None)
