@@ -3,7 +3,6 @@
 Long-running ingest is enqueued to Celery; this process only handles HTTP.
 """
 
-import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -32,6 +31,7 @@ from processing.filetypes import ALLOWED_EXTS, VIDEO_EXTS, ZIP_EXTS
 from processing.logger import get_logger
 from processing.naming import generate_job_id
 from processing.s3_storage import download_json, get_file_url, is_s3_configured
+from processing.upload_guards import _sniff_ok, _validate_zip, discard_upload  # noqa: F401  (main._sniff_ok, main._validate_zip stay importable)
 
 
 logger = get_logger("main")
@@ -41,24 +41,6 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 settings.upload_dir.mkdir(parents=True, exist_ok=True)
 settings.processing_dir.mkdir(parents=True, exist_ok=True)
-
-
-VIDEO_MAGIC = b"ftyp"  # appears at byte 4 in MP4 family
-ZIP_MAGIC = (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")
-PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
-JPEG_MAGIC = b"\xff\xd8\xff"
-
-
-def _sniff_ok(header: bytes, ext: str) -> bool:
-    if ext in ZIP_EXTS:
-        return any(header.startswith(m) for m in ZIP_MAGIC)
-    if ext in {".jpg", ".jpeg"}:
-        return header.startswith(JPEG_MAGIC)
-    if ext == ".png":
-        return header.startswith(PNG_MAGIC)
-    if ext in VIDEO_EXTS:
-        return VIDEO_MAGIC in header[:32] or ext in {".mkv", ".avi", ".mov"}
-    return False
 
 
 app = FastAPI(title="Instagram Analyzer", version="2.0.0")
@@ -172,20 +154,14 @@ async def handle_upload(
                     )
                 await out.write(chunk)
     except APIError:
-        try:
-            upload_path.unlink(missing_ok=True)
-        except OSError:
-            pass
+        discard_upload(upload_path)
         raise
 
     if file_ext in ZIP_EXTS:
         try:
             _validate_zip(upload_path)
         except APIError:
-            try:
-                upload_path.unlink(missing_ok=True)
-            except OSError:
-                pass
+            discard_upload(upload_path)
             raise
 
     if file_ext in VIDEO_EXTS:
@@ -196,10 +172,7 @@ async def handle_upload(
         file_type = "image"
 
     if not create_job(job_id, campaign_date_parsed, campaign_name, product_name, company, file.filename, file_type):
-        try:
-            upload_path.unlink(missing_ok=True)
-        except OSError:
-            pass
+        discard_upload(upload_path)
         raise APIError(500, "Could not create job record")
 
     from celery_app import celery  # local to avoid import-time worker dep
@@ -209,33 +182,12 @@ async def handle_upload(
     except Exception as exc:  # noqa: BLE001 — broker down must not leave a phantom queued job
         logger.error("Failed to enqueue job %s: %s", job_id, exc)
         update_job_status(job_id, "failed", "Could not enqueue job (queue unavailable)")
-        try:
-            upload_path.unlink(missing_ok=True)
-        except OSError:
-            pass
+        discard_upload(upload_path)
         raise APIError(503, "Processing queue unavailable; try again shortly") from exc
 
     set_job_task_id(job_id, result.id)
 
     return RedirectResponse(url=f"/status/{job_id}", status_code=303)
-
-
-def _validate_zip(zip_path: Path) -> None:
-    try:
-        with zipfile.ZipFile(zip_path) as zf:
-            entries = zf.infolist()
-    except zipfile.BadZipFile as exc:
-        raise APIError(400, "Invalid ZIP file") from exc
-
-    if len(entries) > settings.max_zip_entries:
-        raise APIError(400, f"ZIP has too many entries ({len(entries)})")
-
-    total_uncompressed = sum(e.file_size for e in entries)
-    if total_uncompressed > settings.max_zip_uncompressed_bytes:
-        raise APIError(
-            400,
-            f"ZIP would expand to {total_uncompressed} bytes (max {settings.max_zip_uncompressed_bytes})",
-        )
 
 
 # ---------- Job views ----------
