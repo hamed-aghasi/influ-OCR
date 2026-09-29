@@ -11,6 +11,11 @@ def test_settings_load():
     assert s.frame_selection == "scroll"
     assert s.coverage_selection is True
     assert s.broker_url.startswith("redis://")
+    # An explicit OpenRouter catalogue id, never an alias (the "qwen/qwen3.8-max"
+    # alias drifted to a different model once); a reasoning budget always goes
+    # with it, because unbudgeted reasoning returned no content.
+    assert s.openrouter_model == "qwen/qwen3.8-27b"
+    assert s.openrouter_reasoning_effort == "low"
 
 
 def test_database_configured_flag():

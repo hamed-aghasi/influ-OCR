@@ -58,20 +58,24 @@ class Settings(BaseSettings):
     # ----- OCR -----
     openrouter_api_key: Optional[str] = None
     openrouter_url: str = "https://openrouter.ai/api/v1/chat/completions"
-    # The explicit id, not the "qwen/qwen3.8-max" alias: the alias is not in
-    # OpenRouter's catalogue and silently resolved to this reasoning model on
-    # 2026-09-26, which is what broke two Final_Test videos (see HANDOFF.md).
-    openrouter_model: str = "qwen/qwen3.8-max-0902"
-    # That endpoint reasons before it answers and reasoning cannot be turned
-    # off, only budgeted. Unbudgeted it spent the whole 8,000-token allowance
-    # thinking about ONE frame and returned no content; "low" answered the same
-    # six-frame batch in ~2,200 tokens. Sent as OpenRouter's
-    # `reasoning: {"effort": ...}`; an empty string omits the parameter.
+    # Always an explicit catalogue id, never an alias: "qwen/qwen3.8-max" was
+    # not in OpenRouter's catalogue and silently resolved to a different,
+    # reasoning-only model on 2026-09-26, which broke two Final_Test videos
+    # (see HANDOFF.md). qwen3.8-27b ran the other 20 videos of that set
+    # (19 complete) at roughly a third of qwen3.8-max-0902's cost. Its
+    # `canonical_slug` was qwen/qwen3.8-27b-20260814 when chosen.
+    openrouter_model: str = "qwen/qwen3.8-27b"
+    # Reasoning budget, sent as OpenRouter's `reasoning: {"effort": ...}`; an
+    # empty string omits the parameter. Kept at "low" rather than off: with
+    # thinking disabled, qwen3.8-27b filled every absent metric with 0 instead
+    # of null and invented a followers split (2026-09-26 probe), and on the
+    # earlier qwen3.8-max-0902 endpoint reasoning could not be disabled at all —
+    # unbudgeted it spent the whole 8,000-token allowance on ONE frame.
     openrouter_reasoning_effort: str = "low"
     ocr_batch_size: int = 12
     ocr_delay_seconds: float = 2.0
     ocr_max_retries: int = 5
-    ocr_request_timeout: int = 120  # qwen3.8-max batches can run close to 60s
+    ocr_request_timeout: int = 120  # a 6-8 frame batch with reasoning can run 60-90s
     ocr_max_tokens: int = 8000
 
     # ----- Classifier -----

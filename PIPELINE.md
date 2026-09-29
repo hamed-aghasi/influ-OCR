@@ -409,9 +409,10 @@ Guards, each added after a real misread:
 One request per batch of `ocr_batch_size` = 12 frames (`config.py:Settings.ocr_batch_size`), each
 frame inlined as base64 in a single user message (`processing/ocr_processor/client.py:_call_api`), with a strict
 JSON schema derived from the pydantic model (`_strict_schema`) and
-`temperature = 0.1` (`processing/ocr_processor/client.py:_call_api`). Model: `qwen/qwen3.8-max-0902` (`config.py:Settings.openrouter_model`) —
-the explicit catalogue id, since 2026-09-26; the `qwen/qwen3.8-max` alias it replaces is
-not in OpenRouter's catalogue and resolved to this model silently. Timeout 120 s,
+`temperature = 0.1` (`processing/ocr_processor/client.py:_call_api`). Model: `qwen/qwen3.8-27b` (`config.py:Settings.openrouter_model`) —
+since 2026-09-29, after it ran 20 of the 25 Final_Test videos; before that
+`qwen/qwen3.8-max-0902`, itself the explicit id behind the `qwen/qwen3.8-max`
+alias that is not in OpenRouter's catalogue and resolved silently. Timeout 120 s,
 `max_tokens` 8000, and a **reasoning budget** `reasoning: {"effort": "low"}`
 (`config.py:Settings.openrouter_reasoning_effort`): the endpoint reasons before it
 answers and cannot be told not to; unbudgeted, it spent the whole 8,000 tokens

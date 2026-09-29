@@ -12,7 +12,7 @@ and Persian. Pipeline, per video:
 2. MobileNetV2 good/bad classifier, threshold 0.30 (`processing/frame_classifier.py`, `models/`)
 3. scroll-aware selection: fewest frames covering each scrolled page (`processing/frame_selection/` — `align`, `pages`, `cover`, `verify`, `select`)
 4. metric coverage: Tesseract `fas+eng` reads which metrics each frame shows, and a set cover keeps the fewest (`processing/metric_coverage/` — `text`, `labels`, `detect`, `tesseract`, `select`); then a pass drops frames whose content is readable in another sent frame. Steps 3 and 4 run through one function, `processing/selection_pipeline.choose_ocr_frames`, which production and every tool call
-5. OCR via an OpenRouter vision model (default `qwen/qwen3.8-max`, `processing/ocr_processor/` — `schema`, `prompt`, `client`, `aggregate`, `batch`)
+5. OCR via an OpenRouter vision model (default `qwen/qwen3.8-27b`, reasoning effort `low`; `processing/ocr_processor/` — `schema`, `prompt`, `client`, `aggregate`, `batch`)
 6. consensus aggregation, then Postgres, optional S3, Excel export
 
 Steps 3 and 4 are switched by `FRAME_SELECTION` (`scroll` or `phash`) and

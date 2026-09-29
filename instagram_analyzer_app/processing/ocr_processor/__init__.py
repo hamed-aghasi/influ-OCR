@@ -2,7 +2,7 @@
 
 Model-agnostic: the request is a plain OpenAI-compatible chat completion
 (messages + base64 image_url parts + a json_schema response_format), so the
-model is a config value (`OPENROUTER_MODEL`, currently qwen/qwen3.8-max) and
+model is a config value (`OPENROUTER_MODEL`, currently qwen/qwen3.8-27b) and
 nothing here is specific to any provider. Named gemini_processor.py until
 2026-08-31, when the default had already been qwen for over a week.
 
