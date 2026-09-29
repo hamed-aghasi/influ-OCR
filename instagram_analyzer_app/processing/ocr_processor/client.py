@@ -169,7 +169,8 @@ def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
             # unguarded raised straight past this retry loop and killed the
             # batch — and, on the sequential path, the whole job.
             try:
-                choice = response.json()["choices"][0]
+                data = response.json()
+                choice = data["choices"][0]
             except (ValueError, KeyError, IndexError, TypeError) as exc:
                 log.warning(
                     "Attempt %d returned no usable choice (%s): %s",
@@ -177,6 +178,20 @@ def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
                 )
                 time.sleep(5)
                 continue
+
+            # Which provider served the request and what it cost. OpenRouter
+            # routes one model id across providers whose output quality and
+            # tokenisation differ; without this line a bad batch cannot be
+            # attributed to a route, and the token spend cannot be measured.
+            usage = data.get("usage") or {}
+            log.info(
+                "OpenRouter answered %d frame(s): provider=%s model=%s finish=%s "
+                "prompt_tokens=%s completion_tokens=%s reasoning_tokens=%s",
+                len(encoded), data.get("provider"), data.get("model"),
+                choice.get("finish_reason"), usage.get("prompt_tokens"),
+                usage.get("completion_tokens"),
+                (usage.get("completion_tokens_details") or {}).get("reasoning_tokens"),
+            )
 
             if choice.get("finish_reason") == "length":
                 return _split_on_truncation(encoded, log)
