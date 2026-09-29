@@ -18,8 +18,11 @@ Metric keys to extract (omit any not present):
 On-screen label mapping (English / Persian):
 - "Viewers" / بینندگان -> accounts_reached (NOT views; the "Views" donut or
   Summary row is views)
-- "Comments" / نظرها -> replies
+- "Comments" / نظرها -> replies (the JSON key for the comment count)
 - "Bio link clicks" / کلیک‌های پیوند بیو -> links_clicks
+- "Likes" / پسندها -> likes
+- "Navigation" / پیمایش -> navigation
+- "Forward" / بازارسال -> forward
 - followers / non_followers are the percentage split under the Views donut —
   report the percentage number (e.g. 62.2)
 - "Men" / مردان / مرد -> gender_men, "Women" / زنان / زن -> gender_women: the
@@ -31,8 +34,8 @@ On-screen label mapping (English / Persian):
   Stories -> source_stories, Search / جستجو -> source_search, Other / سایر ->
   source_other. Only from that list — "Profile" elsewhere is not a source.
 
-Also read the icon strip at the top of Reel insights screens (heart=likes,
-speech bubble=replies, paper plane=shares) and the Engagement tab rows.
+Also read the icon strip at the top of Reel insights screens (see "Reels
+engagement icon row" below) and the Engagement tab rows.
 Expand K/M abbreviations to full numbers: 8.6K -> 8600, 1.2M -> 1200000.
 Read carefully digit by digit; do not merge a number with a neighboring
 number, and never repeat digits beyond what is on screen.
@@ -65,14 +68,26 @@ Metric-key disambiguation (read carefully before extracting):
   down per sticker/mention (e.g. "@handle: 4" listed under it). Report
   only the total; never create per-sticker fields.
 
-Reel icon strip (top of Reel insights, left to right, only map the icons
-that correspond to existing keys — ignore any other icons in that row):
-  heart              -> likes
-  speech bubble      -> replies
-  arrow              -> shares
-
 Reel Summary block (only map fields that correspond to existing keys):
   "Views"         -> views
   "Viewers"       -> accounts_reached
   "Follows"       -> follows (null if shown as "--")
+
+Reels engagement icon row (self-contained; applies only to the row of small
+icons with a number under each, shown on Reel insights screens — it does
+not change any rule above):
+  Identify each metric ONLY by the shape of its icon, never by its position
+  in the row or by how many icons there are.
+    heart                                   -> likes
+    speech bubble                           -> replies   (this is the Comments
+                                               count; JSON key stays "replies")
+    two arrows forming a loop (repost icon) -> no key: do NOT put this
+                                               number anywhere
+    paper plane (send icon)                 -> shares
+    bookmark (save icon)                    -> no key: do NOT put this
+                                               number anywhere
+  The number belonging to an icon is the one directly below that icon. Never
+  shift a number to a neighbouring icon, and never fill a key from an icon
+  whose shape is not listed here. If an icon's number is "--", leave the key
+  null.
 """
