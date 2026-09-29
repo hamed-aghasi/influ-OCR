@@ -58,6 +58,18 @@ def _is_percent_line(line: str) -> bool:
     return bool(re.search(r"\d\s*[%٪]", text))
 
 
+def _is_digit_run(line: str) -> bool:
+    """Nothing but digits and their separators, at least two digits.
+
+    A gender bar's percentage as Tesseract reads it on the Persian layout:
+    "۸۴٫۸٪" fused with the bar glyphs into "۸۱۴۸۸۹ ۳۳000", the percent sign
+    lost. No letters, so it cannot be an axis tick ("200K") or another label.
+    Tesseract wraps RTL lines in bidi marks (U+200E/F), which are not digits."""
+    text = unicodedata.normalize("NFKC", line).translate(_PERSIAN_DIGITS)
+    text = re.sub(r"[​-‏⁦-⁩]", "", text)
+    return bool(re.fullmatch(r"[\d\s,.٫٬]+", text)) and sum(c.isdigit() for c in text) >= 2
+
+
 def _is_guardable(token: str, min_digits: int = 2) -> bool:
     """Could this token be a metric count worth keeping a frame for?
 

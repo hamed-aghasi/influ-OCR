@@ -10,8 +10,8 @@ from .labels import (
     _is_filter_row, _labels, _source,
 )
 from .text import (
-    _PERSIAN_DIGITS, _canonical, _fold, _is_guardable, _is_percent_line, _mostly_numbers,
-    _norm, _numbers,
+    _PERSIAN_DIGITS, _canonical, _fold, _is_digit_run, _is_guardable, _is_percent_line,
+    _mostly_numbers, _norm, _numbers,
 )
 
 _CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b")
@@ -101,11 +101,14 @@ def metrics_in_text(lines: Sequence[str]) -> Set[str]:
         gender = _gender(n)
         if gender:
             # "Men 95.9%" on one line, or "Men" over its bar and "95.9%" (bar
-            # glyphs OCR as noise, e.g. "اه 95.9%") on the next non-noise line
+            # glyphs OCR as noise, e.g. "اه 95.9%") on the next non-noise line.
+            # On the Persian layout the bar and "۸۴٫۸٪" fuse into one digit run
+            # with the percent sign lost ("۸۱۴۸۸۹ ۳۳000"), so a digit-only
+            # next line counts too (68301206 frames 237-261, seen 2026-09-29).
             for j in (i, i + 1, i + 2):
                 if j >= len(lines) or (j > i and (_gender(norm[j]) or _labels(norm[j]))):
                     break
-                if _is_percent_line(lines[j]):
+                if _is_percent_line(lines[j]) or (j == i + 1 and _is_digit_run(lines[j])):
                     found.add(gender)
                     break
             continue

@@ -142,6 +142,20 @@ def test_gender_split_is_detected():
     assert metrics_in_text(["مردان ۷۰٫۴٪", "زنان ۲۹٫۶٪"]) == {"gender_men", "gender_women"}
 
 
+# 68301206 frame 252, exact Tesseract output: the Persian bar layout fuses the
+# bar and "۸۴٫۸٪" into one digit run with no percent sign, and the زن row is
+# not read at all. Crediting gender_men is what gets the frame sent.
+def test_gender_bar_read_as_bare_digits_still_counts():
+    from processing.metric_coverage import metrics_in_text
+
+    lines = ["23 ‏بازدیدهای نمایه‎", "0 ‏دنبال کردن‎", "‏مرد‎",
+             "‎۸۱۴۸۸۹ ۳۳000", "os"]
+    assert metrics_in_text(lines) == {"profile_visits", "follows", "gender_men"}
+    # only the very next line, and only if it is nothing but digits
+    assert metrics_in_text(["Men", "noise", "814889"]) == set()
+    assert metrics_in_text(["Men", "200K"]) == set()
+
+
 def test_gender_labels_do_not_match_inside_other_words():
     from processing.metric_coverage import metrics_in_text
 
