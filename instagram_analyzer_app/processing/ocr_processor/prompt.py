@@ -23,6 +23,8 @@ On-screen label mapping (English / Persian):
 - "Likes" / پسندها -> likes
 - "Navigation" / پیمایش -> navigation
 - "Forward" / بازارسال -> forward
+- "Back" / برگشت -> back
+- "Exited" / تعداد ضربه‌ها برای خروج از داستان -> exited
 - followers / non_followers are the percentage split under the Views donut —
   report the percentage number (e.g. 62.2)
 - "Men" / مردان / مرد -> gender_men, "Women" / زنان / زن -> gender_women: the
