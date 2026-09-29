@@ -1,5 +1,68 @@
 # HANDOFF — session state for the next context
 
+## 2026-09-29 — 27b as default, prompt labels, the gender-bar coverage fix, provider logging
+
+Branch `feat/scroll-coverage-selection`, five local commits, **nothing pushed** (origin is still at
+`55e66d5`, 15 commits behind). No model retrain, no relabel. OpenRouter spend today ≈ 8 batches of
+2–9 frames on `qwen/qwen3.8-27b`, well under $0.10.
+
+- **`44db91a` — `qwen/qwen3.8-27b` is the committed default** (was `qwen3.8-max-0902`), in
+  `config.py`, `docker-compose.yml`, `.env.example`, the docs and `test_config.py`; `OPENROUTER_MODEL`
+  still overrides. Basis: it ran 20 of the 25 Final_Test videos (19 complete) at about a third of
+  max-0902's price. Cost estimate for 1,000 videos at the 2026-09-29 catalogue prices ($0.063/M
+  prompt, $4.40/M completion): ≈ $13; max-0902 ≈ $18–19. Per-request usage was not logged at the
+  time, so that is a catalogue-price estimate, not measured spend.
+- **Video `68301206` (Persian Story, 9 frames sent) as the test case.** The 09-26 output had 13
+  metrics; the screen shows 18. Traced with the run's own frames (copied into
+  `Final_Test_output/68301206…/frames_sent/` with a MANIFEST, same layout as the first five videos;
+  the other 27b-run videos still have their frames only in the session scratchpad):
+  - `likes`, `navigation`, `forward` were on four sent frames and Tesseract read them; the model
+    returned none → **prompt had no Persian label for them**. `back`/`exited` were then swapped for
+    the same reason. Fixed by label lines (`5e6de26`, `630ce48`): پسندها, پیمایش, بازارسال, برگشت,
+    تعداد ضربه‌ها برای خروج از داستان. Labels still without a Persian line in the prompt (they are
+    in the coverage dictionary and were read correctly anyway): تعاملات, پاسخ‌ها, اشتراک‌گذاری‌ها,
+    داستان بعدی, فعالیت نمایه, دنبال کردن, دنبال‌کنندگان / غیردنبال‌کنندگان.
+  - `gender_men`/`gender_women` (مرد 84.8 % / زن 15.2 %, frames 237–261, second 7 of the video)
+    never reached the model: classifier 0.99, scroll selection kept 237 and 252, but **Tesseract
+    fuses the bar and "۸۴٫۸٪" into a digit run with no percent sign** (`۸۱۴۸۸۹ ۳۳000`) and never
+    reads زن, so `metrics_in_text` credited no gender metric and the set cover dropped both frames.
+    **Fix A, `d219133`:** `_is_digit_run` in `metric_coverage/text.py`; a gender label also counts
+    when the very next line is nothing but digits (`detect.py`), plus a test from frame 252's exact
+    Tesseract output. Evals before/after: `eval_selection` 46 frames / 0 lost, per-video identical;
+    `eval_feedback` 110/118, 396 frames, identical on all 73 videos (baseline and after replays each
+    took ~1 h; video `5198f946` alone is ~22 min twice). Effect: 68301206 now sends 252 instead of
+    270, still 9 frames, and the model reads 84.8 / 15.2 correctly.
+- **`5e6de26` — Reels icon row, shape-only.** New self-contained block at the end of the prompt:
+  heart→likes, speech bubble→replies (the Comments count; key name unchanged), paper plane→shares;
+  the repost loop and the bookmark have **no key** and must not be shifted into one; the number is
+  the one directly below the icon. Replaces the 09-26 "left to right / arrow→shares" block, which
+  had let the repost count land in `shares`. Verified on `ba67da0e`: shares 1 → 2 (screen: 2),
+  everything else unchanged. `reposts`/`saves` fields deliberately not added (schema change).
+- **`d07eb11` — provider and usage logged** per OpenRouter answer (`client.py`, INFO line:
+  provider, model, finish_reason, prompt/completion/reasoning tokens). Log only.
+- **Provider variance is real and now visible.** Same 9-frame batch, same prompt: **Phala** returned
+  one merged 21-key dict (and once only 1 of 9 frames, job failed) with five fabricated keys
+  (`links_clicks`, `sticker_taps`, `external_link_taps`, `gender_*` from the Interactions split);
+  **DeepInfra** and **Cloudflare** answered per frame, 17/18 correct, nothing invented. The
+  ~3.4k prompt tokens for nine 720p images suggest the images are billed at a few hundred tokens
+  each. A sentence "read each frame separately, return only visible keys" was tried and made the
+  Phala answer worse (1 of 9 frames); it was removed and not committed. No provider pinning yet.
+- **Still wrong, deterministic across DeepInfra and Cloudflare: `non_followers` = 0.0** (screen
+  2.6). The four frames showing the *Interactions* donut's 100.0 % / 0.0 % split are reported as
+  `followers`/`non_followers`; three Views frames say 97.4 / 2.6; consensus takes the majority
+  (`followers` survives only because its 4–4 tie breaks towards 97.4). Same issue noted on 09-26.
+  Options not taken: a prompt line excluding the Interactions split, or an `aggregate.py` rule
+  preferring reads from frames that show the Views donut (testable offline on today's stored
+  per-frame data). Decide before the next batch run.
+- **Outputs kept, nothing overwritten:** every re-run today went to its own directory,
+  `Final_Test_output/rerun-2026-09-29-{icon-row,icon-row-2,back-exited,per-frame,gender-fix,gender-fix-2}/`
+  (the last two are the current code); the 09-26 outputs are untouched. Re-runs used a scratch
+  wrapper around the Final_Test runner that refuses to overwrite an existing output.
+- **Other open items, unchanged:** `.dockerignore` `**/.DS_Store`; Finder duplicate symlinks in
+  `train/`; no startup check that `OPENROUTER_MODEL` exists in the catalogue; carousel badge read
+  as `accounts_reached`; the Docker image (`influ-ocr:latest`, built 2026-09-26 16:32) predates
+  `42830c4` and every commit since, so a rebuild is due before anything runs in compose.
+
 ## 2026-09-26 (evening) — two Final_Test videos came back empty: cause and fix
 
 - **Cause.** `OPENROUTER_MODEL=qwen/qwen3.8-max` is an alias that is **not in OpenRouter's

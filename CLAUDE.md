@@ -1,6 +1,6 @@
 # influ-OCR — Instagram Campaign Analyzer
 
-> Session state + open threads: see `HANDOFF.md` (latest section dated 2026-09-20).
+> Session state + open threads: see `HANDOFF.md` (latest section dated 2026-09-29).
 > How the pipeline works stage by stage, its settings and its failure modes:
 > **`PIPELINE.md`** — read it before running a large batch.
 
