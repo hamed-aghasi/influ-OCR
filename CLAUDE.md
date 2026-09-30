@@ -1,6 +1,7 @@
 # influ-OCR — Instagram Campaign Analyzer
 
-> Session state + open threads: see `HANDOFF.md` (latest section dated 2026-09-29).
+> Operator guide: `RUNBOOK.md`. Known issues: `README.md`. Session logs and the
+> decision trail: `docs/history/` (latest: `HANDOFF-2026-09-29.md`, `2026-09-30-release-cleanup.md`).
 > How the pipeline works stage by stage, its settings and its failure modes:
 > **`PIPELINE.md`** — read it before running a large batch.
 
@@ -43,6 +44,7 @@ or tesseract needed for most of them).
 
 ## Docs status
 
-- `PROXY_SUPPORT_PLAN.md`: proposal only, never implemented (see its status header).
-- `SESSION-2026-09-12.md`: the dark-mode classifier diagnosis and the start of retraining.
+- `docs/history/`: session logs (`HANDOFF-2026-09-29.md`, `SESSION-*.md`), the never-implemented
+  `PROXY_SUPPORT_PLAN.md`, and the release-cleanup record; its README says what each file is.
 - `test-frame-output*/`: v1/v2/v3 reviews of the two test videos (each README says what it shows).
+- `tools/`: batch submission, local runs, the environment self-check and the output-identity harness.
