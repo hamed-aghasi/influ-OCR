@@ -3,7 +3,6 @@
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-import numpy as np
 
 from ..config import settings
 from .align import _load_gray

@@ -37,7 +37,6 @@ import random
 import shutil
 import subprocess
 import sys
-import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple
@@ -476,9 +475,9 @@ def threshold_report(items: Sequence[FrameItem], scores: np.ndarray, configured:
               f"{r['f1']:>6.3f} {r['kept']:>5} {r['tp']:>4} {r['fp']:>4} {r['fn']:>4}{mark}")
 
     if cheapest is not None and abs(cheapest["threshold"] - configured) > 1e-9:
-        print(f"\n  To adopt the cheapest safe operating point, set in .env or the environment:")
+        print("\n  To adopt the cheapest safe operating point, set in .env or the environment:")
         print(f"      CLASSIFIER_THRESHOLD={cheapest['threshold']}")
-        print(f"  (pydantic BaseSettings picks it up; no code change)")
+        print("  (pydantic BaseSettings picks it up; no code change)")
     elif cheapest is None:
         print(f"\n  [warn] no threshold reaches recall >= {min_recall}. The model is not good "
               f"enough to filter safely yet — more labelled data is the fix, not a lower cutoff.")
@@ -497,7 +496,6 @@ def _print_histogram(items: Sequence[FrameItem], scores: np.ndarray, bins: int =
         if not len(sel):
             continue
         hist, _ = np.histogram(sel, bins=bins, range=(0.0, 1.0))
-        peak = max(hist.max(), 1)
         char = "|" if label == GOOD else "."
         print(f"  {CLASS_NAMES[label]:>4}: " + "".join(
             char if h else " " for h in hist

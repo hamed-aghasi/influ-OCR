@@ -1,8 +1,10 @@
 from pathlib import Path
 
-import numpy as np
 import pytest
-from PIL import Image
+
+np = pytest.importorskip("numpy")
+Image = pytest.importorskip("PIL.Image")
+pytest.importorskip("imagehash")   # processing.dedup needs it; skip, don't error, where it is absent
 
 
 def _save_noise_image(path: Path, seed: int, perturbation: int = 0) -> None:

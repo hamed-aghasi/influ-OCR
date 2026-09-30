@@ -2,7 +2,7 @@
 
 import re
 import unicodedata
-from typing import Dict, List, Optional, Sequence, Set
+from typing import Dict, Optional, Sequence, Set
 
 from .labels import (
     ICON_STRIP, _DEMOGRAPHICS, _MONTHS, _NOT_A_VALUE, _NOT_EVIDENCE, _OTHER_LABELS,

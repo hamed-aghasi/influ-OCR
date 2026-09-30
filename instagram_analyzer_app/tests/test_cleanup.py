@@ -4,8 +4,6 @@ reported as its own error rather than as an upload with no Insights screens."""
 import time
 from pathlib import Path
 
-import pytest
-
 
 def _make_job_dir(root: Path, job_id: str) -> Path:
     d = root / job_id / "frames"
