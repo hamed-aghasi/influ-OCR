@@ -33,6 +33,25 @@ def _session() -> requests.Session:
     return session
 
 
+def _drop_session() -> None:
+    """Close and forget this thread's pooled connection, so the next request
+    opens a fresh one.
+
+    A keep-alive connection lives as long as the worker process. One opened
+    while this machine's route to OpenRouter was blocked (VPN down: the edge
+    answers 403 "Access denied by security policy" to that source address)
+    kept the blocked path after the route came back, so every later request
+    over it was refused while any new connection went through (2026-09-29).
+    """
+    session = getattr(_thread_local, "session", None)
+    if session is not None:
+        try:
+            session.close()
+        except Exception:  # noqa: BLE001 — a dead socket must not mask the retry
+            pass
+        _thread_local.session = None
+
+
 def _encode(paths: List[Path], log) -> List[Tuple[str, str]]:
     encoded = []
     for path in paths:
@@ -214,6 +233,10 @@ def _call_api(encoded: List[Tuple[str, str]], log) -> Optional[List[Dict]]:
             time.sleep(wait)
             continue
 
+        if response.status_code == 403:
+            # The connection, not the request, is what gets refused: retry on
+            # a fresh one (see _drop_session).
+            _drop_session()
         log.error("API error %d: %s", response.status_code, response.text[:300])
         time.sleep(5)
 

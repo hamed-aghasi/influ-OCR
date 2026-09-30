@@ -16,7 +16,7 @@ from . import aggregate, batch, client, prompt, schema  # noqa: F401  (eager: sa
 from .aggregate import _aggregate, assemble_metrics
 from .batch import chunk_batches, extract_metrics_from_paths, persist_metrics, process_frames
 from .client import (
-    _all_null, _call_api, _encode, _normalise_keys, _parse_content, _session,
+    _all_null, _call_api, _drop_session, _encode, _normalise_keys, _parse_content, _session,
     _split_on_truncation, _thread_local, frames_missing, ocr_single_batch,
 )
 from .prompt import EXTRACTION_PROMPT
@@ -29,7 +29,7 @@ __all__ = [
     "EXTRACTION_PROMPT", "RESPONSE_FORMAT", "Metrics", "Metadata", "FrameResult", "FrameResults",
     "_METRIC_FIELDS", "_PERCENT_FIELDS", "_MAX_PLAUSIBLE_VALUE", "_UNSUPPORTED_SCHEMA_KEYS",
     "_strict_schema",
-    "_thread_local", "_session", "_encode", "_parse_content", "_normalise_keys", "_all_null",
+    "_thread_local", "_session", "_drop_session", "_encode", "_parse_content", "_normalise_keys", "_all_null",
     "_split_on_truncation", "_call_api", "ocr_single_batch", "frames_missing",
     "_aggregate", "assemble_metrics",
     "persist_metrics", "chunk_batches", "process_frames", "extract_metrics_from_paths",

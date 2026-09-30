@@ -279,3 +279,40 @@ def test_each_thread_gets_its_own_session():
     t.join()
 
     assert seen[0] is not main
+
+
+# ----- stale pooled connection -----
+
+def test_403_drops_the_pooled_session_and_retries_on_a_fresh_one(monkeypatch):
+    """A keep-alive connection opened while the route to OpenRouter was blocked
+    keeps being refused (403) after the route is back; the next attempt must
+    open a new connection instead of reusing the pooled one."""
+    from processing.ocr_processor import client as gp
+
+    monkeypatch.setattr(gp.settings, "openrouter_api_key", "k")
+    monkeypatch.setattr(gp.settings, "ocr_max_retries", 2)
+    monkeypatch.setattr(gp.time, "sleep", lambda s: None)
+
+    class _Session:
+        def __init__(self, status):
+            self.status, self.calls, self.closed = status, 0, False
+
+        def post(self, *args, **kwargs):
+            self.calls += 1
+            if self.status == 403:
+                return _Resp({"success": False, "error": "Access denied by security policy."}, status_code=403)
+            return _Resp(_completion([{"frame_index": 0, "metrics": {"views": 7}}]))
+
+        def close(self):
+            self.closed = True
+
+    stale, fresh = _Session(403), _Session(200)
+    monkeypatch.setattr(gp._thread_local, "session", stale, raising=False)
+    monkeypatch.setattr(gp.requests, "Session", lambda: fresh)
+
+    result = gp._call_api([("f.jpg", "QUJD")], gp.job_logger("processing.ocr_processor", "t"))
+
+    assert stale.calls == 1 and stale.closed          # refused once, then closed
+    assert fresh.calls == 1                            # the retry went out on a new connection
+    assert result[0]["metrics"]["views"] == 7
+    assert gp._session() is fresh
