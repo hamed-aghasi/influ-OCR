@@ -5,12 +5,14 @@
 
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
 venv/
 env/
+ENV/
+.pytest_cache/
 
 # Data and Output folders
 cache/
@@ -57,9 +59,9 @@ classification_report.json
 Thumbs.db
 nul
 
-# Logs
+# Logs (any depth: the app writes instagram_analyzer_app/logs/ when LOG_DIR is unset)
 *.log
-logs/*
+logs/
 !logs/.gitkeep
 
 # Temporary
@@ -90,3 +92,5 @@ review-rounds/**
 !review-rounds/**/
 !review-rounds/**/feedback.json
 !review-rounds/*/README.md
+# test batches and their per-video outputs (real recordings; never committed)
+Final_Test*/
