@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # Always an explicit catalogue id, never an alias: "qwen/qwen3.8-max" was
     # not in OpenRouter's catalogue and silently resolved to a different,
     # reasoning-only model on 2026-09-26, which broke two Final_Test videos
-    # (see HANDOFF.md). qwen3.8-27b ran the other 20 videos of that set
+    # (see docs/history/HANDOFF-2026-09-29.md). qwen3.8-27b ran the other 20 videos of that set
     # (19 complete) at roughly a third of qwen3.8-max-0902's cost. Its
     # `canonical_slug` was qwen/qwen3.8-27b-20260814 when chosen.
     openrouter_model: str = "qwen/qwen3.8-27b"
@@ -117,7 +117,7 @@ class Settings(BaseSettings):
     # ----- Frame selection (which good frames go to OCR) -----
     # "scroll": reconstruct the scroll, propose the fewest frames covering each
     # page, then verify every good frame against the picks row by row
-    # (processing/frame_selection.py). "phash": the dedup above only.
+    # (processing/frame_selection/). "phash": the dedup above only.
     # Measured against the hand-built ground truth (training/ground_truth/, 10
     # videos, 113 metric appearances): scroll sent 192 frames and lost 0
     # metrics; phash sent 217 and lost 2 (a whole-image hash merged two screens
@@ -125,7 +125,7 @@ class Settings(BaseSettings):
     # training/eval_selection.py before changing either.
     frame_selection: Literal["phash", "scroll"] = "scroll"
     # Then keep only the fewest selected frames that together show every
-    # metric, read locally with Tesseract (processing/metric_coverage.py).
+    # metric, read locally with Tesseract (processing/metric_coverage/).
     # A final pass drops frames whose content is readable in another sent frame
     # (processing/selection_pipeline.py). Ground truth: no metric lost.
     # Needs the tesseract binary with these languages (installed in the

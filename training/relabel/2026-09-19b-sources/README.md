@@ -5,7 +5,7 @@ marked `5361dd11` frame 237 ("Top sources of views": Feed / Reels tab / Profile 
 Explore %) as *should have been sent*. The 2026-09-19 relabel had made those
 screens `bad`, so the classifier scored it 0.007. The reviewer confirmed that
 Top sources is needed. It became schema metrics `source_*` (see
-`processing/ocr_processor.py`), and the rule is now:
+`processing/ocr_processor/`, then a single file), and the rule is now:
 
 > `good` = at least one schema metric readable with its label and value,
 > **including a Top sources of views row**.

@@ -3,8 +3,8 @@
 lay out per video what would be sent to OpenRouter, for human feedback.
 
     extract -> classify (deployed model, config threshold)
-            -> scroll-aware selection (frame_selection.py)
-            -> metric-coverage selection via Tesseract (metric_coverage.py)
+            -> scroll-aware selection (processing/frame_selection/)
+            -> metric-coverage selection via Tesseract (processing/metric_coverage/)
             -> batch
 
 NO OpenRouter call, no vision-model OCR, no API key. Uses the app's own modules

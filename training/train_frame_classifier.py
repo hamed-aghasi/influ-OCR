@@ -62,7 +62,7 @@ DEFAULT_IMAGE_SIZE = 224
 DEFAULT_DARK_THRESHOLD = 80
 # --dedup settings. Deliberately coarser than production (config: 16/16): --dedup
 # only thins near-identical training frames within a video, it does not decide
-# what reaches OCR (that is processing/frame_selection.py now).
+# what reaches OCR (that is processing/frame_selection/ now).
 DEFAULT_PHASH_SIZE = 8
 DEFAULT_PHASH_DISTANCE = 4
 DEFAULT_THRESHOLD = 0.30    # config.classifier_threshold — what production decides at

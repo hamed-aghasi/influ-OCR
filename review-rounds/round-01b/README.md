@@ -21,7 +21,7 @@ difference is pipeline code, both runs being from the working tree before commit
 
 ## The two fixes made between the runs
 
-1. **The value backstop now guards counts only** (`metric_coverage.py`, the
+1. **The value backstop now guards counts only** (`processing/metric_coverage/`, the
    `guarded` set). It used to guard percentages too, and OCR reads small ones
    inconsistently ("1.1%" as "11%"), so each misread pulled in another frame —
    here, three copies of one Top sources list. Backstop-kept frames across the

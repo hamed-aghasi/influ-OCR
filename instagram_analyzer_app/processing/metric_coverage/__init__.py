@@ -1,6 +1,6 @@
 """Metric-coverage selection: the fewest frames that show every metric.
 
-Runs after frame selection (frame_selection.py), on the frames it chose. Each
+Runs after frame selection (processing/frame_selection/), on the frames it chose. Each
 is read locally with Tesseract (English + Persian) to find which schema
 metrics appear with a number, and a greedy set cover keeps the fewest frames
 that together show every metric found anywhere in the video.

@@ -13,7 +13,7 @@ Insights screen is `bad` while any visible metric section shows placeholder
 bars or values still fading in, even when another section is loaded.
 
 Labels come from the reviewer looking at the image, never from OCR output
-(`2026-09-20-loading/README.md` records why). Candidate frames were laid out
+(`../2026-09-20-loading/README.md` records why). Candidate frames were laid out
 between their time neighbours (`Final_Test_output/_mid_load_review/`) and
 confirmed or rejected one by one before being added here.
 
