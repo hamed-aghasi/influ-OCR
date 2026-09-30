@@ -4,19 +4,30 @@ Rebuilds the TensorFlow model that decides whether an extracted frame is worth
 sending to the OCR model. **OpenRouter is billed per image**, so this classifier
 is a cost control: keep the frames that carry the numbers, drop the rest.
 
-Three scripts:
+The scripts:
 
 | | |
 |---|---|
 | `extract_frames.py` | videos → raw frames, for you to sort by hand |
 | `train_frame_classifier.py` | sorted frames → a model, plus reports saying what to fix next |
 | `trace_frames.py` | a model + a video → exactly which frames would reach OpenRouter |
+| `eval_selection.py` | frames sent and **metrics lost** per selection strategy, against `ground_truth/` |
+| `eval_feedback.py` | replays every review round's `feedback.json` marked done as regression checks |
+| `review_videos.py` | a human review round: per-video `review.html`, `final/`, a `feedback.json` to fill in |
+| `verify_model.py` | inventory + sha256 digest of the deployed model, optional live prediction |
+| `relabel/apply_relabel.py`, `relabel/<date>/apply.py` | label changes to `train/`, each with an exact undo |
+| `_bootstrap.py` | shared setup the scripts call before importing the app (not a CLI) |
 
-and two folders:
+Run `eval_selection.py` **and** `eval_feedback.py` before changing selection, coverage, the
+threshold or the model; both are offline (no OpenRouter). `eval_feedback.py` takes about an hour.
+
+and the folders:
 
 | | |
 |---|---|
 | `runs/` | **every model ever trained**, with the dataset it was trained on — see `runs/README.md` |
+| `ground_truth/` | hand-labelled metric positions for 10 videos — see `ground_truth/README.md` |
+| `relabel/` | every label change, dated, with its undo — see `relabel/README.md` |
 | `logs/`, `_trace_work/` | scratch output; safe to delete |
 
 `instagram_analyzer_app/models/` holds only the *currently deployed* model.
@@ -160,7 +171,7 @@ move a frame's twin across the boundary.
 
 **The decision threshold is swept and reported.** The model emits P(good); the
 app decides at `classifier_threshold` in `processing/config.py` (0.30 for the
-model deployed 2026-09-19). Those are
+model deployed 2026-09-26, run `2026-09-26-final-test`). Those are
 separate things and they drift apart on every retrain, so each run prints
 precision, recall, F1 and **frames kept** across the whole threshold range, plus
 the cheapest threshold still holding recall above `--min-recall` (default 0.90).
@@ -203,12 +214,13 @@ every BatchNorm layer frozen if you do.
 MODEL_DIR=training/runs/<run> .venv-train/bin/python training/trace_frames.py video.mp4 out/
 ```
 
-Runs extraction → classification → dedup → batching and **stops at the OpenRouter
-boundary**: no network call, no API key, no cost. Prints the frames each request
-would carry, and writes `ocr_input/` (the surviving frames), a labelled
-`contact_sheet.jpg`, `frame_trace.json`, and — with `--all` — the frames the
-classifier rejected and the ones dedup dropped, so a missing metric can be traced
-to the stage that lost it.
+Runs extraction → classification → scroll-aware selection → Tesseract metric
+coverage → batching (the production sequence, `selection_pipeline.choose_ocr_frames`)
+and **stops at the OpenRouter boundary**: no network call, no API key, no cost.
+Prints the frames each request would carry, and writes `ocr_input/` (the surviving
+frames), a labelled `contact_sheet.jpg`, `frame_trace.json`, and — with `--all` —
+the frames the classifier rejected and the ones selection dropped, so a missing
+metric can be traced to the stage that lost it.
 
 With `MODEL_DIR` unset it traces the currently deployed model. It refuses to
 overwrite an existing trace, since a trace is evidence about one (model, video)
