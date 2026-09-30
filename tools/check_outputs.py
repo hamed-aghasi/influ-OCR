@@ -509,7 +509,9 @@ def check_docs_links(out: Path) -> None:
                  "clusters.json", "video_info.json", "history.json", "per_video.md", "errors.md",
                  "threshold_sweep.json", "model_metadata.json", "frame_trace.json", "classifier_conditions.json",
                  "extraction_metadata.json", "instagram_metrics.json", "classification_summary.json",
-                 "campaign_summary.json", "index.html", "index.json", "frames.csv", "added.json", "labels.json"}
+                 "campaign_summary.json", "index.html", "index.json", "frames.csv", "added.json", "labels.json",
+                 "_run_report.json"}
+    archival = ("docs/history/",)   # kept as written; their references describe the tree of their day
     tracked_all = git_files() or [str(p.relative_to(REPO)) for p in REPO.rglob("*") if p.is_file()]
     basenames = {Path(t).name for t in tracked_all}
     token_rx = re.compile(r"`([A-Za-z0-9_./\-]+\.(?:py|md|yml|yaml|json|txt|html|example|tsv|ini|sh))`|\]\(([A-Za-z0-9_./\-]+)\)")
@@ -534,6 +536,10 @@ def check_docs_links(out: Path) -> None:
             if "/" not in ref and base in basenames:   # bare file name that exists somewhere in the tree
                 continue
             missing.append(ref)
+        if rel.startswith(archival):
+            if missing:
+                report[rel] = {"archival_stale": sorted(set(missing))}
+            continue
         if missing or data_refs:
             report[rel] = {"missing": sorted(set(missing)), "ignored_data": sorted(set(data_refs))}
         missing_total += len(set(missing))

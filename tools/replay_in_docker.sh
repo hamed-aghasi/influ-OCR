@@ -16,8 +16,10 @@ REPO=$(dirname "$HERE")
 MOUNT_TREE=""
 for arg in "$@"; do [ "$arg" = "--mount-tree" ] && MOUNT_TREE="-v $REPO/instagram_analyzer_app:/app:ro"; done
 # shellcheck disable=SC2086
+# tools/ is mounted at /tools, not under /app: a mount inside a read-only bind
+# mount (--mount-tree) is refused by the runtime. check_outputs.py finds /app.
 docker run --rm --entrypoint python \
   -e SECRET_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
   -e LOG_DIR=/work/_logs -e PROCESSING_DIR=/work/_processing \
-  -v "$VIDEOS":/videos:ro -v "$OUT":/work -v "$HERE":/app/tools:ro $MOUNT_TREE \
-  "$IMAGE" /app/tools/check_outputs.py replay --videos /videos --out /work
+  -v "$VIDEOS":/videos:ro -v "$OUT":/work -v "$HERE":/tools:ro $MOUNT_TREE \
+  "$IMAGE" /tools/check_outputs.py replay --videos /videos --out /work
