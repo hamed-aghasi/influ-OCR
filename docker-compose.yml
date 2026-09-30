@@ -93,6 +93,14 @@ services:
     image: influ-ocr:latest
     command: celery -A celery_app.celery worker --loglevel=info --concurrency=2
     environment: *app-env
+    # The image's HEALTHCHECK probes HTTP :8000, which only the app serves; a
+    # worker inheriting it reports "unhealthy" forever. Ask Celery instead.
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A celery_app.celery inspect ping -t 10 | grep -q pong"]
+      interval: 60s
+      timeout: 15s
+      start_period: 90s
+      retries: 3
     depends_on:
       postgres:
         condition: service_healthy
@@ -112,6 +120,9 @@ services:
     image: influ-ocr:latest
     command: celery -A celery_app.celery beat --loglevel=info
     environment: *app-env
+    # beat serves nothing to probe; the inherited HTTP check would only mislead
+    healthcheck:
+      disable: true
     depends_on:
       redis:
         condition: service_healthy

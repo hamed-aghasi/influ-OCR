@@ -8,12 +8,14 @@ ENV/
 .env
 .env.local
 
-# Logs and temp files
-logs/
-temp/
-*.log
-__pycache__/
-*.pyc
+# Logs, caches and temp files — at every depth (a bare pattern only matches
+# the context root, so models/.DS_Store or processing/__pycache__/ got copied)
+**/logs/
+**/temp/
+**/*.log
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
 
 # IDE
 .vscode/
@@ -24,8 +26,8 @@ __pycache__/
 .gitignore
 
 # OS
-.DS_Store
-Thumbs.db
+**/.DS_Store
+**/Thumbs.db
 
 # Local model rollback copies (see .gitignore)
 models/backup_*/
