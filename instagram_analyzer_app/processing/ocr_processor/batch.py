@@ -39,7 +39,11 @@ def process_frames(
     skip_dedup: bool = False,
 ) -> Dict:
     """Sequential pipeline (dedup → batched OCR → persist). The Celery chord
-    path in tasks.py runs the same pieces with batches in parallel."""
+    path in tasks.py runs the same pieces with batches in parallel.
+
+    Not called by the app: tasks.run_job/ocr_batch/finalize_job replaced it.
+    Reachable only through extract_metrics_from_paths and the package
+    re-exports; kept so the public surface stays as it was (2026-09-30)."""
     log = job_logger("processing.ocr_processor", job_id)
 
     if not settings.openrouter_api_key:
@@ -87,7 +91,8 @@ def extract_metrics_from_paths(
     output_dir: Optional[Path] = None,
     job_id: Optional[str] = None,
 ) -> Dict:
-    """Convenience entry point used by the worker."""
+    """Convenience entry point once used by the worker. No caller in the app,
+    tests or tools today (see process_frames); kept for the public surface."""
     if not frame_paths:
         return {"error": "No frames", "total_frames": 0}
     return process_frames(frame_paths, output_dir, job_id)

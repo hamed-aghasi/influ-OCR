@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     secret_key: str = Field(..., min_length=16)
     admin_username: str = "admin"
     admin_password: str = "admin123"
+    # Only `python main.py` reads this; the image runs gunicorn bound to 8000
+    # (Dockerfile) and compose maps 127.0.0.1:8010 to it.
     port: int = 8000
 
     # ----- Database -----
@@ -73,6 +75,9 @@ class Settings(BaseSettings):
     # unbudgeted it spent the whole 8,000-token allowance on ONE frame.
     openrouter_reasoning_effort: str = "low"
     ocr_batch_size: int = 12
+    # Pause between batches on the sequential path (ocr_processor.batch
+    # .process_frames), which the app no longer uses: the Celery chord runs
+    # batches in parallel with no inter-batch sleep.
     ocr_delay_seconds: float = 2.0
     ocr_max_retries: int = 5
     ocr_request_timeout: int = 120  # a 6-8 frame batch with reasoning can run 60-90s

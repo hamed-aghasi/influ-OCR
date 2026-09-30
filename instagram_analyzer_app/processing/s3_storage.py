@@ -80,6 +80,7 @@ def download_json(job_id: str, filename: str = "instagram_metrics.json") -> Opti
 
 
 def upload_file(job_id: str, file_path: Path, s3_filename: Optional[str] = None) -> bool:
+    """Not called by the app (only upload_json is); kept for the public surface."""
     client = get_s3_client()
     if not client:
         return False
@@ -115,6 +116,7 @@ def get_file_url(job_id: str, filename: str = "instagram_metrics.json", expires_
 
 
 def delete_job_files(job_id: str) -> bool:
+    """Not called by the app; nothing deletes from S3 today. Kept for the public surface."""
     client = get_s3_client()
     if not client:
         return False

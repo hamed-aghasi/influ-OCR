@@ -301,6 +301,8 @@ def get_job_by_id(job_id: str) -> Optional[Dict[str, Any]]:
 
 
 def get_all_jobs(limit: int = 100, offset: int = 0, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Newest first. `offset` is threaded through both stores but no caller
+    passes it (the jobs page and the export use the default 0)."""
     if not is_database_available():
         with _memory_lock:
             jobs = []

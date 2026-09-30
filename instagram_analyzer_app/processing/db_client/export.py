@@ -40,6 +40,9 @@ _METRIC_KEYS = (
 
 
 def export_to_excel(output_path: Optional[Path] = None) -> Optional[bytes]:
+    """One sheet, one row per job, newest first; None when there are no jobs.
+    With `output_path` the workbook is written there instead of returned —
+    no caller passes it (the /export route streams the bytes)."""
     try:
         import openpyxl
         from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
