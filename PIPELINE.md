@@ -8,7 +8,7 @@ for a run of thousands of videos. Updated the same day with the three fixes in
 
 Every claim carries a `file:name` reference so it can be re-checked rather than
 trusted. **2026-09-26:** the references were `file:line` until the code was
-modularised (see `HANDOFF.md`); each line number was resolved against the commit
+modularised (see `docs/history/HANDOFF-2026-09-29.md`); each line number was resolved against the commit
 it was verified at and replaced with the enclosing function, class or setting,
 and moved names now point at their package submodule (e.g.
 `processing/metric_coverage/select.py:select_by_coverage`). Behaviour did not
@@ -196,7 +196,7 @@ The deployed model is run `2026-09-19b-sources`; held-out recall is 1.000 from
 
 ---
 
-## 4. Scroll-aware selection — `processing/frame_selection.py`
+## 4. Scroll-aware selection — `processing/frame_selection/`
 
 The question this stage answers: *given frames of a page being scrolled, which
 smallest subset shows every row at least once?* It replaced perceptual-hash
@@ -295,7 +295,7 @@ what must be covered (`_stable_rows`).
 
 ---
 
-## 5. Metric coverage — `processing/metric_coverage.py`
+## 5. Metric coverage — `processing/metric_coverage/`
 
 Reads each surviving frame locally with Tesseract, works out which metrics it
 shows, and keeps the fewest frames covering all of them.
@@ -404,7 +404,7 @@ Guards, each added after a real misread:
 
 ---
 
-## 6. OCR — `processing/ocr_processor.py`
+## 6. OCR — `processing/ocr_processor/`
 
 One request per batch of `ocr_batch_size` = 12 frames (`config.py:Settings.ocr_batch_size`), each
 frame inlined as base64 in a single user message (`processing/ocr_processor/client.py:_call_api`), with a strict
@@ -502,7 +502,8 @@ profile, explore, stories, search, other). The other 17 are counts: `views`,
 - With two disagreeing reads, the **smaller** wins by design. With two equally
   frequent modes, the value seen **first** wins silently.
 - **Every database call swallows its exception** and returns `False`/`None`/`[]`
-  (`db_client.py:118, 135, 152, 190, 218, 261, 292, …`). `finalize_job` ignores
+  (`db_client/jobs.py`: `create_job`, `set_job_task_id`, `update_job_progress`,
+  `fail_stale_jobs`, `update_job_status`, …). `finalize_job` ignores
   the return of `save_job_metrics` and then marks the job completed: a DB hiccup
   loses the metrics while the job reports success.
 - **No `DATABASE_URL` silently means an in-memory store** (`processing/db_client/memory.py:_memory_lock`).
