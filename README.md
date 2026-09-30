@@ -5,7 +5,8 @@ recordings and screenshots — English and Persian — using a TensorFlow frame
 classifier, local Tesseract for frame selection, and an OpenRouter vision model
 for the actual reading. Results land in Postgres and an Excel export.
 
-- **Run it:** `RUNBOOK.md` (install, network requirements, batch runs, exports, failure modes).
+- **Start here:** `USER_GUIDE.md` (requirements, keys, setup, uploading, where results are, cost).
+- **Run it day to day:** `RUNBOOK.md` (install, network requirements, batch runs, exports, failure modes).
 - **How it works, stage by stage:** `PIPELINE.md`.
 - **Retrain the classifier:** `training/README.md`.
 - **Command-line tools** (batch submit, local run, self-check, output verification): `tools/README.md`.
